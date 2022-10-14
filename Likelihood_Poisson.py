@@ -91,7 +91,7 @@ rc('text', usetex=True)
 
 np.random.seed(42)
 
-from results_con_zeta1 import *
+#from results_con_zeta1 import *
 
 N=20 #number of bins we want
 
@@ -127,7 +127,7 @@ zpdf_interp = interpolate.interp1d(new_try_z, new_try_zpdf)
 zpdf_interp_all = interpolate.interp1d(np.insert(all_z , 0, 0, axis=0), np.insert(z_pdf, 0, 0, axis=0))
 
 
-'''
+
 zmid_1=np.zeros([14,14])
 
 zmid_2=np.zeros([14,14])
@@ -333,11 +333,13 @@ data = np.column_stack((np.hstack(index_n), np.hstack(n_points),np.hstack(zmid_1
 header = "mass_bin, # detections, zmid_1, zmid_2, maxL_1  ,    maxL_2,   a_1,    zeta_1, delta_2  , gamma_2   "
 np.savetxt(name, data, header=header, fmt='%10.3f')
 
-'''
+
 plt.close('all')
 
 
 #%%
+'''
+
 m_bin = np.arange(2,100+7,7)
 
 i,j=13,10
@@ -378,7 +380,7 @@ nonzero = zm_detections > 0
 
 z_com_1=np.linspace(0,max(mid_z), 200)
 
-'''
+
 if i==0 and j==0:
     plt.figure(figsize=(11,9))
     plt.subplots_adjust(hspace=0.325, wspace=0.250)
@@ -531,12 +533,12 @@ if i==13 and j==10:
     name="general_plots/compare1.pdf"
     plt.savefig(name, format='pdf', dpi=100, bbox_inches="tight")
 
-'''
+
 
 quad_fun_1 = lambda z_int: zpdf_interp_all(z_int)*epsilon(z_int, zmid, a, zeta)
 quad_fun_2 = lambda z_int: zpdf_interp_all(z_int)*sigmoid_2(z_int, zmid_new, delta, gamma)
 
-'''
+
 C1=integrate.quad(quad_fun_1, 0, max(all_z))[0]
 C2=integrate.quad(quad_fun_2, 0, max(all_z))[0]
 
@@ -597,7 +599,7 @@ if i==13 and j==10:
     name="general_plots/compare2.pdf"
     plt.savefig(name, format='pdf', dpi=100, bbox_inches="tight")
 
-'''
+
 
 z_edges = np.linspace(0,max(z),N)
 #z_edges_new=np.insert(z_edges, 0, min(all_z), axis=0)
@@ -680,3 +682,4 @@ if i==13 and j==10:
     plt.savefig(name, format='png', dpi=100, bbox_inches="tight")
     name="general_plots/ndetected.pdf"
     plt.savefig(name, format='pdf', dpi=100, bbox_inches="tight")
+'''
