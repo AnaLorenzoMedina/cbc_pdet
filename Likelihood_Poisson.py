@@ -49,9 +49,9 @@ def logL_quad_1(log_param, z, pz):
     #print(lnL)
     return lnL
 
-def logL_quad_2(log_param, z, pz):
+def logL_quad_2(in_param, z, pz):
     
-    zmid, delta, gamma = np.exp(log_param)
+    zmid, delta, gamma = np.exp(in_param[0]), np.exp(in_param[1]), in_param[2]
     
     quad_fun = lambda z_int: integrand_2(z_int, zmid, delta, gamma)
     
@@ -79,7 +79,9 @@ def MLE_2(z, pz):
                         args = (z, pz,), \
                         method='Nelder-Mead')
     
-    zmid, delta, gamma = np.exp(res.x)   
+    zmid, delta, gamma = np.exp(res.x) 
+    # we don't exponentiate gamma though
+    gamma = np.log(gamma)
     min_likelihood = res.fun                
     return zmid, delta, gamma, -min_likelihood
 
