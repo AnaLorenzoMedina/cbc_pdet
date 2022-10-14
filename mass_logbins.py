@@ -372,6 +372,8 @@ for i in range(N):
 
 ######### SUBPLOTS 
 
+#for plotting results
+
 i,j=13,10
 
 Ntot_bin = mbin_data[i,j]['Ntot_bin']
