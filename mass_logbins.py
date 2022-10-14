@@ -12,6 +12,8 @@ from matplotlib import rc
 from scipy.integrate import quad, dblquad
 #from mpl_toolkits.axes_grid.inset_locator import (inset_axes, InsetPosition,mark_inset)
 from scipy import interpolate
+import os
+import errno
 
 def fun_pdf(m1, m2):
     if m2 > m1:
@@ -29,6 +31,52 @@ def m1_integrand_diag(m1, alpha, beta, mmin, mmax, m1m):
 plt.close('all')
 
 rc('text', usetex=True)
+
+#we create folders needed to save results
+
+try:
+    os.mkdir('z_data')
+except OSError as e:
+    if e.errno != errno.EEXIST:
+        raise
+        
+try:
+    os.mkdir('z_binned')
+except OSError as e:
+    if e.errno != errno.EEXIST:
+        raise
+        
+try:
+    os.mkdir('Ntot_bin')
+except OSError as e:
+    if e.errno != errno.EEXIST:
+        raise
+        
+try:
+    os.mkdir('mean_mass_pdf')
+except OSError as e:
+    if e.errno != errno.EEXIST:
+        raise
+        
+try:
+    os.mkdir('mean_z_pdf')
+except OSError as e:
+    if e.errno != errno.EEXIST:
+        raise
+        
+try:
+    os.mkdir('general_plots')
+except OSError as e:
+    if e.errno != errno.EEXIST:
+        raise
+        
+try:
+    os.mkdir('zm_plots_dic')
+except OSError as e:
+    if e.errno != errno.EEXIST:
+        raise
+        
+        
 
 f = h5py.File('endo3_bbhpop-LIGO-T2100113-v12.hdf5', 'r')
 
@@ -322,23 +370,6 @@ for i in range(N):
             plt.savefig(name, format='png', dpi=100, bbox_inches="tight")
             
             plt.close()
-            
-            #if i==12 and j==0:
-            #    continue
-            
-            # plt.figure()
-            # n,_,_=plt.hist(z_det_hist, zm_bin, density=True, alpha=0.5)
-            # plt.errorbar(np.array(mid)[np.where(n>0)[0]], n[n!=0], yerr=n[n>0]/np.sqrt(zm_detections[n>0]), fmt="none", color="k", capsize=2, elinewidth=0.4)
-            # plt.plot(mid, mean_zm_pdf, 'r-', label=r'$p(z)$')
-            # plt.legend()
-            # plt.yscale('log')
-            # plt.xlabel(r'$z$', fontsize=14)
-            # plt.ylabel(r'$\log{n_f}$', fontsize=14)
-            # plt.title(r'$\log{n_{found}}$ $m_1$ %.0f-%.0f M$_{\odot}$ \& $m_2$ %.0f-%.0f M$_{\odot}$' %(m1_bin[i], m1_bin[i+1], m2_bin[j], m2_bin[j+1]) )
-            # name=f"hist_nf(z)/{i}{j}.png"
-            # plt.savefig(name, format='png', dpi=100, bbox_inches="tight")
-            
-            # plt.close()
             
             name=f'z_data/{i}{j}_data.dat'
             data = np.column_stack((zdeti, zpdfdeti))
