@@ -34,32 +34,9 @@ rc('text', usetex=True)
 
 #we create folders needed to save results
 
-try:
-    os.mkdir('z_data')
-except OSError as e:
-    if e.errno != errno.EEXIST:
-        raise
-        
+
 try:
     os.mkdir('z_binned')
-except OSError as e:
-    if e.errno != errno.EEXIST:
-        raise
-        
-try:
-    os.mkdir('Ntot_bin')
-except OSError as e:
-    if e.errno != errno.EEXIST:
-        raise
-        
-try:
-    os.mkdir('mean_mass_pdf')
-except OSError as e:
-    if e.errno != errno.EEXIST:
-        raise
-        
-try:
-    os.mkdir('mean_z_pdf')
 except OSError as e:
     if e.errno != errno.EEXIST:
         raise
@@ -161,13 +138,16 @@ for i in range(len(m1)):
                     mbin_data[k1,k2]['m_pdf'].append(m_pdf[i])
                     mbin_data[k1,k2]['z_pdf'].append(z_pdf[i])
 
+Ntot_inbin = np.zeros([nbin1,nbin2])
+mean_mpdf_inbin = np.zeros([nbin1,nbin2])
 
 for i in range(N):
     for j in range(N2):
         m1_b=np.array(mbin_data[i,j]['m1'])
         m2_b=np.array(mbin_data[i,j]['m2'])
         
-        mbin_data[i,j]['Ntot_bin']=len(m1_b)
+        mbin_data[i,j]['Ntot_bin'] = len(m1_b)
+        Ntot_inbin[i,j] = len(m1_b)
         
         if len(m1_b)!=0:
         
@@ -176,12 +156,15 @@ for i in range(N):
             
             if m2_bin[j] == m1_bin[i] and m2_bin[j+1] == m1_bin[i+1]:
                 mbin_data[i,j]['mean_m_pdf'] = m1_norm * quad(quad_fun_diag, m1_bin[i], m1_bin[i+1])[0] 
-
+            
             else:
                 mbin_data[i,j]['mean_m_pdf']=dblquad(quad_fun, m1_bin[i],m1_bin[i+1], m2_bin[j],m2_bin[j+1], epsabs=1e-11)[0]
             
         else:
             mbin_data[i,j]['mean_m_pdf']=np.nan
+            
+        mean_mpdf_inbin[i,j] = mbin_data[i,j]['mean_m_pdf']
+        
         # precalculate detection condition
         found_pbbh = np.array(mbin_data[i,j]['far_pbbh']) <= thr
         found_gstlal = np.array(mbin_data[i,j]['far_gstlal']) <= thr
@@ -192,6 +175,11 @@ for i in range(N):
         mbin_data[i,j]['z_det'] = np.array(mbin_data[i,j]['z'])[found_any]
         mbin_data[i,j]['z_pdf_det'] = np.array(mbin_data[i,j]['z_pdf'])[found_any]
         
+np.savetxt('Ntot.dat', Ntot_inbin)
+np.savetxt('mean_mpdf.dat', mean_mpdf_inbin)
+
+
+
 #m detected with far>=1
 detections=np.array([[mbin_data[i,j]['n_det'] for j in range(N2)] for i in range(N)]).T
 
@@ -222,7 +210,6 @@ plt.savefig(name, format='png', dpi=100, bbox_inches="tight")
 #plt.savefig(name, format='pdf', dpi=100, bbox_inches="tight")
 
 
-'''
 #  z histogram
 
 z_bin = np.arange(min(z), max(z)+bz, bz)
@@ -287,6 +274,7 @@ plt.savefig(name, format='pdf', dpi=100, bbox_inches="tight")
 
 #%%
 '''
+'''
 ##################### z histograms for each mass bin ##############
 
 for i in range(N):
@@ -346,11 +334,7 @@ for i in range(N):
             
             # mean pdfs
             mean_zm_pdf = np.array([zmbin_data[u]['mean_z_pdf'] for u in range(Nzm)])
-            
-            #mass bins on the diagonal have half of the number of injections that there should be
-            #if i==j:
-            #    zm_detections=zm_detections*2
-            
+           
             zm_prob = zm_detections/(mean_zm_pdf * mean_m_pdf_i * total )
             
             mid = (zm_bin[:-1]+zm_bin[1:])/2
@@ -358,7 +342,6 @@ for i in range(N):
             nonzero = zm_detections > 0
             
             plt.figure()
-            #mid=np.array([(zm_bin[u]+zm_bin[u+1])/2 for u in range(Nzm)])
             plt.plot(mid, zm_prob, 'o')
             plt.errorbar(mid[nonzero], zm_prob[nonzero], yerr=zm_prob[nonzero]/np.sqrt(zm_detections[nonzero]), fmt="none", color="k", capsize=2, elinewidth=0.4)
             #plt.yscale('log')
@@ -371,34 +354,16 @@ for i in range(N):
             
             plt.close()
             
-            name=f'z_data/{i}{j}_data.dat'
-            data = np.column_stack((zdeti, zpdfdeti))
-            header = "det_z, det_zpdf, Ntot_bin"
-            np.savetxt(name, data, header=header)
-            
             name=f'z_binned/{i}{j}_data.dat'
             data = np.column_stack((mid, zm_prob, zm_detections))
             header = "z_mid, z_binned_prob, zm_detections"
             np.savetxt(name, data, header=header)
             
-            name=f'Ntot_bin/{i}{j}_data.dat'
-            data = np.array([Ntot_bin])
-            header = "Ntot_bin"
-            np.savetxt(name, data, header=header)
             
-            name=f'mean_mass_pdf/{i}{j}_data.dat'
-            data = np.array([mean_m_pdf_i])
-            header = "mean_zm_pdf"
-            np.savetxt(name, data, header=header)
-            
-            name=f'mean_z_pdf/{i}{j}_data.dat'
-            data = np.array([mean_zm_pdf])
-            header = "mean_zm_pdf"
-            np.savetxt(name, data, header=header)
             
 
-''' 
-              
+
+'''         
 #%%
 
 ######### SUBPLOTS 

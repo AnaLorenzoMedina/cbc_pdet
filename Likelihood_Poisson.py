@@ -31,21 +31,20 @@ def integrand_2(z_int,zmid, delta, gamma, alpha=2.05, emax=0.967):
     return Total_expected*zpdf_interp(z_int)*sigmoid_2(z_int, zmid, delta, gamma)
 
 def lam_1(z, pz, zmid, a, zeta, emax=0.967):
-    return Total_expected*pz*epsilon(z, zmid, a, zeta)
+    return Total_expected*pz*epsilon(z, zmid, a, zeta, emax)
 
 def lam_2(z, pz, zmid, delta, gamma, alpha=2.05, emax=0.967):
-    return Total_expected*pz*sigmoid_2(z, zmid, delta, gamma)
+    return Total_expected*pz*sigmoid_2(z, zmid, delta, gamma, alpha, emax)
 
-def logL_quad_1(log_param, z, pz):
+def logL_quad_1(in_param, z, pz):
     
-    zmid, a, zeta = np.exp(log_param)
+    zmid, a, zeta = np.exp(in_param[0]), np.exp(in_param[1]), np.exp(in_param[2])
     
     quad_fun = lambda z_int: integrand_1(z_int, zmid, a, zeta)
     
     Landa_1 = integrate.quad(quad_fun, min(new_try_z), max(new_try_z))[0]
     
     lnL = -Landa_1 + np.sum(np.log(lam_1(z, pz, zmid, a, zeta)) )
-    #print(lnL)
     return lnL
 
 def logL_quad_2(in_param, z, pz):
@@ -54,28 +53,26 @@ def logL_quad_2(in_param, z, pz):
     
     quad_fun = lambda z_int: integrand_2(z_int, zmid, delta, gamma)
     
-    Landa_2=integrate.quad(quad_fun, min(new_try_z), max(new_try_z))[0]
+    Landa_2 = integrate.quad(quad_fun, min(new_try_z), max(new_try_z))[0]
     
     lnL = -Landa_2 + np.sum(np.log(lam_2(z, pz, zmid, delta, gamma)) )
-    #print(lnL)
+    print(lnL)
     return lnL
 
 def MLE_1(z, pz):
-    res = opt.minimize( fun = lambda log_param, z, pz: \
-                       -logL_quad_1(log_param, z, pz), 
-                        x0 = np.array([np.log(np.average(z)), 0, 0]), \
-                        args = (z, pz,), \
+    res = opt.minimize( fun = lambda in_param, z, pz: -logL_quad_1(in_param, z, pz), 
+                        x0 = np.array([np.log(np.average(z)), 0, 0]), 
+                        args = (z, pz,), 
                         method='Nelder-Mead')
     
     zmid, a, zeta = np.exp(res.x)   
     min_likelihood = res.fun                
-    return zmid, a, zeta, -min_likelihood
+    return zmid, a, zeta, -min_likelihood 
 
 def MLE_2(z, pz):
-    res = opt.minimize( fun = lambda log_param, z, pz: \
-                       -logL_quad_2(log_param, z, pz), 
-                        x0 = np.array([np.log(np.average(z)), 0,0]), \
-                        args = (z, pz,), \
+    res = opt.minimize( fun = lambda in_param, z, pz: -logL_quad_2(in_param, z, pz), 
+                        x0 = np.array([np.log(np.average(z)), np.log(4), -0.6]), 
+                        args = (z, pz,), 
                         method='Nelder-Mead')
     
     zmid, delta, gamma = np.exp(res.x) 
@@ -129,26 +126,34 @@ np.random.seed(42)
 
 #from matrices import *
 
-N=20 #number of bins we want
+N=20 #number of bins we want in each mass bin for plotting
 
 f = h5py.File('endo3_bbhpop-LIGO-T2100113-v12.hdf5', 'r')
 
 NTOT = f.attrs['total_generated']
 
-all_z = f["injections/redshift"][:]
-z_pdf = f["injections/redshift_sampling_pdf"][:]
+z_origin = f["injections/redshift"][:]
+z_pdf_origin = f["injections/redshift_sampling_pdf"][:]
 
-index_all = np.argsort(all_z)
-all_z = all_z[index_all]
-z_pdf = z_pdf[index_all]
+m1 = f["injections/mass1_source"][:]
+m2 = f["injections/mass2_source"][:]
+far_pbbh = f["injections/far_pycbc_bbh"][:]  # rename this far_pbbh
+far_gstlal = f["injections/far_gstlal"][:]
+far_mbta = f["injections/far_mbta"][:]
+far_pfull = f["injections/far_pycbc_hyperbank"][:]
 
+mean_mass_pdf = np.loadtxt('mean_mpdf.dat')
+
+###################################### for the z_pdf interpolation 
+
+index_all = np.argsort(z_origin)
+all_z = z_origin[index_all]
+z_pdf = z_pdf_origin[index_all]
 
 index = np.random.choice(np.arange(len(all_z)), 200, replace=False)
 
 try_z = all_z[index]
 try_zpdf = z_pdf[index]
-
-Ntot=len(try_z)
 
 index_try = np.argsort(try_z)
 try_z_ordered = try_z[index_try]
@@ -157,114 +162,130 @@ try_zpdf_ordered = try_zpdf[index_try]
 new_try_z = np.insert(try_z_ordered , 0, 0, axis=0)
 new_try_zpdf = np.insert(try_zpdf_ordered , 0, 0, axis=0)
 
-
 zpdf_interp = interpolate.interp1d(new_try_z, new_try_zpdf)
-
 zpdf_interp_all = interpolate.interp1d(np.insert(all_z , 0, 0, axis=0), np.insert(z_pdf, 0, 0, axis=0))
 
-m_bin = np.round(np.logspace(np.log10(2), np.log10(100), 14+1) , 1)
+#####################################
 
+thr = 1
+
+nbin1 = 14
+nbin2 = 14
+
+mmin = 2 ; mmax = 100
+
+m1_bin = np.round(np.logspace(np.log10(mmin), np.log10(mmax), nbin1+1) , 1)
+m2_bin = np.round(np.logspace(np.log10(mmin), np.log10(mmax), nbin2+1) , 1)
+
+found_pbbh = far_pbbh <= thr
+found_gstlal = far_gstlal <= thr
+found_mbta = far_mbta <= thr
+found_pfull = far_pfull <= thr
+found_any = found_pbbh | found_gstlal | found_mbta | found_pfull
 
 ## descoment for a new optimization
 
-# zmid_1=np.zeros([14,14])
-# zmid_2=np.zeros([14,14])
-# maxL_1=np.zeros([14,14])
-# maxL_2=np.zeros([14,14])
-# a_1=np.zeros([14,14])
-# zeta_1=np.zeros([14,14])
-# delta_2=np.zeros([14,14])
-# gamma_2=np.zeros([14,14])
-# n_points=np.zeros([14,14])
+zmid_1 = np.zeros([nbin1,nbin2])
+zmid_2 = np.zeros([nbin1,nbin2])
+maxL_1 = np.zeros([nbin1,nbin2])
+maxL_2 = np.zeros([nbin1,nbin2])
+a_1 = np.zeros([nbin1,nbin2])
+zeta_1 = np.zeros([nbin1,nbin2])
+delta_2 = np.zeros([nbin1,nbin2])
+gamma_2 = np.zeros([nbin1,nbin2])
+n_points = np.zeros([nbin1,nbin2])
+index_n = np.zeros([nbin1,nbin2])
 
-index_n=np.zeros([14,14])
-
-tot_bines=np.zeros([14,14])
 
 ## comment for a new optimization
 
-zmid_1 = np.loadtxt('maximization_results/zmid_1.dat')
+# zmid_1 = np.loadtxt('maximization_results/zmid_1.dat')
 
-zmid_2 = np.loadtxt('maximization_results/zmid_2.dat')
+# zmid_2 = np.loadtxt('maximization_results/zmid_2.dat')
 
-maxL_1 = np.loadtxt('maximization_results/maxL_1.dat')
+# maxL_1 = np.loadtxt('maximization_results/maxL_1.dat')
 
-maxL_2 = np.loadtxt('maximization_results/maxL_2.dat')
+# maxL_2 = np.loadtxt('maximization_results/maxL_2.dat')
 
-a_1 = np.loadtxt('maximization_results/a_1.dat')
+# a_1 = np.loadtxt('maximization_results/a_1.dat')
 
-zeta_1 = np.loadtxt('maximization_results/zeta_1.dat')
+# zeta_1 = np.loadtxt('maximization_results/zeta_1.dat')
 
-delta_2 = np.loadtxt('maximization_results/delta_2.dat')
+# delta_2 = np.loadtxt('maximization_results/delta_2.dat')
 
-gamma_2 = np.loadtxt('maximization_results/gamma_2.dat')
+# gamma_2 = np.loadtxt('maximization_results/gamma_2.dat')
 
-n_points = np.loadtxt('maximization_results/n_points.dat')
+# n_points = np.loadtxt('maximization_results/n_points.dat')
 
+# index_n = np.array([[f'{i}{j}' for j in range(0,nbin2)] for i in range(0,nbin1)])
 
 ## OPTIMIZATION AND PLOTTING
 
-for i in range(8,14):
-    for j in range(0,14):
+for i in range(0,nbin1):
+    for j in range(0,nbin2):
+        
+        index_n[i,j]=f'{i}{j}'
         
         if j>i:
-            index_n[i,j]=f'{i}{j}'
             continue
 
         plt.close('all')
 
         np.random.seed(42)
         
-        print('\n\n\n\n')
+        print('\n\n\n')
         print(i,j)
         
-        try:
-            data = np.loadtxt(f'z_data/{i}{j}_data.dat')
-        except OSError:
+        m1inbin = (m1 >= m1_bin[i]) & (m1 < m1_bin[i+1])
+        m2inbin = (m2 >= m2_bin[j]) & (m2 < m2_bin[j+1])
+        mbin = m1inbin & m2inbin & found_any
+        
+        data = z_origin[mbin]
+        data_pdf = z_pdf_origin[mbin]
+        
+        if len(data)<1:
+            n_points[i,j]=0
             continue
         
-        if np.ndim(data)<=1:
-            index_n[i,j]=f'{i}{j}'
-            n_points[i,j]=1
-            continue
+        index3 = np.argsort(data)
+        z = data[index3]
+        pz = data_pdf[index3]
         
-        index3 = np.argsort(data[:,0])
-        z = data[:,0][index3]
-        pz = data[:,1][index3]
+        
+        # try:
+        #     data = np.loadtxt(f'z_data/{i}{j}_data.dat')
+        # except OSError:
+        #     continue
+        
+        # if np.ndim(data)<=1:
+        #     n_points[i,j]=1
+        #     continue
+        
+        # index3 = np.argsort(data[:,0])
+        # z = data[:,0][index3]
+        # pz = data[:,1][index3]
         
         n_points[i,j] = len(z)
-            
-        Ntot_bin = np.loadtxt(f'Ntot_bin/{i}{j}_data.dat')
-        
-        mean_mass_pdf = np.loadtxt(f'mean_mass_pdf/{i}{j}_data.dat')
-
-        data_zpdf = np.loadtxt(f'mean_z_pdf/{i}{j}_data.dat')
-
-        index5 = np.argsort(data_zpdf[:])
-        mean_z_pdf = data_zpdf[index5]
-
-        Total_expected = NTOT*mean_mass_pdf
         
         index_n[i,j]=f'{i}{j}'
         
-        tot_bines[i,j] = Ntot_bin
-        
+        Total_expected = NTOT*mean_mass_pdf[i,j]
         
         ### ALREADY OPTIMIZED (comment for new opt values)
         
-        zmid, a, zeta, lnL = zmid_1[i,j], a_1[i,j], zeta_1[i,j], maxL_1[i,j]
-        zmid_new, delta, gamma, lnL_new = zmid_2[i,j], delta_2[i,j], gamma_2[i,j], maxL_2[i,j]
+        #zmid, a, zeta, lnL = zmid_1[i,j], a_1[i,j], zeta_1[i,j], maxL_1[i,j]
+        #zmid_new, delta, gamma, lnL_new = zmid_2[i,j], delta_2[i,j], gamma_2[i,j], maxL_2[i,j]
 
         ### OPTIMIZATION (descomment for a new optimization)
 
-        # zmid, a, zeta, lnL = MLE_1(z, pz)
-        # zmid_new, delta, gamma, lnL_new = MLE_2(z, pz)
+        zmid, a, zeta, lnL = MLE_1(z, pz)
+        zmid_new, delta, gamma, lnL_new = MLE_2(z, pz)
         
-        # zmid_1[i,j] = zmid      ;    maxL_1[i,j] = lnL
-        # a_1[i,j] = a            ;    zeta_1[i,j] = zeta
+        zmid_1[i,j] = zmid      ;    maxL_1[i,j] = lnL
+        a_1[i,j] = a            ;    zeta_1[i,j] = zeta
     
-        # zmid_2[i,j]= zmid_new   ;    maxL_2[i,j]= lnL_new
-        # delta_2[i,j]= delta     ;    gamma_2[i,j]= gamma
+        zmid_2[i,j]= zmid_new   ;    maxL_2[i,j]= lnL_new
+        delta_2[i,j]= delta     ;    gamma_2[i,j]= gamma
         
         
         ############   PLOTTING    ########
@@ -278,7 +299,7 @@ for i in range(8,14):
         plt.plot(zplot, sigmoid_2(zplot, zmid_new, delta, gamma), '-',  label=r'$\varepsilon_2$')
         plt.xlabel(r'$z$', fontsize=14)
         plt.ylabel(r'$P_{det}(z)$', fontsize=14)
-        plt.title(r'$m_1:$ %.0f-%.0f M$_{\odot}$ \& $m_2:$ %.0f-%.0f M$_{\odot}$' %(m_bin[i], m_bin[i+1], m_bin[j], m_bin[j+1]) )
+        plt.title(r'$m_1:$ %.0f-%.0f M$_{\odot}$ \& $m_2:$ %.0f-%.0f M$_{\odot}$' %(m1_bin[i], m1_bin[i+1], m2_bin[j], m2_bin[j+1]) )
         plt.ylim(-0.05,1)
         plt.legend()
         name=f"maximization_results/fit_normal/{i}{j}.png"
@@ -291,7 +312,7 @@ for i in range(8,14):
         plt.plot(zplot, sigmoid_2(zplot, zmid_new, delta, gamma), '-',  label=r'$\varepsilon_2$')
         plt.xlabel(r'$z$', fontsize=14)
         plt.ylabel(r'$P_{det}(z)$', fontsize=14)
-        plt.title(r'$m_1:$ %.0f-%.0f M$_{\odot}$ \& $m_2:$ %.0f-%.0f M$_{\odot}$' %(m_bin[i], m_bin[i+1], m_bin[j], m_bin[j+1]) )
+        plt.title(r'$m_1:$ %.0f-%.0f M$_{\odot}$ \& $m_2:$ %.0f-%.0f M$_{\odot}$' %(m1_bin[i], m1_bin[i+1], m2_bin[j], m2_bin[j+1]) )
         plt.yscale('log')
         plt.ylim(0,1.5)
         plt.legend()
@@ -314,11 +335,10 @@ for i in range(8,14):
         plt.plot(z_com_1, sigmoid_2(z_com_1, zmid_new, delta, gamma), '-', label=r'$\varepsilon_2$')
         plt.xlabel(r'$z$', fontsize=14)
         plt.ylabel(r'$P_{det}(z)$', fontsize=14)
-        plt.title(r'$m_1:$ %.0f-%.0f M$_{\odot}$ \& $m_2:$ %.0f-%.0f M$_{\odot}$' %(m_bin[i], m_bin[i+1], m_bin[j], m_bin[j+1]) )
+        plt.title(r'$m_1:$ %.0f-%.0f M$_{\odot}$ \& $m_2:$ %.0f-%.0f M$_{\odot}$' %(m1_bin[i], m1_bin[i+1], m2_bin[j], m2_bin[j+1]) )
         plt.legend(fontsize=14)
         name=f"maximization_results/poisson_compare_1/{i}{j}.png"
         plt.savefig(name, format='png')
-        
         
         
         #compare_2 plot
@@ -336,7 +356,7 @@ for i in range(8,14):
         plt.plot(zplot, zpdf_plot*epsilon(zplot, zmid, a, zeta)/C1, '-', label=r'$p(z)\cdot\varepsilon_1$')
         plt.plot(zplot, zpdf_plot*sigmoid_2(zplot, zmid_new, delta, gamma)/C2, '-', label=r'$p(z)\cdot\varepsilon_2$')
         plt.xlabel(r'$z$', fontsize=14)
-        plt.title(r'$m_1:$ %.0f-%.0f M$_{\odot}$ \& $m_2:$ %.0f-%.0f M$_{\odot}$' %(m_bin[i], m_bin[i+1], m_bin[j], m_bin[j+1]) )
+        plt.title(r'$m_1:$ %.0f-%.0f M$_{\odot}$ \& $m_2:$ %.0f-%.0f M$_{\odot}$' %(m1_bin[i], m1_bin[i+1], m2_bin[j], m2_bin[j+1]) )
         plt.legend(fontsize=11)
         name=f"maximization_results/poisson_compare_2/{i}{j}.png"
         plt.savefig(name, format='png')
@@ -361,7 +381,7 @@ for i in range(8,14):
         plt.plot(mid, nf_2, '.', label=r'Expected $n_f$ with $\varepsilon_2$')
         plt.xlabel(r'$z$', fontsize=14)
         plt.ylabel(r'$n_f (z)$', fontsize=14)
-        plt.title(r'$m_1:$ %.0f-%.0f M$_{\odot}$ \& $m_2:$ %.0f-%.0f M$_{\odot}$' %(m_bin[i], m_bin[i+1], m_bin[j], m_bin[j+1]) )
+        plt.title(r'$m_1:$ %.0f-%.0f M$_{\odot}$ \& $m_2:$ %.0f-%.0f M$_{\odot}$' %(m1_bin[i], m1_bin[i+1], m2_bin[j], m2_bin[j+1]) )
         plt.legend(fontsize=11)
         name=f"maximization_results/poisson_expected_nf/{i}{j}.png"
         plt.savefig(name, format='png')
@@ -369,24 +389,23 @@ for i in range(8,14):
 
 ### SAVE DATA (descoment to save  new opt values)
 
-# np.savetxt('maximization_results/zmid_1.dat', zmid_1, fmt='%10.3f')
-# np.savetxt('maximization_results/zmid_2.dat', zmid_2, fmt='%10.3f')
-# np.savetxt('maximization_results/a_1.dat', a_1, fmt='%10.3f')
-# np.savetxt('maximization_results/maxL_1.dat', maxL_1, fmt='%10.3f')
-# np.savetxt('maximization_results/zeta_1.dat', zeta_1, fmt='%10.3f')
-# np.savetxt('maximization_results/maxL_2.dat', maxL_2, fmt='%10.3f')
-# np.savetxt('maximization_results/delta_2.dat', delta_2, fmt='%10.3f')
-# np.savetxt('maximization_results/gamma_2.dat', gamma_2, fmt='%10.3f') 
-# np.savetxt('maximization_results/n_points.dat', n_points, fmt='%10.3f')
+np.savetxt('maximization_results/zmid_1.dat', zmid_1, fmt='%10.3f')
+np.savetxt('maximization_results/zmid_2.dat', zmid_2, fmt='%10.3f')
+np.savetxt('maximization_results/a_1.dat', a_1, fmt='%10.3f')
+np.savetxt('maximization_results/maxL_1.dat', maxL_1, fmt='%10.3f')
+np.savetxt('maximization_results/zeta_1.dat', zeta_1, fmt='%10.3f')
+np.savetxt('maximization_results/maxL_2.dat', maxL_2, fmt='%10.3f')
+np.savetxt('maximization_results/delta_2.dat', delta_2, fmt='%10.3f')
+np.savetxt('maximization_results/gamma_2.dat', gamma_2, fmt='%10.3f') 
+np.savetxt('maximization_results/n_points.dat', n_points, fmt='%10.3f')
 
-# name='maximization_results/all_together.dat'
-# data = np.column_stack((np.hstack(index_n), np.hstack(n_points),np.hstack(zmid_1), np.hstack(zmid_2), np.hstack(maxL_1), np.hstack(maxL_2), np.hstack(a_1), np.hstack(zeta_1), np.hstack(delta_2), np.hstack(gamma_2)))
-# header = "mass_bin, # detections, zmid_1, zmid_2, maxL_1  ,    maxL_2,   a_1,    zeta_1, delta_2  , gamma_2   "
-# np.savetxt(name, data, header=header, fmt='%10.3f')
+name = 'maximization_results/all_together.dat'
+data = np.column_stack((np.hstack(index_n), np.hstack(n_points),np.hstack(zmid_1), np.hstack(zmid_2), np.hstack(maxL_1), np.hstack(maxL_2), np.hstack(a_1), np.hstack(zeta_1), np.hstack(delta_2), np.hstack(gamma_2)))
+header = "mass_bin, # detections, zmid_1, zmid_2, maxL_1, maxL_2, a_1, zeta_1, delta_2, gamma_2"
+np.savetxt(name, data, header=header, fmt='%10.3f')
 
 
 plt.close('all')
-
 
 #%%
 
@@ -399,21 +418,18 @@ i,j=13,10
 
 N=30
 
-data = np.loadtxt(f'z_data/{i}{j}_data.dat')
+m1inbin = (m1 >= m1_bin[i]) & (m1 < m1_bin[i+1])
+m2inbin = (m2 >= m2_bin[j]) & (m2 < m2_bin[j+1])
+mbin = m1inbin & m2inbin & found_any
 
-index3=np.argsort(data[:,0])
-z=data[:,0][index3]
-pz=data[:,1][index3]
+data = z_origin[mbin]
+data_pdf = z_pdf_origin[mbin]
 
-Ntot_bin=np.loadtxt(f'Ntot_bin/{i}{j}_data.dat')
-mean_mass_pdf=np.loadtxt(f'mean_mass_pdf/{i}{j}_data.dat')
+index3 = np.argsort(data)
+z = data[index3]
+pz = data_pdf[index3]
 
-data_zpdf = np.loadtxt(f'mean_z_pdf/{i}{j}_data.dat')
-
-index5 = np.argsort(data_zpdf[:])
-mean_z_pdf = data_zpdf[index5]
-
-Total_expected = NTOT*mean_mass_pdf
+Total_expected = NTOT*mean_mass_pdf[i,j]
  
 zzz_fits = np.linspace(0,max(z), 200)
 

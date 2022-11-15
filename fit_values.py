@@ -33,6 +33,16 @@ gamma_2=np.loadtxt('maximization_results/gamma_2.dat')
 
 n_points=np.loadtxt('maximization_results/n_points.dat')
 
+#total log likelihoods
+
+tot_1 = maxL_1.sum()
+tot_2 = maxL_2.sum()
+
+name = 'maximization_results/total_likelihoods.dat'
+data = np.array([tot_1, tot_2])
+header = "tot_log_like_1 , tot_log_like_2  "
+np.savetxt(name, data, header=header, fmt='%10.3f')
+
 
 maxL_1[maxL_1==0]=np.nan
 maxL_2[maxL_2==0]=np.nan
@@ -47,6 +57,14 @@ gamma_2[gamma_2==0]=np.nan
 delta_2[delta_2==0]=np.nan
 
 n_points[n_points==0]=np.nan
+
+x=delta_2.flatten()
+y=gamma_2.flatten()
+
+plt.figure()
+plt.plot(x,y,'.')
+plt.semilogx()
+plt.xlim(1e-3, 1e4)
 
 
 '''
@@ -112,7 +130,7 @@ plt.imshow(zmid_2.T, cmap='viridis', origin='lower')
 plt.colorbar()
 '''
 
-
+'''
 
 fig=plt.figure(figsize=(12,6))
 #plt.subplots_adjust(hspace=0.325, wspace=0.250)
@@ -146,3 +164,4 @@ plt.savefig(name, format='png', dpi=100, bbox_inches="tight")
 
 name="general_plots/plot_zmid.pdf"
 plt.savefig(name, format='pdf', dpi=100, bbox_inches="tight")
+'''
