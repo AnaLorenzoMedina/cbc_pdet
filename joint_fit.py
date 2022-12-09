@@ -41,11 +41,11 @@ def logL_quad_2(in_param, z, pz):
     zmid = np.exp(in_param[0])
 
     # It's hard to check here what is the value of Total_expected ..
-    quad_fun = lambda z_int: Total_expected * integrand_2(z_int, zmid, delta, gamma)
+    quad_fun = lambda z_int: Total_expected * integrand_2(z_int, zmid, gamma, delta)
     # Similarly it's hard to check here what is the value of new_try_z
     Lambda_2 = integrate.quad(quad_fun, min(new_try_z), max(new_try_z))[0]
     
-    lnL = -Lambda_2 + np.sum(np.log(Total_expected * lam_2(z, pz, zmid, delta, gamma)))
+    lnL = -Lambda_2 + np.sum(np.log(Total_expected * lam_2(z, pz, zmid, gamma, delta)))
     return lnL
 
 
@@ -84,7 +84,7 @@ def logL_quad_2_global(in_param):
             if lnL == -np.inf:
                 # We should still print a warning here!
                 #print(i,j)
-                #print(sigmoid_2(z, zmid_inter[i,j], delta, gamma))
+                #print(sigmoid_2(z, zmid_inter[i,j], gamma, delta))
                 continue
             
             lnL_global[i,j] = lnL
