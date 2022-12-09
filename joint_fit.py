@@ -303,4 +303,4 @@ for i in range(0,nbin1):
         name=f"joint_fit_results/final_plots/{i}{j}.png"
         plt.savefig(name, format='png')
         
-        plt.close('all')
+        plt.close()
