@@ -59,6 +59,8 @@ def logL_quad_2(in_param, z, pz):
     print(lnL)
     return lnL
 
+# the nelder-mead algorithm has these default tolerances: xatol=1e-4, fatol=1e-4  
+
 def MLE_1(z, pz):
     res = opt.minimize( fun = lambda in_param, z, pz: -logL_quad_1(in_param, z, pz), 
                         x0 = np.array([np.log(np.average(z)), 0, 0]), 
@@ -251,20 +253,6 @@ for i in range(0,nbin1):
         z = data[index3]
         pz = data_pdf[index3]
         
-        
-        # try:
-        #     data = np.loadtxt(f'z_data/{i}{j}_data.dat')
-        # except OSError:
-        #     continue
-        
-        # if np.ndim(data)<=1:
-        #     n_points[i,j]=1
-        #     continue
-        
-        # index3 = np.argsort(data[:,0])
-        # z = data[:,0][index3]
-        # pz = data[:,1][index3]
-        
         n_points[i,j] = len(z)
         
         index_n[i,j]=f'{i}{j}'
@@ -390,7 +378,8 @@ for i in range(0,nbin1):
 ### SAVE DATA (descoment to save  new opt values)
 
 np.savetxt('maximization_results/zmid_1.dat', zmid_1, fmt='%10.3f')
-np.savetxt('maximization_results/zmid_2.dat', zmid_2, fmt='%10.3f')
+np.savetxt('maximization_results/zmid_2_rounded.dat', zmid_2, fmt='%10.3f')
+np.savetxt('maximization_results/zmid_2.dat', zmid_2, fmt='%e')
 np.savetxt('maximization_results/a_1.dat', a_1, fmt='%10.3f')
 np.savetxt('maximization_results/maxL_1.dat', maxL_1, fmt='%10.3f')
 np.savetxt('maximization_results/zeta_1.dat', zeta_1, fmt='%10.3f')
@@ -398,6 +387,7 @@ np.savetxt('maximization_results/maxL_2.dat', maxL_2, fmt='%10.3f')
 np.savetxt('maximization_results/delta_2.dat', delta_2, fmt='%10.3f')
 np.savetxt('maximization_results/gamma_2.dat', gamma_2, fmt='%10.3f') 
 np.savetxt('maximization_results/n_points.dat', n_points, fmt='%10.3f')
+
 
 name = 'maximization_results/all_together.dat'
 data = np.column_stack((np.hstack(index_n), np.hstack(n_points),np.hstack(zmid_1), np.hstack(zmid_2), np.hstack(maxL_1), np.hstack(maxL_2), np.hstack(a_1), np.hstack(zeta_1), np.hstack(delta_2), np.hstack(gamma_2)))
