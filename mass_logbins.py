@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
 from matplotlib import rc
 from scipy.integrate import quad, dblquad
-#from mpl_toolkits.axes_grid.inset_locator import (inset_axes, InsetPosition,mark_inset)
+from mpl_toolkits.axes_grid.inset_locator import (inset_axes, InsetPosition,mark_inset)
 from scipy import interpolate
 import os
 import errno
@@ -179,7 +179,6 @@ np.savetxt('Ntot.dat', Ntot_inbin)
 np.savetxt('mean_mpdf.dat', mean_mpdf_inbin)
 
 
-
 #m detected with far>=1
 detections=np.array([[mbin_data[i,j]['n_det'] for j in range(N2)] for i in range(N)]).T
 
@@ -324,7 +323,6 @@ for i in range(N):
             for u in range(Nzm):
                 quad_fun = lambda x: zpdf_interp(x)
                 zmbin_data[u]['mean_z_pdf'] = quad(quad_fun, zm_bin[u], zm_bin[u+1])[0] 
-                #zmbin_data[u]['mean_z_pdf'] = np.average(zmbin_data[u]['z_pdf'])
                 zmbin_data[u]['n_det'] = len(np.array(zmbin_data[u]['zdet']))
 
             #z detected with far>=1
@@ -360,8 +358,6 @@ for i in range(N):
             np.savetxt(name, data, header=header)
             
             
-            
-
 
 '''         
 #%%
@@ -432,8 +428,6 @@ zm_prob = zm_detections/(mean_zm_pdf * mean_m_pdf_i  * total )
 mid = (zm_bin[:-1]+zm_bin[1:])/2
 
 nonzero = zm_detections > 0
-
-
 
 
 if i==0 and j==0:
