@@ -187,6 +187,7 @@ mean_pdf = np.array([[mbin_data[i,j]['mean_m_pdf'] for j in range(N2)] for i in 
 
 m_prob = detections/(mean_pdf * total)
 
+'''
 #%%
 #####  2D plot ####
 
@@ -272,7 +273,7 @@ name="LATEX_IMAGES/prob_z.pdf"
 plt.savefig(name, format='pdf', dpi=100, bbox_inches="tight")
 
 #%%
-'''
+
 '''
 ##################### z histograms for each mass bin ##############
 
@@ -338,7 +339,7 @@ for i in range(N):
             mid = (zm_bin[:-1]+zm_bin[1:])/2
             
             nonzero = zm_detections > 0
-            
+            '''
             plt.figure()
             plt.plot(mid, zm_prob, 'o')
             plt.errorbar(mid[nonzero], zm_prob[nonzero], yerr=zm_prob[nonzero]/np.sqrt(zm_detections[nonzero]), fmt="none", color="k", capsize=2, elinewidth=0.4)
@@ -351,7 +352,7 @@ for i in range(N):
             plt.savefig(name, format='png', dpi=100, bbox_inches="tight")
             
             plt.close()
-            
+            '''
             name=f'z_binned/{i}{j}_data.dat'
             data = np.column_stack((mid, zm_prob, zm_detections))
             header = "z_mid, z_binned_prob, zm_detections"

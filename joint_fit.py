@@ -199,7 +199,7 @@ found_any = found_pbbh | found_gstlal | found_mbta | found_pfull
 ## descoment for a new optimization
 
 
-
+'''
 zmid_inter = np.loadtxt('maximization_results/zmid_2.dat')
 delta_new = 4
 gamma_new = -0.6
@@ -268,10 +268,10 @@ np.savetxt('joint_fit_results/all_delta.dat', np.delete(all_delta, 0), fmt='%e')
 np.savetxt('joint_fit_results/all_gamma.dat', np.delete(all_gamma,0), fmt='%10.5f')
 np.savetxt('joint_fit_results/total_lnL.dat', np.delete(total_lnL,0), fmt='%10.3f')
 
-
+'''
 #compare_1 plots
 
-#k = 9  #number of the last iteration
+k = 10  #number of the last iteration
 
 zmid_plot = np.loadtxt(f'joint_fit_results/zmid/zmid_{k}.dat')
 delta_plot = np.loadtxt('joint_fit_results/all_delta.dat')[-1]
