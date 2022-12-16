@@ -32,26 +32,21 @@ def lam_2(z, pz, zmid, gamma, delta, alpha=2.05, emax=0.967):
     return pz * sigmoid_2(z, zmid, gamma, delta, alpha, emax)
 
 
-def logL_quad_2(in_param, z, pz, Total_expected, gamma_new, delta_new):
-
-    # Can we make the function less fragile by taking gamma_new, delta_new as arguments
-    # Otherwise it is hard to check what values gamma_new and delta_new are taking
-    gamma = gamma_new;
-    delta = delta_new;
+# in_param is a generic minimization variable, here ln(zmid)
+def logL_quad_2(in_param, z, pz, Total_expected, gamma, delta):
     zmid = np.exp(in_param[0])
 
-    # It's hard to check here what is the value of Total_expected ..
     quad_fun = lambda z_int: Total_expected * integrand_2(z_int, zmid, gamma, delta)
-    # Similarly it's hard to check here what is the value of new_try_z
+    # it's hard to check here what is the value of new_try_z
     Lambda_2 = integrate.quad(quad_fun, min(new_try_z), max(new_try_z))[0]
-    
     lnL = -Lambda_2 + np.sum(np.log(Total_expected * lam_2(z, pz, zmid, gamma, delta)))
     return lnL
 
 
 def logL_quad_2_global(in_param, nbin1, nbin2, zmid_inter):
+    # in_param is a generic minimization variable, here it is a list [gamma, ln(delta)]
+    gamma, delta = in_param[0], np.exp(in_param[1])
     
-    # Would like nbin1, nbin2 to be arguments ... or set up a class to deal with global properties
     lnL_global = np.zeros([nbin1, nbin2])
     
     for i in range(0, nbin1):
@@ -70,21 +65,17 @@ def logL_quad_2_global(in_param, nbin1, nbin2, zmid_inter):
             if len(data) <= 3:
                 continue
 
-            # maybe rename this variable?
             index_sorted = np.argsort(data)
             z = data[index_sorted]
             pz = data_pdf[index_sorted]
 
             Total_expected = NTOT * mean_mass_pdf[i,j]
-            gamma, delta = in_param[0], np.exp(in_param[1])
-            
             quad_fun = lambda z_int: Total_expected * integrand_2(z_int, zmid_inter[i,j], gamma, delta)
             Lambda_2 = integrate.quad(quad_fun, min(new_try_z), max(new_try_z))[0]
             lnL = -Lambda_2 + np.sum(np.log(Total_expected * lam_2(z, pz, zmid_inter[i,j], gamma, delta)))
             
             if lnL == -np.inf:
-                # We should still print a warning here!
-                print("epsilon gives a zero value in ", i, j, " bin  because zmid is zero or almost zero")
+                print("epsilon gives a zero value in ", i, j, " bin because zmid is zero or almost zero")
                 #print(sigmoid_2(z, zmid_inter[i,j], gamma, delta))
                 continue
             
@@ -97,7 +88,6 @@ def logL_quad_2_global(in_param, nbin1, nbin2, zmid_inter):
 # the nelder-mead algorithm has these default tolerances: xatol=1e-4, fatol=1e-4  
 
 def MLE_2(z, pz, zmid_guess, Total_expected, gamma_new, delta_new):
-    # It's not quite clear how this might use the variable 'in_param' 
     res = opt.minimize(fun=lambda in_param, z, pz: -logL_quad_2(in_param, z, pz, Total_expected, gamma_new, delta_new), 
                        x0=np.array([np.log(zmid_guess)]), 
                        args=(z, pz,), 
@@ -114,9 +104,8 @@ def MLE_2_global(nbin1, nbin2, zmid_inter, gamma_guess, delta_guess):
                        args=(), 
                        method='Nelder-Mead')
     
-    gamma, delta = np.exp(res.x) 
-    # we don't exponentiate gamma though
-    gamma = np.log(gamma)
+    gamma, logdelta = res.x 
+    delta = np.exp(logdelta)
     min_likelihood = res.fun                
     return gamma, delta, -min_likelihood
 
@@ -210,18 +199,23 @@ found_any = found_pbbh | found_gstlal | found_mbta | found_pfull
 
 '''
 zmid_inter = np.loadtxt('maximization_results/zmid_2.dat')
+#zmid_old is the zmid value from the old fit to the FC data
+# -> This was a zmid value for one specific mass bin? 
 zmid_old = 0.327
+
+# I'm not seeing why the reason to use this one value of zmid to scale some initial
+# values of gamma / delta ... it should be better to pick one mass bin where the
+# previous fit with gamma, delta works well and then scale the fitted gamma / delta
+# values with that bin's zmid.  However if this works anyway maybe it doesn't matter
 delta_new = 4*zmid_old**2
 gamma_new = -0.6*zmid_old
 
-#zmid_old is the zmid value from the old fit to the FC data
 
 total_lnL = np.zeros([1])
 all_delta = np.array([delta_new])
 all_gamma = np.array([gamma_new])
 
 for k in range(0,10000):
-    
     print('\n\n')
     print(k)
     
