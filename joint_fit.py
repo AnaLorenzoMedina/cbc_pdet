@@ -32,7 +32,7 @@ def lam_2(z, pz, zmid, gamma, delta, alpha=2.05, emax=0.967):
     return pz * sigmoid_2(z, zmid, gamma, delta, alpha, emax)
 
 
-def logL_quad_2(in_param, z, pz):
+def logL_quad_2(in_param, z, pz, Total_expected, gamma_new, delta_new):
 
     # Can we make the function less fragile by taking gamma_new, delta_new as arguments
     # Otherwise it is hard to check what values gamma_new and delta_new are taking
@@ -49,7 +49,7 @@ def logL_quad_2(in_param, z, pz):
     return lnL
 
 
-def logL_quad_2_global(in_param):
+def logL_quad_2_global(in_param, nbin1, nbin2, zmid_inter):
     
     # Would like nbin1, nbin2 to be arguments ... or set up a class to deal with global properties
     lnL_global = np.zeros([nbin1, nbin2])
@@ -65,14 +65,15 @@ def logL_quad_2_global(in_param):
 
             data = z_origin[mbin]
             data_pdf = z_pdf_origin[mbin]
-
-            if len(data) < 1:
+            
+            #for bins with 3 or less found injections I think its better to skip them, but we can try if len(data) <= 3: // zmid_inter[i,j] = z[0] ?
+            if len(data) <= 3:
                 continue
 
             # maybe rename this variable?
-            index3 = np.argsort(data)
-            z = data[index3]
-            pz = data_pdf[index3]
+            index_sorted = np.argsort(data)
+            z = data[index_sorted]
+            pz = data_pdf[index_sorted]
 
             Total_expected = NTOT * mean_mass_pdf[i,j]
             gamma, delta = in_param[0], np.exp(in_param[1])
@@ -83,21 +84,21 @@ def logL_quad_2_global(in_param):
             
             if lnL == -np.inf:
                 # We should still print a warning here!
-                #print(i,j)
+                print("epsilon gives a zero value in ", i, j, " bin  because zmid is zero or almost zero")
                 #print(sigmoid_2(z, zmid_inter[i,j], gamma, delta))
                 continue
             
             lnL_global[i,j] = lnL
 
-    print(lnL_global.sum())            
+    print('\n', lnL_global.sum())            
     return lnL_global.sum()
 
 
 # the nelder-mead algorithm has these default tolerances: xatol=1e-4, fatol=1e-4  
 
-def MLE_2(z, pz, zmid_guess):
+def MLE_2(z, pz, zmid_guess, Total_expected, gamma_new, delta_new):
     # It's not quite clear how this might use the variable 'in_param' 
-    res = opt.minimize(fun=lambda in_param, z, pz: -logL_quad_2(in_param, z, pz), 
+    res = opt.minimize(fun=lambda in_param, z, pz: -logL_quad_2(in_param, z, pz, Total_expected, gamma_new, delta_new), 
                        x0=np.array([np.log(zmid_guess)]), 
                        args=(z, pz,), 
                        method='Nelder-Mead')
@@ -107,9 +108,9 @@ def MLE_2(z, pz, zmid_guess):
     return zmid_res, -min_likelihood
 
 
-def MLE_2_global():
-    res = opt.minimize(fun=lambda in_param: -logL_quad_2_global(in_param), 
-                       x0=np.array([gamma_new, np.log(delta_new)]), 
+def MLE_2_global(nbin1, nbin2, zmid_inter, gamma_guess, delta_guess):
+    res = opt.minimize(fun=lambda in_param: -logL_quad_2_global(in_param, nbin1, nbin2, zmid_inter), 
+                       x0=np.array([gamma_guess, np.log(delta_guess)]), 
                        args=(), 
                        method='Nelder-Mead')
     
@@ -209,8 +210,11 @@ found_any = found_pbbh | found_gstlal | found_mbta | found_pfull
 
 '''
 zmid_inter = np.loadtxt('maximization_results/zmid_2.dat')
-delta_new = 4
-gamma_new = -0.6
+zmid_old = 0.327
+delta_new = 4*zmid_old**2
+gamma_new = -0.6*zmid_old
+
+#zmid_old is the zmid value from the old fit to the FC data
 
 total_lnL = np.zeros([1])
 all_delta = np.array([delta_new])
@@ -221,7 +225,7 @@ for k in range(0,10000):
     print('\n\n')
     print(k)
     
-    gamma_new, delta_new, maxL_global = MLE_2_global()
+    gamma_new, delta_new, maxL_global = MLE_2_global(nbin1, nbin2, zmid_inter, gamma_new, delta_new)
     
     all_delta = np.append(all_delta, delta_new) 
     all_gamma = np.append(all_gamma, gamma_new)
@@ -231,6 +235,9 @@ for k in range(0,10000):
     for i in range(0, nbin1):
         for j in range(0, nbin2):
             
+            if j > i:
+                continue
+                
             print('\n\n')
             print(i, j)
             
@@ -241,7 +248,7 @@ for k in range(0,10000):
             data = z_origin[mbin]
             data_pdf = z_pdf_origin[mbin]
             
-            if len(data) < 1:
+            if len(data) <= 3:
                 continue
             
             index3 = np.argsort(data)
@@ -249,7 +256,12 @@ for k in range(0,10000):
             pz = data_pdf[index3]
             
             Total_expected = NTOT * mean_mass_pdf[i,j]
-            zmid_new, maxL = MLE_2(z, pz, zmid_inter[i,j])
+            zmid_new, maxL = MLE_2(z, pz, zmid_inter[i,j], Total_expected, gamma_new, delta_new)
+            
+            if maxL == -np.inf:
+                #just in case, but in principle this does not happen
+                print("epsilon gives a zero value in ", i, j, " bin")
+                maxL = 0
             
             zmid_inter[i, j] = zmid_new
             maxL_inter[i, j] = maxL
@@ -276,7 +288,7 @@ np.savetxt('joint_fit_results/total_lnL.dat', np.delete(total_lnL, 0), fmt='%10.
 '''
 #compare_1 plots
 
-k = 10  #number of the last iteration
+#k = 3  #number of the last iteration
 
 zmid_plot = np.loadtxt(f'joint_fit_results/zmid/zmid_{k}.dat')
 gamma_plot = np.loadtxt('joint_fit_results/all_gamma.dat')[-1]
@@ -299,7 +311,7 @@ for i in range(0,nbin1):
         plt.figure()
         plt.plot(mid_z, pz_binned, '.', label='bins over z')
         plt.errorbar(mid_z[nonzero], pz_binned[nonzero], yerr=pz_binned[nonzero]/np.sqrt(zm_detections[nonzero]), fmt="none", color="k", capsize=2, elinewidth=0.4)
-        plt.plot(z_com_1, sigmoid_2(z_com_1, zmid_plot[i,j], delta_plot, gamma_plot), '-', label=r'$\varepsilon_2$')
+        plt.plot(z_com_1, sigmoid_2(z_com_1, zmid_plot[i,j], gamma_plot, delta_plot), '-', label=r'$\varepsilon_2$')
         plt.xlabel(r'$z$', fontsize=14)
         plt.ylabel(r'$P_{det}(z)$', fontsize=14)
         plt.title(r'$m_1:$ %.0f-%.0f M$_{\odot}$ \& $m_2:$ %.0f-%.0f M$_{\odot}$' %(m1_bin[i], m1_bin[i+1], m2_bin[j], m2_bin[j+1]) )
