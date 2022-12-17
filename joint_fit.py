@@ -61,13 +61,15 @@ def logL_quad_2_global(in_param, nbin1, nbin2, zmid_inter):
             data = z_origin[mbin]
             data_pdf = z_pdf_origin[mbin]
             
-            #for bins with 3 or less found injections I think its better to skip them, but we can try if len(data) <= 3: // zmid_inter[i,j] = z[0] ?
-            if len(data) <= 3:
+            if len(data) < 1:
                 continue
-
+         
             index_sorted = np.argsort(data)
             z = data[index_sorted]
             pz = data_pdf[index_sorted]
+            
+            if zmid_inter[i,j] < 0.1 * min(z):
+                zmid_inter[i,j] = min(z)
 
             Total_expected = NTOT * mean_mass_pdf[i,j]
             quad_fun = lambda z_int: Total_expected * integrand_2(z_int, zmid_inter[i,j], gamma, delta)
@@ -197,7 +199,7 @@ found_any = found_pbbh | found_gstlal | found_mbta | found_pfull
 
 ## descoment for a new optimization
 
-'''
+
 zmid_inter = np.loadtxt('maximization_results/zmid_2.dat')
 #zmid_old is the zmid value from the old fit to the FC data
 # -> This was a zmid value for one specific mass bin? 
@@ -242,13 +244,16 @@ for k in range(0,10000):
             data = z_origin[mbin]
             data_pdf = z_pdf_origin[mbin]
             
-            if len(data) <= 3:
+            if len(data) < 1:
                 continue
             
             index3 = np.argsort(data)
             z = data[index3]
             pz = data_pdf[index3]
             
+            if zmid_inter[i,j] < 0.1 * min(z):
+                zmid_inter[i,j] = min(z)
+                
             Total_expected = NTOT * mean_mass_pdf[i,j]
             zmid_new, maxL = MLE_2(z, pz, zmid_inter[i,j], Total_expected, gamma_new, delta_new)
             
@@ -279,7 +284,7 @@ np.savetxt('joint_fit_results/all_delta.dat', np.delete(all_delta, 0), fmt='%e')
 np.savetxt('joint_fit_results/all_gamma.dat', np.delete(all_gamma, 0), fmt='%10.5f')
 np.savetxt('joint_fit_results/total_lnL.dat', np.delete(total_lnL, 0), fmt='%10.3f')
 
-'''
+
 #compare_1 plots
 
 #k = 3  #number of the last iteration
