@@ -306,7 +306,7 @@ for k in range(0,10000):
         break
 print(k)
 
-np.savetxt('dL_joint_fit_results/all_delta.dat', np.delete(all_delta, 0), fmt='%e')
+np.savetxt('dL_joint_fit_results/all_delta.dat', np.delete(all_delta, 0), fmt='%10.5f')
 np.savetxt('dL_joint_fit_results/all_gamma.dat', np.delete(all_gamma, 0), fmt='%10.5f')
 np.savetxt('dL_joint_fit_results/total_lnL.dat', np.delete(total_lnL, 0), fmt='%10.3f')
 

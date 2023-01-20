@@ -136,9 +136,6 @@ except OSError as e:
     if e.errno != errno.EEXIST:
         raise
 
-# Is this needed ?
-plt.close('all')
-
 rc('text', usetex=True)
 np.random.seed(42)
 
