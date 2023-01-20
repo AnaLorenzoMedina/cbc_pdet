@@ -147,30 +147,30 @@ for i in range(0, nbin1):
         if len(data) < 1:
             continue
      
-        # index_sorted = np.argsort(data)
-        # z = data[index_sorted]
-        # pz = data_pdf[index_sorted]
-        # Total_expected = NTOT * mean_mass_pdf[i,j]
+        index_sorted = np.argsort(data)
+        z = data[index_sorted]
+        pz = data_pdf[index_sorted]
+        Total_expected = NTOT * mean_mass_pdf[i,j]
         
-        # tot_lnL = np.array([[logL_quad_2(z, pz, Total_expected, zmid[i,j], alpha[u], emax[w]).sum() for w in range(len(emax))] for u in range(len(alpha))])
+        tot_lnL = np.array([[logL_quad_2(z, pz, Total_expected, zmid[i,j], alpha[u], emax[w]).sum() for w in range(len(emax))] for u in range(len(alpha))])
         
-        # color = 'viridis'
+        color = 'viridis'
 
-        # plt.figure()
-        # plt.imshow(tot_lnL, cmap=color, origin='lower', norm=LogNorm())
-        # plt.colorbar()
-        # plt.xlabel(r'$\alpha$', fontsize=15)
-        # plt.ylabel(r'$\epsilon_{max}$', fontsize=15)
-        # plt.title(r'tot_lnL $m_1$ %.1f-%.1f M$_{\odot}$ \& $m_2$ %.1f-%.1f M$_{\odot}$' %(m1_bin[i], m1_bin[i+1], m2_bin[j], m2_bin[j+1]), fontsize=15)
+        plt.figure()
+        plt.imshow(tot_lnL, cmap=color, origin='lower', norm=LogNorm())
+        plt.colorbar()
+        plt.xlabel(r'$\alpha$', fontsize=15)
+        plt.ylabel(r'$\epsilon_{max}$', fontsize=15)
+        plt.title(r'tot_lnL $m_1$ %.1f-%.1f M$_{\odot}$ \& $m_2$ %.1f-%.1f M$_{\odot}$' %(m1_bin[i], m1_bin[i+1], m2_bin[j], m2_bin[j+1]), fontsize=15)
 
-        # name=f"emax_apha_logL/plots_2D_hist/{i}{j}.png"
-        # plt.savefig(name, format='png', dpi=100, bbox_inches="tight")
+        name=f"emax_apha_logL/plots_2D_hist/{i}{j}.png"
+        plt.savefig(name, format='png', dpi=100, bbox_inches="tight")
         
-        # plt.close()
+        plt.close()
         
-        # np.savetxt(f'emax_apha_logL/tot_logL/{i}{j}.dat', tot_lnL, fmt='%10.5f')
+        np.savetxt(f'emax_apha_logL/tot_logL/{i}{j}.dat', tot_lnL, fmt='%10.5f')
         
-        tot_lnL = np.loadtxt(f'emax_apha_logL/tot_logL/{i}{j}.dat')
+        #tot_lnL = np.loadtxt(f'emax_apha_logL/tot_logL/{i}{j}.dat')
         
         ind = np.unravel_index(np.argmax(tot_lnL), tot_lnL.shape)
         s = '%i.%i' %(ind[0], ind[1])
