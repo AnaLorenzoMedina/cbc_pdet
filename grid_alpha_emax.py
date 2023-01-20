@@ -186,4 +186,4 @@ np.savetxt('emax_apha_logL/max_lnL.dat', max_lnL, fmt='%-14s')
 most_rep_1 = np.argmax(np.bincount(indexes_1.flatten())[1:]) + 1  #the zero values dont count
 most_rep_2 = np.argmax(np.bincount(indexes_2.flatten())[1:]) + 1
 print('Best overall values are alpha=%f and emax=%f' %(alpha[most_rep_2], emax[most_rep_1]))
-np.savetxt('emax_apha_logL/best_values.dat', np.array([alpha[most_rep_2], emax[most_rep_1]]), header='alpha, emax')
+np.savetxt('emax_apha_logL/best_values.dat', np.array([alpha[most_rep_2], emax[most_rep_1]]), header='alpha, emax', fmt='%s')
