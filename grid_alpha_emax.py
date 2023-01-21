@@ -146,30 +146,30 @@ for i in range(0, nbin1):
         if len(data) < 1:
             continue
      
-        index_sorted = np.argsort(data)
-        z = data[index_sorted]
-        pz = data_pdf[index_sorted]
-        Total_expected = NTOT * mean_mass_pdf[i,j]
+        # index_sorted = np.argsort(data)
+        # z = data[index_sorted]
+        # pz = data_pdf[index_sorted]
+        # Total_expected = NTOT * mean_mass_pdf[i,j]
         
-        tot_lnL = np.array([[logL_quad_2(z, pz, Total_expected, zmid[i,j], alpha[u], emax[w]).sum() for w in range(len(emax))] for u in range(len(alpha))])
+        # tot_lnL = np.array([[logL_quad_2(z, pz, Total_expected, zmid[i,j], alpha[u], emax[w]).sum() for w in range(len(emax))] for u in range(len(alpha))])
         
-        color = 'viridis'
+        # color = 'viridis'
 
-        plt.figure()
-        plt.imshow(tot_lnL, cmap=color, origin='lower', norm=LogNorm())
-        plt.colorbar()
-        plt.xlabel(r'$\alpha$', fontsize=15)
-        plt.ylabel(r'$\epsilon_{max}$', fontsize=15)
-        plt.title(r'tot_lnL $m_1$ %.1f-%.1f M$_{\odot}$ \& $m_2$ %.1f-%.1f M$_{\odot}$' %(m1_bin[i], m1_bin[i+1], m2_bin[j], m2_bin[j+1]), fontsize=15)
+        # plt.figure()
+        # plt.imshow(tot_lnL, cmap=color, origin='lower', norm=LogNorm())
+        # plt.colorbar()
+        # plt.xlabel(r'$\alpha$', fontsize=15)
+        # plt.ylabel(r'$\epsilon_{max}$', fontsize=15)
+        # plt.title(r'tot_lnL $m_1$ %.1f-%.1f M$_{\odot}$ \& $m_2$ %.1f-%.1f M$_{\odot}$' %(m1_bin[i], m1_bin[i+1], m2_bin[j], m2_bin[j+1]), fontsize=15)
 
-        name=f"emax_apha_logL/plots_2D_hist/{i}{j}.png"
-        plt.savefig(name, format='png', dpi=100, bbox_inches="tight")
+        # name=f"emax_apha_logL/plots_2D_hist/{i}{j}.png"
+        # plt.savefig(name, format='png', dpi=100, bbox_inches="tight")
         
-        plt.close()
+        # plt.close()
         
-        np.savetxt(f'emax_apha_logL/tot_logL/{i}{j}.dat', tot_lnL, fmt='%10.5f')
+        # np.savetxt(f'emax_apha_logL/tot_logL/{i}{j}.dat', tot_lnL, fmt='%10.5f')
         
-        #tot_lnL = np.loadtxt(f'emax_apha_logL/tot_logL/{i}{j}.dat')
+        tot_lnL = np.loadtxt(f'emax_apha_logL/tot_logL/{i}{j}.dat')
         
         ind = np.unravel_index(np.argmax(tot_lnL), tot_lnL.shape)
         s = '%i.%i' %(ind[0], ind[1])
@@ -182,13 +182,34 @@ for i in range(0, nbin1):
         best_emax[i,j] = emax[ind[0]]
         best_alpha[i,j] = alpha[ind[1]]
         
-np.savetxt('emax_apha_logL/max_index_lnL.dat', max_index_lnL, fmt='%-5s')
-np.savetxt('emax_apha_logL/max_lnL.dat', max_lnL, fmt='%-14s')
+#total log likelihood over the mass bins
 
-np.savetxt('emax_apha_logL/best_emax.dat', np.round(best_emax, 4), fmt='%-7s')
-np.savetxt('emax_apha_logL/best_alpha.dat', np.round(best_alpha, 4), fmt='%-7s')
+l = []
 
-most_rep_1 = np.argmax(np.bincount(indexes_1.flatten())[1:]) + 1  #the zero values dont count
-most_rep_2 = np.argmax(np.bincount(indexes_2.flatten())[1:]) + 1
-print('Best overall values are alpha=%f and emax=%f' %(alpha[most_rep_2], emax[most_rep_1]))
-np.savetxt('emax_apha_logL/best_values.dat', np.array([alpha[most_rep_2], emax[most_rep_1]]), header='alpha, emax', fmt='%s')
+for i in range(0,nbin1):
+    for j in range(0,nbin2):
+        try:
+            l.append(np.loadtxt(f'emax_apha_logL/tot_logL/{i}{j}.dat'))
+        except OSError:
+            continue
+        
+tot_L_allbin = sum(l)
+np.savetxt('emax_apha_logL/max_tot_lnL.dat', tot_L_allbin, fmt='%-19s')
+
+max_tot_index = np.unravel_index(np.argmax(tot_L_allbin), tot_L_allbin.shape)
+best_tot_emax = emax[max_tot_index[0]]
+best_tot_alpha = alpha[max_tot_index[1]]
+
+print('Best overall values are alpha=%f and emax=%f' %(best_tot_alpha, best_tot_emax))
+np.savetxt('emax_apha_logL/best_values.dat', np.array([best_tot_alpha, best_tot_emax]), header='alpha, emax', fmt='%s')
+
+# np.savetxt('emax_apha_logL/max_index_lnL.dat', max_index_lnL, fmt='%-5s')
+# np.savetxt('emax_apha_logL/max_lnL.dat', max_lnL, fmt='%-14s')
+
+# np.savetxt('emax_apha_logL/best_emax.dat', np.round(best_emax, 4), fmt='%-7s')
+# np.savetxt('emax_apha_logL/best_alpha.dat', np.round(best_alpha, 4), fmt='%-7s')
+
+# most_rep_1 = np.argmax(np.bincount(indexes_1.flatten())[1:]) + 1  #the zero values dont count
+# most_rep_2 = np.argmax(np.bincount(indexes_2.flatten())[1:]) + 1
+# print('Best overall values are alpha=%f and emax=%f' %(alpha[most_rep_2], emax[most_rep_1]))
+# np.savetxt('emax_apha_logL/best_values.dat', np.array([alpha[most_rep_2], emax[most_rep_1]]), header='alpha, emax', fmt='%s')
