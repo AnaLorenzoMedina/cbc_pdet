@@ -153,55 +153,62 @@ for i in range(0, nbin1):
         
         # tot_lnL = np.array([[logL_quad_2(z, pz, Total_expected, zmid[i,j], alpha[u], emax[w]).sum() for w in range(len(emax))] for u in range(len(alpha))])
         
-        # color = 'viridis'
-
-        # plt.figure()
-        # plt.imshow(tot_lnL, cmap=color, origin='lower', norm=LogNorm())
-        # plt.colorbar()
-        # plt.xlabel(r'$\alpha$', fontsize=15)
-        # plt.ylabel(r'$\epsilon_{max}$', fontsize=15)
-        # plt.title(r'tot_lnL $m_1$ %.1f-%.1f M$_{\odot}$ \& $m_2$ %.1f-%.1f M$_{\odot}$' %(m1_bin[i], m1_bin[i+1], m2_bin[j], m2_bin[j+1]), fontsize=15)
-
-        # name=f"emax_apha_logL/plots_2D_hist/{i}{j}.png"
-        # plt.savefig(name, format='png', dpi=100, bbox_inches="tight")
-        
-        # plt.close()
-        
         # np.savetxt(f'emax_apha_logL/tot_logL/{i}{j}.dat', tot_lnL, fmt='%10.5f')
         
         tot_lnL = np.loadtxt(f'emax_apha_logL/tot_logL/{i}{j}.dat')
         
-        ind = np.unravel_index(np.argmax(tot_lnL), tot_lnL.shape)
-        s = '%i.%i' %(ind[0], ind[1])
-        max_index_lnL[i,j] = s
-        max_lnL[i,j] = np.max(tot_lnL)
         
-        indexes_1[i,j] = ind[0]
-        indexes_2[i,j] = ind[1]
+        # ind = np.unravel_index(np.argmax(tot_lnL), tot_lnL.shape)
+        # s = '%i.%i' %(ind[0], ind[1])
+        # max_index_lnL[i,j] = s
+        # max_lnL[i,j] = np.max(tot_lnL)
         
-        best_emax[i,j] = emax[ind[0]]
-        best_alpha[i,j] = alpha[ind[1]]
+        # indexes_1[i,j] = ind[0]
+        # indexes_2[i,j] = ind[1]
+        
+        # best_emax[i,j] = emax[ind[0]]
+        # best_alpha[i,j] = alpha[ind[1]]
+        
+        color = 'viridis'
+        tick= np.array((0,1,2,3,4,5,6,7,8,9,10))
+
+        plt.figure()
+        plt.imshow(tot_lnL, cmap=color, origin='lower', norm=LogNorm())
+        plt.colorbar()
+        plt.ylabel(r'$\alpha$', fontsize=15)
+        plt.xlabel(r'$\epsilon_{max}$', fontsize=15)
+        plt.xticks(ticks=tick, labels=np.round(emax,3), fontsize=8)
+        plt.yticks(ticks=tick, labels=np.round(alpha,3))
+        plt.title(r'tot_lnL $m_1$ %.1f-%.1f M$_{\odot}$ \& $m_2$ %.1f-%.1f M$_{\odot}$' %(m1_bin[i], m1_bin[i+1], m2_bin[j], m2_bin[j+1]), fontsize=15)
+
+        name=f"emax_apha_logL/plots_2D_hist/{i}{j}.png"
+        plt.savefig(name, format='png', dpi=100, bbox_inches="tight")
+        
+        plt.close()
         
 #total log likelihood over the mass bins
 
-l = []
+# l = []
 
-for i in range(0,nbin1):
-    for j in range(0,nbin2):
-        try:
-            l.append(np.loadtxt(f'emax_apha_logL/tot_logL/{i}{j}.dat'))
-        except OSError:
-            continue
+# for i in range(0,nbin1):
+#     for j in range(0,nbin2):
+#         try:
+#             l.append(np.loadtxt(f'emax_apha_logL/tot_logL/{i}{j}.dat'))
+#         except OSError:
+#             continue
         
-tot_L_allbin = sum(l)
-np.savetxt('emax_apha_logL/max_tot_lnL.dat', tot_L_allbin, fmt='%-19s')
+# tot_L_allbin = sum(l)
+# np.savetxt('emax_apha_logL/max_tot_lnL.dat', tot_L_allbin, fmt='%-19s')
 
-max_tot_index = np.unravel_index(np.argmax(tot_L_allbin), tot_L_allbin.shape)
-best_tot_emax = emax[max_tot_index[0]]
-best_tot_alpha = alpha[max_tot_index[1]]
+# max_tot_index = np.unravel_index(np.argmax(tot_L_allbin), tot_L_allbin.shape)
+# best_tot_emax = emax[max_tot_index[0]]
+# best_tot_alpha = alpha[max_tot_index[1]]
 
-print('Best overall values are alpha=%f and emax=%f' %(best_tot_alpha, best_tot_emax))
-np.savetxt('emax_apha_logL/best_values.dat', np.array([best_tot_alpha, best_tot_emax]), header='alpha, emax', fmt='%s')
+# print('Best overall values are alpha=%f and emax=%f' %(best_tot_alpha, best_tot_emax))
+# np.savetxt('emax_apha_logL/best_values.dat', np.array([best_tot_alpha, best_tot_emax]), header='alpha, emax', fmt='%s')
+
+
+
 
 # np.savetxt('emax_apha_logL/max_index_lnL.dat', max_index_lnL, fmt='%-5s')
 # np.savetxt('emax_apha_logL/max_lnL.dat', max_lnL, fmt='%-14s')
