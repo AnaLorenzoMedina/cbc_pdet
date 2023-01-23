@@ -50,6 +50,12 @@ except OSError as e:
         raise
         
 try:
+    os.mkdir('emax_apha_logL/plots_lnL_vs_emax')
+except OSError as e:
+    if e.errno != errno.EEXIST:
+        raise
+        
+try:
     os.mkdir('emax_apha_logL/tot_logL')
 except OSError as e:
     if e.errno != errno.EEXIST:
@@ -169,19 +175,35 @@ for i in range(0, nbin1):
         # best_emax[i,j] = emax[ind[0]]
         # best_alpha[i,j] = alpha[ind[1]]
         
-        color = 'viridis'
-        tick= np.array((0,1,2,3,4,5,6,7,8,9,10))
+        # color = 'viridis'
+        # tick= np.array((0,1,2,3,4,5,6,7,8,9,10))
 
+        # plt.figure()
+        # plt.imshow(tot_lnL, cmap=color, origin='lower', norm=LogNorm())
+        # plt.colorbar()
+        # plt.ylabel(r'$\alpha$', fontsize=15)
+        # plt.xlabel(r'$\epsilon_{max}$', fontsize=15)
+        # plt.xticks(ticks=tick, labels=np.round(emax,3), fontsize=8)
+        # plt.yticks(ticks=tick, labels=np.round(alpha,3))
+        # plt.title(r'tot_lnL $m_1$ %.1f-%.1f M$_{\odot}$ \& $m_2$ %.1f-%.1f M$_{\odot}$' %(m1_bin[i], m1_bin[i+1], m2_bin[j], m2_bin[j+1]), fontsize=15)
+
+        # name=f"emax_apha_logL/plots_2D_hist/{i}{j}.png"
+        # plt.savefig(name, format='png', dpi=100, bbox_inches="tight")
+        
+        # plt.close()
+        
         plt.figure()
-        plt.imshow(tot_lnL, cmap=color, origin='lower', norm=LogNorm())
-        plt.colorbar()
-        plt.ylabel(r'$\alpha$', fontsize=15)
+        
+        for t in range(len(alpha)):
+            #name = "alpha$ = %f", %(np.round(alpha[t],3))
+            plt.plot(emax, tot_lnL[t], '-', label=r"$\alpha$ = %s" %(np.round(alpha[t],3)))
+        
         plt.xlabel(r'$\epsilon_{max}$', fontsize=15)
-        plt.xticks(ticks=tick, labels=np.round(emax,3), fontsize=8)
-        plt.yticks(ticks=tick, labels=np.round(alpha,3))
-        plt.title(r'tot_lnL $m_1$ %.1f-%.1f M$_{\odot}$ \& $m_2$ %.1f-%.1f M$_{\odot}$' %(m1_bin[i], m1_bin[i+1], m2_bin[j], m2_bin[j+1]), fontsize=15)
+        plt.ylabel(r'$\ln L$', fontsize=15)
+        plt.legend()
+        plt.title(r'$m_1$ %.1f-%.1f M$_{\odot}$ \& $m_2$ %.1f-%.1f M$_{\odot}$' %(m1_bin[i], m1_bin[i+1], m2_bin[j], m2_bin[j+1]), fontsize=15)
 
-        name=f"emax_apha_logL/plots_2D_hist/{i}{j}.png"
+        name=f"emax_apha_logL/plots_lnL_vs_emax/{i}{j}.png"
         plt.savefig(name, format='png', dpi=100, bbox_inches="tight")
         
         plt.close()
