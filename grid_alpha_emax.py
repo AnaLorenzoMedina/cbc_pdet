@@ -192,34 +192,34 @@ for i in range(0, nbin1):
         
         # plt.close()
         
-        plt.figure()
+        # plt.figure()
         
-        for t in range(len(alpha)):
-            #name = "alpha$ = %f", %(np.round(alpha[t],3))
-            plt.plot(emax, tot_lnL[t], '-', label=r"$\alpha$ = %s" %(np.round(alpha[t],3)))
+        # for t in range(len(alpha)):
+        #     #name = "alpha$ = %f", %(np.round(alpha[t],3))
+        #     plt.plot(emax, tot_lnL[t], '-', label=r"$\alpha$ = %s" %(np.round(alpha[t],3)))
         
-        plt.xlabel(r'$\epsilon_{max}$', fontsize=15)
-        plt.ylabel(r'$\ln L$', fontsize=15)
-        plt.legend()
-        plt.title(r'$m_1$ %.1f-%.1f M$_{\odot}$ \& $m_2$ %.1f-%.1f M$_{\odot}$' %(m1_bin[i], m1_bin[i+1], m2_bin[j], m2_bin[j+1]), fontsize=15)
+        # plt.xlabel(r'$\epsilon_{max}$', fontsize=15)
+        # plt.ylabel(r'$\ln L$', fontsize=15)
+        # plt.legend()
+        # plt.title(r'$m_1$ %.1f-%.1f M$_{\odot}$ \& $m_2$ %.1f-%.1f M$_{\odot}$' %(m1_bin[i], m1_bin[i+1], m2_bin[j], m2_bin[j+1]), fontsize=15)
 
-        name=f"emax_apha_logL/plots_lnL_vs_emax/{i}{j}.png"
-        plt.savefig(name, format='png', dpi=100, bbox_inches="tight")
+        # name=f"emax_apha_logL/plots_lnL_vs_emax/{i}{j}.png"
+        # plt.savefig(name, format='png', dpi=100, bbox_inches="tight")
         
-        plt.close()
+        # plt.close()
         
 #total log likelihood over the mass bins
 
-# l = []
+l = []
 
-# for i in range(0,nbin1):
-#     for j in range(0,nbin2):
-#         try:
-#             l.append(np.loadtxt(f'emax_apha_logL/tot_logL/{i}{j}.dat'))
-#         except OSError:
-#             continue
+for i in range(0,nbin1):
+    for j in range(0,nbin2):
+        try:
+            l.append(np.loadtxt(f'emax_apha_logL/tot_logL/{i}{j}.dat'))
+        except OSError:
+            continue
         
-# tot_L_allbin = sum(l)
+tot_L_allbin = sum(l)
 # np.savetxt('emax_apha_logL/max_tot_lnL.dat', tot_L_allbin, fmt='%-19s')
 
 # max_tot_index = np.unravel_index(np.argmax(tot_L_allbin), tot_L_allbin.shape)
@@ -230,6 +230,19 @@ for i in range(0, nbin1):
 # np.savetxt('emax_apha_logL/best_values.dat', np.array([best_tot_alpha, best_tot_emax]), header='alpha, emax', fmt='%s')
 
 
+for t in range(len(alpha)):
+    #name = "alpha$ = %f", %(np.round(alpha[t],3))
+    plt.plot(emax, tot_L_allbin[t], '-', label=r"$\alpha$ = %s" %(np.round(alpha[t],3)))
+    
+plt.xlabel(r'$\epsilon_{max}$', fontsize=15)
+plt.ylabel(r'$\ln L$', fontsize=15)
+plt.legend()
+plt.title(r'$m_1$ %.1f-%.1f M$_{\odot}$ \& $m_2$ %.1f-%.1f M$_{\odot}$' %(m1_bin[i], m1_bin[i+1], m2_bin[j], m2_bin[j+1]), fontsize=15)
+
+name=f"emax_apha_logL/total_lnL_vs_emax.png"
+plt.savefig(name, format='png', dpi=100, bbox_inches="tight")
+
+plt.close()
 
 
 # np.savetxt('emax_apha_logL/max_index_lnL.dat', max_index_lnL, fmt='%-5s')
