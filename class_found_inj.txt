@@ -321,5 +321,3 @@ data = Found_injections(file)
 cte_guess = 100
 
 cte_opt, maxL = data.MLE(cte_guess, methods='Nelder-Mead')
-    
-
