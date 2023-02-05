@@ -322,4 +322,6 @@ cte_guess = 100
 
 cte_opt, maxL = data.MLE(cte_guess, methods='Nelder-Mead')
     
-
+results = np.column_stack((cte_opt, maxL))
+header = "cte_opt, maxL"
+np.savetxt('dmid(m)_results.dat', results, header = header)
