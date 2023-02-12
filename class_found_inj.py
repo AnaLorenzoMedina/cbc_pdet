@@ -10,6 +10,7 @@ import h5py
 from scipy import interpolate
 from scipy import integrate
 import scipy.optimize as opt
+import matplotlib.pyplot as plt
 
 class Found_injections:
     """
@@ -103,26 +104,35 @@ class Found_injections:
         self.mmax = file.attrs['max_mass1']
         self.mmin = file.attrs['min_mass1']
         self.zmax = file.attrs['max_redshift']
-        self.dLmax = np.max(self.dL)
+        self.max_index = np.argmax(self.dL)
+        self.dLmax = self.dL[self.max_index]
         
         index = np.random.choice(np.arange(len(self.dL)), 200, replace=False)
-        try_x = self.dL[index]
-        try_xpdf = self.dL_pdf[index]
+        if self.max_index not in index:
+            index = np.insert(index, -1, self.max_index)
+            
+        try_dL = self.dL[index]
+        try_dLpdf = self.dL_pdf[index]
     
         #we add 0 value
-        inter_x = np.insert(try_x, 0, 0, axis=0)
-        inter_xpdf = np.insert(try_xpdf, 0, 0, axis=0)
-        self.interpolation = interpolate.interp1d(inter_x, inter_xpdf)
+        inter_dL = np.insert(try_dL, 0, 0, axis=0)
+        inter_dLpdf = np.insert(try_dLpdf, 0, 0, axis=0)
+        self.interp_dL = interpolate.interp1d(inter_dL, inter_dLpdf)
         
-        new_dL = np.insert(self.dL, 0, 0.001, axis=0)
-        new_z = np.insert(self.z, 0, 0.001, axis=0)
+        try_z = self.z[index]
+        inter_z = np.insert(try_z, 0, 0, axis=0)
         
-        self.interpolation_z = interpolate.interp1d(new_dL, new_z)
+        #add a value for self.zmax
+        new_dL = np.insert(inter_dL, -1, self.dLmax, axis=0)
+        new_z = np.insert(inter_z, -1, self.zmax, axis=0)
         
+        self.interp_z = interpolate.interp1d(new_dL, new_z)
+        
+        print('finished initializing')
     
     #now we define methods for this class
     
-    def Dmid(self, m1, m2, z, cte):
+    def Dmid_mchirp(self, m1, m2, z, cte):
         """
         Dmid values (distance where Pdet = 0.5) as a function of the masses 
         in the detector frame (our first guess)
@@ -140,7 +150,7 @@ class Found_injections:
 
         """
         m1_det = m1 * (1 + z) 
-        m2_det = m1 * (1 + z)
+        m2_det = m2 * (1 + z)
         
         Mc = (m1_det * m2_det)**(3/5) / (m1_det + m2_det)**(1/5)
         
@@ -165,13 +175,8 @@ class Found_injections:
         Dmid(m1,m2) in the detector's frame
 
         """
-        z = self.interpolation_z(dL)
-        m1_det = m1 * (1 + z)
-        m2_det = m1 * (1 + z)
-        
-        Mc = (m1_det * m2_det)**(3/5) / (m1_det + m2_det)**(1/5)
-        
-        return cte * Mc**(5/6)
+        z = self.interp_z(dL)
+        return self.Dmid_mchirp(m1,m2,z,cte)
     
     
     def sigmoid(self, dL, dLmid, gamma = -0.18395, delta = 0.1146989, alpha = 2.05, emax = 0.967):
@@ -189,12 +194,12 @@ class Found_injections:
 
         Returns
         -------
-        TYPE
-            DESCRIPTION.
+        array of detection probability.
 
         """
-        denom = 1. + (dL / dLmid) ** alpha * \
-            np.exp(gamma * ((dL / dLmid) - 1.) + delta * ((dL**2 / dLmid**2) - 1.))
+        frac = dL / dLmid
+        denom = 1. + frac ** alpha * \
+            np.exp(gamma * (frac - 1.) + delta * (frac**2 - 1.))
         return emax / denom
     
  
@@ -219,7 +224,7 @@ class Found_injections:
         return m1**alpha * m2**beta * m1_norm * m2_norm
     
     
-    def Nexp(self, cte):
+    def Nexp(self, params):
         """
         Expected number of found injections, computed as a 
         triple integral of p(dL)*p(m1,m2)*sigmoid( dL, Dmid(m1,m2, dL, cte) )*Ntotal
@@ -229,7 +234,7 @@ class Found_injections:
 
         Parameters
         ----------
-        cte : cte of self.Dmid_inter(cte).
+        params : parameters of the Dmid function
 
         Returns
         -------
@@ -237,19 +242,20 @@ class Found_injections:
 
         """
         
-        quad_fun = lambda dL_int, y, x: self.Ntotal * self.fun_m_pdf(x, y) *  \
-            self.interpolation(dL_int) * self.sigmoid(dL_int, self.Dmid_inter(x, y, dL_int, cte)) 
+        quad_fun = lambda m1, m2, dL_int: self.Ntotal * self.fun_m_pdf(m1, m2) *  \
+            self.interp_dL(dL_int) * self.sigmoid(dL_int, self.Dmid_inter(m1, m2, dL_int, params)) 
         
-        return integrate.nquad( quad_fun, [[self.mmin, self.mmax], [self.mmin, self.mmax], [0.001, self.dLmax]])[0]
+        lim_m2 = lambda m1: [self.mmin, m1]
+        return integrate.nquad( quad_fun, [[self.mmin, self.mmax], lim_m2, [0, self.dLmax]])[0]
         
         
-    def Lambda(self, cte):
+    def Lambda(self, params):
         """
         Number density at found injections
 
         Parameters
         ----------
-        cte :  cte of self.Dmid(cte).
+        params : parameters of the Dmid function
 
         Returns
         -------
@@ -263,8 +269,8 @@ class Found_injections:
         m1 = self.m1[self.found_any]
         m2 = self.m2[self.found_any]
         
-        # print(self.sigmoid(dL, self.Dmid(m1, m2, z, cte)))
-        return self.sigmoid(dL, self.Dmid(m1, m2, z, cte)) * m_pdf * dL_pdf * self.Ntotal
+        # print(self.sigmoid(dL, self.Dmid_mchirp(m1, m2, z, cte)))
+        return self.sigmoid(dL, self.Dmid_mchirp(m1, m2, z, params)) * m_pdf * dL_pdf * self.Ntotal
          
     
     def logL(self, in_param):
@@ -318,10 +324,39 @@ file = h5py.File('endo3_bbhpop-LIGO-T2100113-v12.hdf5', 'r')
 
 data = Found_injections(file)
 
-cte_guess = 100
+cte_guess = 70
 
 cte_opt, maxL = data.MLE(cte_guess, methods='Nelder-Mead')
     
 results = np.column_stack((cte_opt, maxL))
 header = "cte_opt, maxL"
 np.savetxt('dmid(m)_results.dat', results, header = header)
+
+# nbin1 = 14
+# nbin2 = 14
+
+# m1_bin = np.round(np.logspace(np.log10(data.mmin), np.log10(data.mmax), nbin1+1), 1)
+# m2_bin = np.round(np.logspace(np.log10(data.mmin), np.log10(data.mmax), nbin2+1), 1)
+
+# mid_1 = (m1_bin[:-1]+ m1_bin[1:])/2
+# mid_2 = (m2_bin[:-1]+ m2_bin[1:])/2
+
+# Mc = np.array ([[(mid_1[i] * mid_2[j])**(3/5) / (mid_1[i] + mid_2[j])**(1/5) for j in range(len(mid_2))] for i in range(len(mid_1))] )
+
+# k=42
+# dmid = np.loadtxt(f'dL_joint_fit_results_emax/dLmid/dLmid_{k}.dat')
+# toplot = np.nonzero(dmid)
+
+# Mc_plot = Mc[toplot]
+# dmid_plot = dmid[toplot]
+
+# plt.figure()
+# plt.loglog(Mc_plot.flatten(), dmid_plot.flatten(), '.')
+# plt.xlabel('Mc(m1,m2)')
+# plt.ylabel('dL_mid')
+# plt.grid(True, which='both')
+# plt.loglog()
+
+# plt.plot(Mc_plot.flatten(), 70*(Mc_plot.flatten())**(5/6), 'r-', label='cte = 70')
+# plt.legend()
+
