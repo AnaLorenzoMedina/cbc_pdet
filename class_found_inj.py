@@ -11,6 +11,8 @@ from scipy import interpolate
 from scipy import integrate
 import scipy.optimize as opt
 import matplotlib.pyplot as plt
+import os
+import errno
 
 class Found_injections:
     """
@@ -27,39 +29,28 @@ class Found_injections:
         
         assert isinstance(file, h5py._hl.files.File),\
         "Argument (file) must be an h5py file."
-                
+               
         self.data = file
         
         assert isinstance(thr, float) or isinstance(thr, int),\
         "Argument (thr) must be a float or an integrer."
         
+        #Total number of generated injections
         self.Ntotal = file.attrs['total_generated'] 
-        """
-        Total number of generated injections
-        """
         
+        #Mass 1 and mass 2 values in the source frame in solar units
         self.m1 = file["injections/mass1_source"][:]
         self.m2 = file["injections/mass2_source"][:]
-        """
-        Mass 1 and mass 2 values in the source frame in solar units
-        """
         
+        #Redshift and luminosity distance [Mpc] values 
         self.z = file["injections/redshift"][:]
         self.dL = file["injections/distance"][:]
-        """
-        Redshift and luminosity distance [Mpc] values 
-        """
-        
+      
+        #Joint mass sampling pdf (probability density function) values, p(m1,m2)
         self.m_pdf = file["injections/mass1_source_mass2_source_sampling_pdf"][:]
-        """
-        Joint mass sampling pdf (probability density function) values, p(m1,m2) 
-        """
         
+        #Redshift sampling pdf values, p(z), corresponding to a redshift defined by a flat Lambda-Cold Dark Matter cosmology
         self.z_pdf = file["injections/redshift_sampling_pdf"][:]
-        """
-        Redshift sampling pdf values, p(z), corresponding to a redshift 
-        defined by a flat Lambda-Cold Dark Matter cosmology
-        """
         
         H0 = 67.9 #km/sMpc
         c = 3e5 #km/s
@@ -67,37 +58,23 @@ class Found_injections:
         A = np.sqrt(omega_m * (1 + self.z)**3 + 1 - omega_m)
         dL_dif = (c * (1 + self.z) / H0) * (1/A)
         
+        #Luminosity distance sampling pdf values, p(dL), computed for a flat Lambda-Cold Dark Matter cosmology from the z_pdf values
         self.dL_pdf = self.z_pdf / dL_dif
-        """
-        Luminosity distance sampling pdf values, p(dL), computed for a 
-        flat Lambda-Cold Dark Matter cosmology from the z_pdf values
-        """
         
+        #False alarm rate statistics from each pipeline
         self.far_pbbh = file["injections/far_pycbc_bbh"][:]
-        """
-        False alarm rate statistics from the pycbc_bbh search pipeline
-        """
-        
         self.far_gstlal = file["injections/far_gstlal"][:]
-        """
-        False alarm rate statistics from the gstlal search pipeline
-        """
-        
         self.far_mbta = file["injections/far_mbta"][:]
-        """
-        False alarm rate statistics from the mbta search pipeline
-        """
-        
         self.far_pfull = file["injections/far_pycbc_hyperbank"][:]
-        """
-        False alarm rate statistics from the pfull search pipeline
-        """
         
         found_pbbh = self.far_pbbh <= thr
         found_gstlal = self.far_gstlal <= thr
         found_mbta = self.far_mbta <= thr
         found_pfull = self.far_pfull <= thr
+        
+        #indexes of the found injections
         self.found_any = found_pbbh | found_gstlal | found_mbta | found_pfull
+        print(self.found_any.sum())      
         
         self.pow_m1 = file.attrs['pow_mass1']
         self.pow_m2 = file.attrs['pow_mass2']
@@ -212,8 +189,8 @@ class Found_injections:
         A continuous function which describes p(m1,m2)
 
         """
-        if m2 > m1:
-            return 0
+        #if m2 > m1:
+        #   return 0
         
         mmin = self.mmin ; mmax = self.mmax
         alpha = self.pow_m1 ; beta = self.pow_m2
@@ -242,12 +219,29 @@ class Found_injections:
 
         """
         
-        quad_fun = lambda m1, m2, dL_int: self.Ntotal * self.fun_m_pdf(m1, m2) *  \
-            self.interp_dL(dL_int) * self.sigmoid(dL_int, self.Dmid_inter(m1, m2, dL_int, params)) 
+        # quad_fun = lambda m1, m2, dL_int: self.Ntotal * self.fun_m_pdf(m1, m2) *  \
+        #     self.interp_dL(dL_int) * self.sigmoid(dL_int, self.Dmid_inter(m1, m2, dL_int, params)) 
         
-        lim_m2 = lambda m1: [self.mmin, m1]
-        return integrate.nquad( quad_fun, [[self.mmin, self.mmax], lim_m2, [0, self.dLmax]])[0]
+        # lim_m2 = lambda m1: [self.mmin, m1]
+        # return integrate.nquad( quad_fun, [[self.mmin, self.mmax], lim_m2, [0, self.dLmax]], full_output=True)[0]
         
+        # we try this sencond method for Nexp
+        Nexp = np.sum(self.sigmoid(self.dL, self.Dmid_mchirp(self.m1, self.m2, self.z, params)))
+        print(Nexp)
+        return Nexp
+    
+    # def Nexp_MC(self, params):
+    #     #random values of m1, m2 and dL
+    #     N=int(1e6)
+    #     m1r = (self.mmax - self.mmin)*np.random.random(N) + self.mmin
+    #     m2r = (m1r - self.mmin)*np.random.random(N)+ self.mmin
+    #     dLr = (self.dLmax - 0)*np.random.random(N)
+    #     pm = self.fun_m_pdf(m1r, m2r)
+    #     pdL = self.interp_dL(dLr)
+    #     p = pm*pdL
+    #     Nexp = np.sum(self.sigmoid(dLr, self.Dmid_inter(m1r, m2r, dLr, params))*p/np.ones(N)) / np.sum(p/np.ones(N))
+    #     print(Nexp)
+    #     return Nexp
         
     def Lambda(self, params):
         """
@@ -319,6 +313,12 @@ class Found_injections:
         cte_res = np.exp(res.x) 
         min_likelihood = res.fun                
         return cte_res, -min_likelihood
+    
+try:
+    os.mkdir('dmid_const_mchirp_power')
+except OSError as e:
+    if e.errno != errno.EEXIST:
+        raise
 
 file = h5py.File('endo3_bbhpop-LIGO-T2100113-v12.hdf5', 'r')
 
@@ -330,7 +330,7 @@ cte_opt, maxL = data.MLE(cte_guess, methods='Nelder-Mead')
     
 results = np.column_stack((cte_opt, maxL))
 header = "cte_opt, maxL"
-np.savetxt('dmid(m)_results.dat', results, header = header)
+np.savetxt('dmid_const_mchirp_power/dmid(m)_results_2method.dat', results, header = header, fmt='%s')
 
 # nbin1 = 14
 # nbin2 = 14
