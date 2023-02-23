@@ -61,6 +61,16 @@ class Found_injections:
         #Luminosity distance sampling pdf values, p(dL), computed for a flat Lambda-Cold Dark Matter cosmology from the z_pdf values
         self.dL_pdf = self.z_pdf / dL_dif
         
+        #mass chirp
+        self.Mc = (self.m1 * self.m2)**(3/5) / (self.m1 + self.m2)**(1/5) 
+        
+        #total mass (m1+m2)
+        self.Mtot = self.m1 + self.m2
+        
+        #eta aka symmetric mass ratio
+        mu = (self.m1 * self.m2) / (self.m1 + self.m2)
+        self.eta = mu / self.Mtot
+        
         #False alarm rate statistics from each pipeline
         self.far_pbbh = file["injections/far_pycbc_bbh"][:]
         self.far_gstlal = file["injections/far_gstlal"][:]
@@ -132,6 +142,30 @@ class Found_injections:
         Mc = (m1_det * m2_det)**(3/5) / (m1_det + m2_det)**(1/5)
         
         return cte * Mc**(5/6)
+    
+    # def Dmid_mchirp_expansion(self, m1, m2, z, cte):
+    #     """
+    #     Dmid values (distance where Pdet = 0.5) as a function of the masses 
+    #     in the detector frame (our first guess)
+
+    #     Parameters
+    #     ----------
+    #     m1 : mass1 
+    #     m2: mass2
+    #     z : redshift
+    #     cte : parameter that we will be optimizing
+        
+    #     Returns
+    #     -------
+    #     Dmid(m1,m2) in the detector's frame
+
+    #     """
+    #     m1_det = m1 * (1 + z) 
+    #     m2_det = m2 * (1 + z)
+        
+    #     Mc = (m1_det * m2_det)**(3/5) / (m1_det + m2_det)**(1/5)
+        
+    #     return cte * Mc**(5/6)
     
     def Dmid_inter(self, m1, m2, dL, cte):
         """
@@ -314,80 +348,35 @@ class Found_injections:
         min_likelihood = res.fun                
         return cte_res, -min_likelihood
     
-    def cumulative_dist(self):
+    def cumulative_dist(self, var = 'dL'):
         #params = self.MLE(cte_guess, methods='Nelder-Mead')
         params = 79.70666689915684
         
-        #cumulative distribution over dL
-        indexo = np.argsort(self.dL)
+        dic = {'dL': self.dL, 'Mc': self.Mc, 'Mtot': self.Mtot, 'eta': self.eta}
+            
+        #cumulative distribution over the desired variable
+        indexo = np.argsort(dic[var])
+        varo = dic[var][indexo]
         dLo = self.dL[indexo]
         m1o = self.m1[indexo]
         m2o = self.m2[indexo]
         zo = self.z[indexo]
         cmd = np.cumsum(self.sigmoid(dLo, self.Dmid_mchirp(m1o, m2o, zo, params)))
+        
+        var_found = dic[var][self.found_any]
+        indexo_found = np.argsort(var_found)
+        var_foundo = var_found[indexo_found]
+        
         plt.figure()
-        plt.plot(dLo, cmd, '.', markersize=2)
-        plt.xlabel(r'$dL^*$')
-        plt.ylabel(r'$N_{found}(dL^*) = \sum_i P_{det} (dL_i < dL^*)$')
-        plt.hlines(self.found_any.sum(), np.min(dLo), np.max(dLo), 'r', label='$N_{found}$')
+        plt.plot(varo, cmd, '.', markersize=2, label='model')
+        plt.plot(var_foundo, np.arange(len(var_foundo))+1, '.', markersize=2, label='found injections')
+        plt.xlabel(f'${var}^*$')
+        plt.ylabel('Cumulative found injections')
         plt.legend(loc='best')
-        name="dmid_const_mchirp_power/dL_cumulative.png"
+        name=f"dmid_const_mchirp_power/{var}_cumulative.png"
         plt.savefig(name, format='png')
         
-        #cumulative distribution over Mc
-        Mc = (self.m1 * self.m2)**(3/5) / (self.m1 + self.m2)**(1/5) 
-        indexo = np.argsort(Mc)
-        Mco = Mc[indexo]
-        dLo = self.dL[indexo]
-        m1o = self.m1[indexo]
-        m2o = self.m2[indexo]
-        zo = self.z[indexo]
-        cmd = np.cumsum(self.sigmoid(dLo, self.Dmid_mchirp(m1o, m2o, zo, params)))
-        plt.figure()
-        plt.plot(Mco, cmd, '.', markersize=2)
-        plt.xlabel(r'$Mc^*$')
-        plt.ylabel(r'$N_{found}(Mc^*) = \sum_i P_{det} (Mc_i < Mc^*)$')
-        plt.hlines(self.found_any.sum(), np.min(Mco), np.max(Mco), 'r', label='$N_{found}$')
-        plt.legend()
-        name="dmid_const_mchirp_power/Mc_cumulative.png"
-        plt.savefig(name, format='png')
         
-        #cumulative distribution over Mtot
-        Mtot = self.m1 + self.m2
-        indexo = np.argsort(Mtot)
-        Mtoto = Mtot[indexo]
-        dLo = self.dL[indexo]
-        m1o = self.m1[indexo]
-        m2o = self.m2[indexo]
-        zo = self.z[indexo]
-        cmd = np.cumsum(self.sigmoid(dLo, self.Dmid_mchirp(m1o, m2o, zo, params)))
-        plt.figure()
-        plt.plot(Mtoto, cmd, '.', markersize=2)
-        plt.xlabel(r'$M^*$')
-        plt.ylabel(r'$N_{found}(M^*) = \sum_i P_{det} (M_i < M^*)$')
-        plt.hlines(self.found_any.sum(), np.min(Mtoto), np.max(Mtoto), 'r', label='$N_{found}$')
-        plt.legend()
-        name="dmid_const_mchirp_power/Mtot_cumulative.png"
-        plt.savefig(name, format='png')
-        
-        #cumulative distribution over eta
-        mu = (self.m1 * self.m2) / (self.m1 + self.m2)
-        eta = mu / Mtot
-        indexo = np.argsort(eta)
-        etao = eta[indexo]
-        dLo = self.dL[indexo]
-        m1o = self.m1[indexo]
-        m2o = self.m2[indexo]
-        zo = self.z[indexo]
-        cmd = np.cumsum(self.sigmoid(dLo, self.Dmid_mchirp(m1o, m2o, zo, params)))
-        plt.figure()
-        plt.plot(etao, cmd, '.', markersize=2)
-        plt.xlabel(r'$\eta^*$')
-        plt.ylabel(r'$N_{found}(\eta^*) = \sum_i P_{det} (\eta_i < \eta^*)$')
-        plt.hlines(self.found_any.sum(), np.min(etao), np.max(etao), 'r', label='$N_{found}$')
-        plt.legend(loc='best')
-        name="dmid_const_mchirp_power/eta_cumulative.png"
-        plt.savefig(name, format='png')
     
 try:
     os.mkdir('dmid_const_mchirp_power')
@@ -409,62 +398,65 @@ cte_guess = 70
 # header = "cte_opt, maxL"
 # np.savetxt('dmid_const_mchirp_power/dmid(m)_results_2method.dat', results, header = header, fmt='%s')
 
-data.cumulative_dist()
+data.cumulative_dist('dL')
+data.cumulative_dist('Mtot')
+data.cumulative_dist('Mc')
+data.cumulative_dist('eta')
 
-#%%
-nbin1 = 14
-nbin2 = 14
+# #%%
+# nbin1 = 14
+# nbin2 = 14
 
-m1_bin = np.round(np.logspace(np.log10(data.mmin), np.log10(data.mmax), nbin1+1), 1)
-m2_bin = np.round(np.logspace(np.log10(data.mmin), np.log10(data.mmax), nbin2+1), 1)
+# m1_bin = np.round(np.logspace(np.log10(data.mmin), np.log10(data.mmax), nbin1+1), 1)
+# m2_bin = np.round(np.logspace(np.log10(data.mmin), np.log10(data.mmax), nbin2+1), 1)
 
-mid_1 = (m1_bin[:-1]+ m1_bin[1:])/2
-mid_2 = (m2_bin[:-1]+ m2_bin[1:])/2
+# mid_1 = (m1_bin[:-1]+ m1_bin[1:])/2
+# mid_2 = (m2_bin[:-1]+ m2_bin[1:])/2
 
-Mc = np.array ([[(mid_1[i] * mid_2[j])**(3/5) / (mid_1[i] + mid_2[j])**(1/5) for j in range(len(mid_2))] for i in range(len(mid_1))] )
-Mtot = np.array ([[(mid_1[i] + mid_2[j]) for j in range(len(mid_2))] for i in range(len(mid_1))] )
-q = np.array ([[(mid_2[j] / mid_1[i]) for j in range(len(mid_2))] for i in range(len(mid_1))] )
-mu = np.array ([[(mid_1[i] * mid_2[j]) / (mid_1[i] + mid_2[j]) for j in range(len(mid_2))] for i in range(len(mid_1))] ) 
+# Mc = np.array ([[(mid_1[i] * mid_2[j])**(3/5) / (mid_1[i] + mid_2[j])**(1/5) for j in range(len(mid_2))] for i in range(len(mid_1))] )
+# Mtot = np.array ([[(mid_1[i] + mid_2[j]) for j in range(len(mid_2))] for i in range(len(mid_1))] )
+# q = np.array ([[(mid_2[j] / mid_1[i]) for j in range(len(mid_2))] for i in range(len(mid_1))] )
+# mu = np.array ([[(mid_1[i] * mid_2[j]) / (mid_1[i] + mid_2[j]) for j in range(len(mid_2))] for i in range(len(mid_1))] ) 
 
-k=42
-dmid = np.loadtxt(f'dL_joint_fit_results_emax/dLmid/dLmid_{k}.dat')
-toplot = np.nonzero(dmid)
+# k=42
+# dmid = np.loadtxt(f'dL_joint_fit_results_emax/dLmid/dLmid_{k}.dat')
+# toplot = np.nonzero(dmid)
 
-Mc_plot = Mc[toplot]
-dmid_plot = dmid[toplot]
-Mtot_plot = Mtot[toplot]
-q_plot = q[toplot]
-mu_plot = mu[toplot]
-eta_plot = mu_plot / Mtot_plot
+# Mc_plot = Mc[toplot]
+# dmid_plot = dmid[toplot]
+# Mtot_plot = Mtot[toplot]
+# q_plot = q[toplot]
+# mu_plot = mu[toplot]
+# eta_plot = mu_plot / Mtot_plot
 
-plt.figure()
-plt.scatter(Mtot_plot, dmid_plot/(Mc_plot)**(5/6), c=eta_plot)
-plt.colorbar(label=r'$\eta$')
-plt.xlabel('Mtot = m1 + m2')
-plt.ylabel('dL_mid / Mc^(5/6)')
-plt.grid(True, which='both')
-name="dL_joint_fit_results_emax/Mtot.png"
-plt.savefig(name, format='png', dpi=1000)
-
-
-#plt.plot(Mc_plot.flatten(), 70*(Mc_plot.flatten())**(5/6), 'r-', label='cte = 70')
-#plt.legend()
+# plt.figure()
+# plt.scatter(Mtot_plot, dmid_plot/(Mc_plot)**(5/6), c=eta_plot)
+# plt.colorbar(label=r'$\eta$')
+# plt.xlabel('Mtot = m1 + m2')
+# plt.ylabel('dL_mid / Mc^(5/6)')
+# plt.grid(True, which='both')
+# name="dL_joint_fit_results_emax/Mtot.png"
+# plt.savefig(name, format='png', dpi=1000)
 
 
-plt.figure()
-plt.loglog(q_plot, dmid_plot/(Mc_plot)**(5/6), '.')
-plt.xlabel('q = m2 / m1')
-plt.ylabel('dL_mid / Mc^(5/6)')
-plt.grid(True, which='both')
-name="dL_joint_fit_results_emax/q.png"
-plt.savefig(name, format='png', dpi=1000)
+# #plt.plot(Mc_plot.flatten(), 70*(Mc_plot.flatten())**(5/6), 'r-', label='cte = 70')
+# #plt.legend()
 
-plt.figure()
-plt.scatter(eta_plot, dmid_plot/(Mc_plot)**(5/6), c=Mtot_plot)
-plt.colorbar(label='Mtot')
-plt.xlabel(r'$\eta = \mu / Mtot $')
-plt.ylabel('dL_mid / Mc^(5/6)')
-plt.grid(True, which='both')
-name="dL_joint_fit_results_emax/eta.png"
-plt.savefig(name, format='png', dpi=1000)
+
+# plt.figure()
+# plt.loglog(q_plot, dmid_plot/(Mc_plot)**(5/6), '.')
+# plt.xlabel('q = m2 / m1')
+# plt.ylabel('dL_mid / Mc^(5/6)')
+# plt.grid(True, which='both')
+# name="dL_joint_fit_results_emax/q.png"
+# plt.savefig(name, format='png', dpi=1000)
+
+# plt.figure()
+# plt.scatter(eta_plot, dmid_plot/(Mc_plot)**(5/6), c=Mtot_plot)
+# plt.colorbar(label='Mtot')
+# plt.xlabel(r'$\eta = \mu / Mtot $')
+# plt.ylabel('dL_mid / Mc^(5/6)')
+# plt.grid(True, which='both')
+# name="dL_joint_fit_results_emax/eta.png"
+# plt.savefig(name, format='png', dpi=1000)
 
