@@ -36,6 +36,9 @@ class Found_injections:
         assert isinstance(thr, float) or isinstance(thr, int),\
         "Argument (thr) must be a float or an integrer."
         
+        #which dmid function we are using
+    
+        
         #Total number of generated injections
         self.Ntotal = file.attrs['total_generated'] 
         
@@ -144,7 +147,7 @@ class Found_injections:
         
         return cte * Mc**(5/6)
     
-    def Dmid_mchirp_expansion(self, m1, m2, z, cte , a_20, a_01, a_22):
+    def Dmid_mchirp_expansion(self, m1, m2, z, params):
         """
         Dmid values (distance where Pdet = 0.5) as a function of the masses 
         in the detector frame (our first guess)
@@ -161,6 +164,8 @@ class Found_injections:
         Dmid(m1,m2) in the detector's frame
 
         """
+        cte , a_20, a_01, a_22 = params[0], params[1], params[2], params[3]
+        
         m1_det = m1 * (1 + z) 
         m2_det = m2 * (1 + z)
         M = m1_det + m2_det
@@ -172,7 +177,7 @@ class Found_injections:
         
         return pol * Mc**(5/6)
     
-    def Dmid_inter(self, m1, m2, dL, cte):
+    def Dmid_inter(self, m1, m2, dL, params):
         """
         Dmid values (distance where Pdet = 0.5) as a function of the masses 
         in the detector frame (our first guess)
@@ -192,7 +197,7 @@ class Found_injections:
 
         """
         z = self.interp_z(dL)
-        return self.Dmid_mchirp_expansion(m1,m2,z,cte , a_20, a_01, a_22)
+        return self.Dmid_mchirp_expansion(m1, m2, z, params)
     
     
     def sigmoid(self, dL, dLmid, gamma =  -0.02726, delta =   0.13166, alpha = 2.05, emax = 0.79928):
@@ -240,21 +245,23 @@ class Found_injections:
         return m1**alpha * m2**beta * m1_norm * m2_norm
     
     
-    def Nexp(self, params):
+    def Nexp(self, dmid_fun, params):
         """
         Expected number of found injections, computed as a 
         triple integral of p(dL)*p(m1,m2)*sigmoid( dL, Dmid(m1,m2, dL, cte) )*Ntotal
         
         Note that in order to make the integral, we had to use an interpolation for the redshift, just so we can
         write Dmid as a function of dL and then integrate over d(dL)
+
         Parameters
         ----------
         params : parameters of the Dmid function
+
         Returns
         -------
         Expected number of found injections
+
         """
-        
         # quad_fun = lambda m1, m2, dL_int: self.Ntotal * self.fun_m_pdf(m1, m2) *  \
         #     self.interp_dL(dL_int) * self.sigmoid(dL_int, self.Dmid_inter(m1, m2, dL_int, params)) 
         
@@ -262,7 +269,8 @@ class Found_injections:
         # return integrate.nquad( quad_fun, [[self.mmin, self.mmax], lim_m2, [0, self.dLmax]], full_output=True)[0]
         
         # we try this sencond method for Nexp
-        Nexp = np.sum(self.sigmoid(self.dL, self.Dmid_mchirp(self.m1, self.m2, self.z, params)))
+        DMID = getattr(Found_injections, dmid_fun)
+        Nexp = np.sum(self.sigmoid(self.dL, DMID(self, self.m1, self.m2, self.z, params)))
         print(Nexp)
         return Nexp
     
@@ -283,15 +291,18 @@ class Found_injections:
         print(Nexp)
         return Nexp
         
-    def Lambda(self, params):
+    def Lambda(self, dmid_fun, params):
         """
         Number density at found injections
+
         Parameters
         ----------
         params : parameters of the Dmid function
+
         Returns
         -------
         Number density at found injections aka lambda(D,m1,m2)
+
         """
         dL = self.dL[self.found_any]
         dL_pdf = self.dL_pdf[self.found_any]
@@ -300,57 +311,66 @@ class Found_injections:
         m1 = self.m1[self.found_any]
         m2 = self.m2[self.found_any]
         
+        DMID = getattr(Found_injections, dmid_fun)
+        
         # print(self.sigmoid(dL, self.Dmid_mchirp(m1, m2, z, cte)))
-        return self.sigmoid(dL, self.Dmid_mchirp(m1, m2, z, params)) * m_pdf * dL_pdf * self.Ntotal
+        return self.sigmoid(dL, DMID(self, m1, m2, z, params)) * m_pdf * dL_pdf * self.Ntotal
+         
     
-    def logL(self, in_param):
+    def logL(self, dmid_fun, in_param):
         """
         log likelihood of the expected density of found injections
+
         Parameters
         ----------
         in_param : parameters that will be optimized. It should be cte of self.Dmid(cte).
         We will use exp(cte) in the minimization, so we have to remember then to take log(opt_cte).
+
         Returns
         -------
         TYPE
             DESCRIPTION.
+
         """
-        cte = np.exp(in_param[0]) 
-        lnL = -self.Nexp(cte) + np.sum(np.log(self.Lambda(cte)))
+        params = np.exp(in_param) 
+        lnL = -self.Nexp(dmid_fun, params) + np.sum(np.log(self.Lambda(dmid_fun, params)))
         print(lnL)
         # print(-self.Nexp(cte))
         # print(np.sum(np.log(self.Lambda(cte))))
         return lnL
         
     
-    def MLE(self, cte_guess, methods):
+    def MLE(self, dmid_fun, params_guess, methods):
         """
         minimization of -logL 
+
         Parameters
         ----------
         cte_guess : initial guess value for cte of Dmid
         methods : scipy method used to minimize -logL
+
         Returns
         -------
         cte_res : optimized value for cte of Dmid.
         -min_likelihood : maximum log likelihood. 
+
         """
-        res = opt.minimize(fun=lambda in_param: -self.logL(in_param), 
-                           x0=np.array([np.log(cte_guess)]), 
+        res = opt.minimize(fun=lambda in_param: -self.logL(dmid_fun, in_param), 
+                           x0=np.array([np.log(params_guess)]), 
                            args=(), 
                            method=methods)
         
-        cte_res = np.exp(res.x) 
+        params_res = np.exp(res.x) 
         min_likelihood = res.fun                
-        return cte_res, -min_likelihood
+        return params_res, -min_likelihood
     
-    def cumulative_dist(self, params, var = 'dL'):
+    def cumulative_dist(self, dmid_fun, params, var = 'dL'):
         #params = self.MLE(cte_guess, a20_guess, a01_guess, methods='Nelder-Mead')[:-1]
         #params = 79.70666689915684
         
+        DMID = getattr(Found_injections, dmid_fun)
         dic = {'dL': self.dL, 'Mc': self.Mc, 'Mtot': self.Mtot, 'eta': self.eta}
-        cte  = params[0]
-            
+           
         #cumulative distribution over the desired variable
         indexo = np.argsort(dic[var])
         varo = dic[var][indexo]
@@ -358,7 +378,7 @@ class Found_injections:
         m1o = self.m1[indexo]
         m2o = self.m2[indexo]
         zo = self.z[indexo]
-        cmd = np.cumsum(self.sigmoid(dLo, self.Dmid_mchirp(m1o, m2o, zo, cte)))
+        cmd = np.cumsum(self.sigmoid(dLo, DMID(self, m1o, m2o, zo, params)))
         
         var_found = dic[var][self.found_any]
         indexo_found = np.argsort(var_found)
@@ -366,7 +386,7 @@ class Found_injections:
         
         real_found_inj = np.arange(len(var_foundo))+1
         
-        cdf = lambda var_i : np.cumsum(self.sigmoid(self.dL[var_i], self.Dmid_mchirp(self.m1[var_i], self.m2[var_i], self.z[var_i], cte )))
+        cdf = lambda var_i : np.cumsum(self.sigmoid(self.dL[var_i], DMID(self, self.m1[var_i], self.m2[var_i], self.z[var_i], params)))
         
         plt.figure()
         plt.plot(varo, cmd, '.', markersize=2, label='model')
@@ -375,45 +395,54 @@ class Found_injections:
         plt.xlabel(f'${var}^*$')
         plt.ylabel('Cumulative found injections')
         plt.legend(loc='best')
-        name=f"dmid_expansion_mchirp_power/{var}_cumulative.png"
+        name=f'{dmid_fun}/{var}_cumulative.png'
         plt.savefig(name, format='png')
         
         
-        if var=='dL':
-            plt.figure()
-            plt.plot(var_foundo, real_found_inj/len(var_foundo))
-            plt.plot(varo, cdf(indexo)/len(varo))
+        # if var=='dL':
+        #     plt.figure()
+        #     plt.plot(var_foundo, real_found_inj/len(var_foundo))
+        #     plt.plot(varo, cdf(indexo)/len(varo))
             
         return kstest(real_found_inj, cdf(indexo))
-        
-    
-try:
-    os.mkdir('dmid_const_mchirp_power')
-except OSError as e:
-    if e.errno != errno.EEXIST:
-        raise
-
 
 plt.close('all')
 
 file = h5py.File('endo3_bbhpop-LIGO-T2100113-v12.hdf5', 'r')
 
+
 data = Found_injections(file)
 
+# function for dmid we wanna use
+dmid_fun = 'Dmid_mchirp_expansion'
+
+try:
+    os.mkdir(f'{dmid_fun}')
+except OSError as e:
+    if e.errno != errno.EEXIST:
+        raise
+
 cte_guess = 70
+a20_guess= 0.05
+a01_guess= 0.05
+a22_guess = 0.5
 
-cte_opt, maxL = data.MLE(cte_guess, methods='Nelder-Mead')
+params_guess = {'Dmid_mchirp': cte_guess, 'Dmid_mchirp_expansion': [cte_guess, a20_guess, a01_guess, a22_guess]}
+params_names = {'Dmid_mchirp': 'cte', 'Dmid_mchirp_expansion': ['cte', 'a20', 'a01', 'a22']}
 
-results = np.column_stack((cte_opt, maxL))
-header = "cte_opt, maxL"
-np.savetxt('dmid_const_mchirp_power/dmid(m)_results_2method.dat', results, header = header, fmt='%s')
+params_opt, maxL = data.MLE(dmid_fun, params_guess[dmid_fun], methods='Nelder-Mead')
 
-params = np.loadtxt('dmid_const_mchirp_power/dmid(m)_results_2method.dat')[:-1]
+#%%
+results = np.hstack((params_opt, maxL))
+header = f'{params_names[dmid_fun]} , maxL'
+np.savetxt(f'{dmid_fun}/dmid(m)_results_2method.dat', [results], header = header, fmt='%s')
 
-stat_Mtot, pvalue_Mtot = data.cumulative_dist(params, 'Mtot')
-stat_Mc, pvalue_Mc = data.cumulative_dist(params, 'Mc')
-stat_eta, pvalue_eta = data.cumulative_dist(params, 'eta')
-stat_dL, pvalue_dL = data.cumulative_dist(params, 'dL')
+params = np.loadtxt(f'{dmid_fun}/dmid(m)_results_2method.dat')[:-1]
+
+stat_Mtot, pvalue_Mtot = data.cumulative_dist(dmid_fun, params, 'Mtot')
+stat_Mc, pvalue_Mc = data.cumulative_dist(dmid_fun, params, 'Mc')
+stat_eta, pvalue_eta = data.cumulative_dist(dmid_fun, params, 'eta') 
+stat_dL, pvalue_dL = data.cumulative_dist(dmid_fun, params, 'dL')
 
 print('dL KStest: statistic = %s , pvalue = %s' %(stat_dL, pvalue_dL))
 print('Mtot KStest: statistic = %s , pvalue = %s' %(stat_Mtot, pvalue_Mtot))
