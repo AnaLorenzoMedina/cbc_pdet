@@ -417,12 +417,12 @@ class Found_injections:
         return
 
 
-    def cumulative_dist(self, dmid_fun, params, var = 'dL'):
-        #params = self.MLE(cte_guess, a20_guess, a01_guess, methods='Nelder-Mead')[:-1]
-        #params = 79.70666689915684
+    def cumulative_dist(self, dmid_fun, dmid_params, shape_params, var = 'dL'):
         
         dmid = getattr(Found_injections, dmid_fun)
         dic = {'dL': self.dL, 'Mc': self.Mc, 'Mtot': self.Mtot, 'eta': self.eta}
+        
+        gamma, delta, emax = shape_params[0], shape_params[1], shape_params[2]
            
         #cumulative distribution over the desired variable
         indexo = np.argsort(dic[var])
@@ -431,33 +431,33 @@ class Found_injections:
         m1o = self.m1[indexo]
         m2o = self.m2[indexo]
         zo = self.z[indexo]
-        cmd = np.cumsum(self.sigmoid(dLo, dmid(self, m1o, m2o, zo, params)))
+        cmd = np.cumsum(self.sigmoid(dLo, dmid(self, m1o, m2o, zo, dmid_params), gamma, delta, emax))
         
+        #found injections
         var_found = dic[var][self.found_any]
         indexo_found = np.argsort(var_found)
         var_foundo = var_found[indexo_found]
-        
         real_found_inj = np.arange(len(var_foundo))+1
-        
-        cdf = lambda var_i : np.cumsum(self.sigmoid(self.dL[var_i], dmid(self, self.m1[var_i], self.m2[var_i], self.z[var_i], params)))
-        
+    
         plt.figure()
         plt.plot(varo, cmd, '.', markersize=2, label='model')
         plt.plot(var_foundo, real_found_inj, '.', markersize=2, label='found injections')
-        #plt.plot(varo, cdf(indexo))
         plt.xlabel(f'${var}^*$')
         plt.ylabel('Cumulative found injections')
         plt.legend(loc='best')
         name=f'{dmid_fun}/{var}_cumulative.png'
         plt.savefig(name, format='png')
         
+        pdet = self.sigmoid(self.dL, dmid(self, self.m1, self.m2, self.z, dmid_params), gamma, delta, emax)
         
-        if var=='dL':
-            plt.figure()
-            plt.plot(var_foundo, real_found_inj/len(var_foundo))
-            plt.plot(varo, cdf(indexo)/len(varo))
+        def cdf(x):
+            values = []
+            for value in x:
+                norm = np.sum(pdet[dic[var]<value])/np.sum(pdet)
+                values.append(norm)
+            return np.array(values)
             
-        return kstest(real_found_inj, cdf(indexo))
+        return kstest(var_foundo, lambda x: cdf(x) )
 
 plt.close('all')
 
@@ -520,26 +520,29 @@ params_names = {'Dmid_mchirp': 'cte', 'Dmid_mchirp_expansion': ['cte', 'a20', 'a
 
 #gamma_opt, delta_opt, emax_opt = np.loadtxt(f'{dmid_fun}/shape/opt_shape_params.dat')[:-1]
 
-data.joint_MLE(dmid_fun, params_guess[dmid_fun], shape_guess, methods='Nelder-Mead', precision = 1e-2)
+#data.joint_MLE(dmid_fun, params_guess[dmid_fun], shape_guess, methods='Nelder-Mead', precision = 1e-2)
 
 params_dmid = np.loadtxt(f'{dmid_fun}/joint_fit_dmid.dat')[-1, :-1]
-gamma_opt, delta_opt, emax_opt = data.gamma_opt, data.delta_opt, data.emax_opt
+gamma_opt, delta_opt, emax_opt = np.loadtxt(f'{dmid_fun}/joint_fit_shape.dat')[-1, :-1]
+params_shape = [gamma_opt, delta_opt, emax_opt]
 
 print('\nparams_dmid:\n', params_dmid)
-print('\ngamma, delta, emax:\n', gamma_opt, delta_opt, emax_opt)
+print('\ngamma, delta, emax:\n', gamma_opt, delta_opt, emax_opt, '\n')
 
 ########## KS TEST ##########
 
 plt.close('all')
 
-stat_Mtot, pvalue_Mtot = data.cumulative_dist(dmid_fun, params_dmid, 'Mtot')
-stat_Mc, pvalue_Mc = data.cumulative_dist(dmid_fun, params_dmid, 'Mc')
-stat_eta, pvalue_eta = data.cumulative_dist(dmid_fun, params_dmid, 'eta') 
-stat_dL, pvalue_dL = data.cumulative_dist(dmid_fun, params_dmid, 'dL')
-
+stat_dL, pvalue_dL = data.cumulative_dist(dmid_fun, params_dmid, params_shape, 'dL')
 print('\ndL KStest: statistic = %s , pvalue = %s' %(stat_dL, pvalue_dL))
+
+stat_Mtot, pvalue_Mtot = data.cumulative_dist(dmid_fun, params_dmid, params_shape, 'Mtot')
 print('Mtot KStest: statistic = %s , pvalue = %s' %(stat_Mtot, pvalue_Mtot))
+
+stat_Mc, pvalue_Mc = data.cumulative_dist(dmid_fun, params_dmid, params_shape, 'Mc')
 print('Mc KStest: statistic = %s , pvalue = %s' %(stat_Mc, pvalue_Mc))
+
+stat_eta, pvalue_eta = data.cumulative_dist(dmid_fun, params_dmid, params_shape, 'eta') 
 print('eta KStest: statistic = %s , pvalue = %s' %(stat_eta, pvalue_eta))
 
 
