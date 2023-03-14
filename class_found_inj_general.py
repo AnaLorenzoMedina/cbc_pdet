@@ -150,8 +150,6 @@ class Found_injections:
         if delta == None : delta = self.delta_opt
         if emax == None : emax = self.emax_opt
         
-        #print(gamma)
-        
         frac = dL / dLmid
         denom = 1. + frac ** alpha * \
             np.exp(gamma * (frac - 1.) + delta * (frac**2 - 1.))
@@ -198,7 +196,7 @@ class Found_injections:
         Dmid(m1,m2) in the detector's frame
 
         """
-        cte , a_20, a_01, a_21 = params[0], params[1], params[2], params[3]
+        cte , a_20, a_01, a_21, a_30 = params
         
         m1_det = m1 * (1 + z) 
         m2_det = m2 * (1 + z)
@@ -207,7 +205,7 @@ class Found_injections:
         
         Mc = (m1_det * m2_det)**(3/5) / (m1_det + m2_det)**(1/5)
         
-        pol = cte *(1+ a_20 * M**2 / 2 + a_01 * (1 - 4*eta) + a_21 * M**2 * (1 - 4*eta) / 2)
+        pol = cte *(1+ a_20 * M**2 / 2 + a_01 * (1 - 4*eta) + a_21 * M**2 * (1 - 4*eta) / 2 + a_30 * M**3)
         
         return pol * Mc**(5/6)
     
@@ -378,6 +376,18 @@ class Found_injections:
 
         return gamma, delta, emax, -min_likelihood
     
+    def MLE_difev(self, dmid_fun, bounds, maxiter=50, popsize=100):
+        
+        def lnL(x):
+            lnL = -self.Nexp(dmid_fun, x) + np.sum(np.log(self.lamda(dmid_fun, x)))
+            print(lnL)
+            return lnL
+        
+        result = opt.differential_evolution(lnL, bounds, maxiter=maxiter, popsize=popsize)
+        params_opt = result.x
+        maxL = result.fun
+        return params_opt, maxL
+    
     def joint_MLE(self, dmid_fun, params_dmid, params_shape, methods, precision = 1e-2):
         
         total_lnL = np.zeros([1])
@@ -451,10 +461,7 @@ class Found_injections:
         pdet = self.sigmoid(self.dL, dmid(self, self.m1, self.m2, self.z, dmid_params), gamma, delta, emax)
         
         def cdf(x):
-            values = []
-            for value in x:
-                norm = np.sum(pdet[dic[var]<value])/np.sum(pdet)
-                values.append(norm)
+            values = [np.sum(pdet[dic[var]<value])/np.sum(pdet) for value in x]
             return np.array(values)
             
         return kstest(var_foundo, lambda x: cdf(x) )
@@ -483,9 +490,10 @@ except OSError as e:
 
 cte_guess = 99
 a20_guess= 0.0001
-a01_guess= 0.3
+a01_guess= -0.4
 a21_guess = -0.0001
 #a22_guess = -0.0002
+a30_guess = 0.0001
 
 gamma_guess = -0.02726
 delta_guess = 0.13166
@@ -494,8 +502,8 @@ emax_guess = 0.79928
 shape_guess = [gamma_guess, delta_guess, emax_guess]
 
 
-params_guess = {'Dmid_mchirp': cte_guess, 'Dmid_mchirp_expansion': [cte_guess, a20_guess, a01_guess, a21_guess]}
-params_names = {'Dmid_mchirp': 'cte', 'Dmid_mchirp_expansion': ['cte', 'a20', 'a01', 'a21']}
+params_guess = {'Dmid_mchirp': cte_guess, 'Dmid_mchirp_expansion': [cte_guess, a20_guess, a01_guess, a21_guess, a30_guess]}
+params_names = {'Dmid_mchirp': 'cte', 'Dmid_mchirp_expansion': ['cte', 'a20', 'a01', 'a21', 'a30']}
 
 
 ########## MLE DMID ##########
@@ -520,7 +528,7 @@ params_names = {'Dmid_mchirp': 'cte', 'Dmid_mchirp_expansion': ['cte', 'a20', 'a
 
 #gamma_opt, delta_opt, emax_opt = np.loadtxt(f'{dmid_fun}/shape/opt_shape_params.dat')[:-1]
 
-#data.joint_MLE(dmid_fun, params_guess[dmid_fun], shape_guess, methods='Nelder-Mead', precision = 1e-2)
+data.joint_MLE(dmid_fun, params_guess[dmid_fun], shape_guess, methods='Nelder-Mead', precision = 1e-2)
 
 params_dmid = np.loadtxt(f'{dmid_fun}/joint_fit_dmid.dat')[-1, :-1]
 gamma_opt, delta_opt, emax_opt = np.loadtxt(f'{dmid_fun}/joint_fit_shape.dat')[-1, :-1]
@@ -546,6 +554,8 @@ stat_eta, pvalue_eta = data.cumulative_dist(dmid_fun, params_dmid, params_shape,
 print('eta KStest: statistic = %s , pvalue = %s' %(stat_eta, pvalue_eta))
 
 
+
+bounds = [ (50, 150), (-1,1), (-1, 1), (-1, 1), (-1,1) ]
 ######## PLOTS TO CHECK DMID DEPENDANCE ON MASS PARAMETERS (from binned analysis) ########
 
 # plt.close('all')
@@ -618,20 +628,15 @@ print('eta KStest: statistic = %s , pvalue = %s' %(stat_eta, pvalue_eta))
 
 # fig = plt.figure()
 # ax=fig.add_subplot(projection='3d')
-
-# x = Mtot_plot
-# y = eta_plot
-
-# ax.plot_trisurf(x, y, dmid_plot/(Mc_plot)**(5/6), cmap='viridis')
+# ax.plot_trisurf(Mtot_plot, eta_plot, dmid_plot/(Mc_plot)**(5/6), cmap='viridis')
 # ax.set_xlabel('Mtotal ')
 # ax.set_ylabel(r'$\eta$')
 # ax.set_zlabel('dL_mid / Mc^(5/6)')
 # name="dL_joint_fit_results_emax/3D_plot.png"
 # plt.savefig(name, format='png', dpi=1000)
 
-
 ###### PLOT TO CHECK EPSILON(DL) WITH OPT PARAMETERS #######
-gamma_opt, delta_opt, emax_opt = np.loadtxt(f'{dmid_fun}/shape/opt_shape_params.dat')[:-1]
+#gamma_opt, delta_opt, emax_opt = np.loadtxt(f'{dmid_fun}/joint_fit_shape.dat')[-1, :-1]
 
 plt.figure(figsize=(7,6))
 plt.plot(data.dL, data.sigmoid(data.dL, data.Dmid_mchirp_expansion(data.m1, data.m2, data.z, params_dmid), gamma_opt, delta_opt, emax_opt), '.')
