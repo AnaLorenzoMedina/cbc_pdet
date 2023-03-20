@@ -14,7 +14,6 @@ import scipy.optimize as opt
 import matplotlib.pyplot as plt
 import os
 import errno
-from scipy.stats import uniform
 
 class Found_injections:
     """
@@ -121,7 +120,7 @@ class Found_injections:
         self.delta_opt = 0.13166
         self.emax_opt = 0.79928
         
-        self.dmid_params_names = {'Dmid_mchirp': 'cte', 'Dmid_mchirp_expansion': ['cte', 'a20', 'a01', 'a21']}
+        self.dmid_params_names = {'Dmid_mchirp': 'cte', 'Dmid_mchirp_expansion': ['cte', 'a20', 'a01', 'a21', 'a30']}
         
         print('finished initializing')
     
@@ -458,6 +457,7 @@ class Found_injections:
         name=f'{dmid_fun}/{var}_cumulative.png'
         plt.savefig(name, format='png')
         
+        #KS test
         pdet = self.sigmoid(self.dL, dmid(self, self.m1, self.m2, self.z, dmid_params), gamma, delta, emax)
         
         def cdf(x):
@@ -465,6 +465,101 @@ class Found_injections:
             return np.array(values)
             
         return kstest(var_foundo, lambda x: cdf(x) )
+    
+    
+    def binned_cumulative_dist(self, nbins, dmid_fun, dmid_params, shape_params, var_cmd = 'eta', var_binned = 'eta'):
+        
+        try:
+            os.mkdir(f'{dmid_fun}/{var_binned}_bins')
+        except OSError as e:
+            if e.errno != errno.EEXIST:
+                raise
+                
+        try:
+            os.mkdir(f'{dmid_fun}/{var_binned}_bins/{var_cmd}_cmd')
+        except OSError as e:
+            if e.errno != errno.EEXIST:
+                raise
+                
+        dmid = getattr(Found_injections, dmid_fun)
+        bin_dic = {'dL': self.dL, 'Mc': self.Mc, 'Mtot': self.Mtot, 'eta': self.eta}
+        
+        gamma, delta, emax = shape_params[0], shape_params[1], shape_params[2]
+        
+        #sort data
+        data_not_sorted = bin_dic[var_binned]
+        index = np.argsort(data_not_sorted)
+        data = data_not_sorted[index]
+        
+        dLo = self.dL[index]; m1o = self.m1[index]; m2o = self.m2[index]; zo = self.z[index]
+        Mco = self.Mc[index]; Mtoto = self.Mtot[index]; etao = self.eta[index]
+        found_any_o = self.found_any[index]
+        
+        #create bins with equally amount of data
+        def equal_bin(N, m):
+            sep = (N.size/float(m))*np.arange(1,m+1)
+            idx = sep.searchsorted(np.arange(N.size))
+            return idx[N.argsort().argsort()]
+        
+        index_bins = equal_bin(data, nbins)
+        
+        print(f'\n{var_binned} bins:\n')
+        
+        for i in range(nbins):
+            #get data in each bin
+            data_inbin = data[index_bins==i]
+            dL_inbin = dLo[index_bins==i]
+            m1_inbin = m1o[index_bins==i]
+            m2_inbin = m2o[index_bins==i]
+            z_inbin = zo[index_bins==i]
+            
+            Mc_inbin = Mco[index_bins==i]
+            Mtot_inbin = Mtoto[index_bins==i]
+            eta_inbin = etao[index_bins==i]
+            
+            cmd_dic = {'dL': dL_inbin, 'Mc': Mc_inbin, 'Mtot': Mtot_inbin, 'eta': eta_inbin}
+        
+            #cumulative distribution over the desired variable
+            indexo = np.argsort(cmd_dic[var_cmd])
+            varo = cmd_dic[var_cmd][indexo]
+            dL = dL_inbin[indexo]
+            m1 = m1_inbin[indexo]
+            m2 = m2_inbin[indexo]
+            z = z_inbin[indexo]
+            cmd = np.cumsum(self.sigmoid(dL, dmid(self, m1, m2, z, dmid_params), gamma, delta, emax))
+            
+            #found injections
+            found_inj_index_inbin = found_any_o[index_bins==i]
+            found_inj_inbin = cmd_dic[var_cmd][found_inj_index_inbin]
+            indexo_found = np.argsort(found_inj_inbin)
+            found_inj_inbin_sorted = found_inj_inbin[indexo_found]
+            real_found_inj = np.arange(len(found_inj_inbin_sorted ))+1
+        
+            plt.figure()
+            plt.plot(varo, cmd, '.', markersize=2, label='model')
+            plt.plot(found_inj_inbin_sorted, real_found_inj, '.', markersize=2, label='found injections')
+            plt.xlabel(f'${var_cmd}^*$')
+            plt.ylabel('Cumulative found injections')
+            plt.legend(loc='best')
+            plt.title(f'{var_binned} bin {i} : {data_inbin[0]:.6} - {data_inbin[-1]:.6}')
+            name=f'{dmid_fun}/{var_binned}_bins/{var_cmd}_cmd/{i}.png'
+            plt.savefig(name, format='png', dpi=500)
+            
+            #KS test
+            pdet = self.sigmoid(dL_inbin, dmid(self, m1_inbin, m2_inbin, z_inbin, dmid_params), gamma, delta, emax)
+            
+            def cdf(x):
+                values = [np.sum(pdet[cmd_dic[var_cmd]<value])/np.sum(pdet) for value in x]
+                return np.array(values)
+            
+            stat, pvalue = kstest(found_inj_inbin_sorted, lambda x: cdf(x) )
+            
+            print(f'{var_cmd} KStest in {i} bin: statistic = %s , pvalue = %s' %(stat, pvalue))
+        
+        print('')   
+        return 
+            
+        
 
 plt.close('all')
 
@@ -487,7 +582,7 @@ try:
 except OSError as e:
     if e.errno != errno.EEXIST:
         raise
-
+        
 cte_guess = 99
 a20_guess= 0.0001
 a01_guess= -0.4
@@ -528,7 +623,7 @@ params_names = {'Dmid_mchirp': 'cte', 'Dmid_mchirp_expansion': ['cte', 'a20', 'a
 
 #gamma_opt, delta_opt, emax_opt = np.loadtxt(f'{dmid_fun}/shape/opt_shape_params.dat')[:-1]
 
-data.joint_MLE(dmid_fun, params_guess[dmid_fun], shape_guess, methods='Nelder-Mead', precision = 1e-2)
+#data.joint_MLE(dmid_fun, params_guess[dmid_fun], shape_guess, methods='Nelder-Mead', precision = 1e-2)
 
 params_dmid = np.loadtxt(f'{dmid_fun}/joint_fit_dmid.dat')[-1, :-1]
 gamma_opt, delta_opt, emax_opt = np.loadtxt(f'{dmid_fun}/joint_fit_shape.dat')[-1, :-1]
@@ -541,21 +636,26 @@ print('\ngamma, delta, emax:\n', gamma_opt, delta_opt, emax_opt, '\n')
 
 plt.close('all')
 
-stat_dL, pvalue_dL = data.cumulative_dist(dmid_fun, params_dmid, params_shape, 'dL')
-print('\ndL KStest: statistic = %s , pvalue = %s' %(stat_dL, pvalue_dL))
+# stat_dL, pvalue_dL = data.cumulative_dist(dmid_fun, params_dmid, params_shape, 'dL')
+# print('\ndL KStest: statistic = %s , pvalue = %s' %(stat_dL, pvalue_dL))
 
-stat_Mtot, pvalue_Mtot = data.cumulative_dist(dmid_fun, params_dmid, params_shape, 'Mtot')
-print('Mtot KStest: statistic = %s , pvalue = %s' %(stat_Mtot, pvalue_Mtot))
+# stat_Mtot, pvalue_Mtot = data.cumulative_dist(dmid_fun, params_dmid, params_shape, 'Mtot')
+# print('Mtot KStest: statistic = %s , pvalue = %s' %(stat_Mtot, pvalue_Mtot))
 
-stat_Mc, pvalue_Mc = data.cumulative_dist(dmid_fun, params_dmid, params_shape, 'Mc')
-print('Mc KStest: statistic = %s , pvalue = %s' %(stat_Mc, pvalue_Mc))
+# stat_Mc, pvalue_Mc = data.cumulative_dist(dmid_fun, params_dmid, params_shape, 'Mc')
+# print('Mc KStest: statistic = %s , pvalue = %s' %(stat_Mc, pvalue_Mc))
 
-stat_eta, pvalue_eta = data.cumulative_dist(dmid_fun, params_dmid, params_shape, 'eta') 
-print('eta KStest: statistic = %s , pvalue = %s' %(stat_eta, pvalue_eta))
+# stat_eta, pvalue_eta = data.cumulative_dist(dmid_fun, params_dmid, params_shape, 'eta') 
+# print('eta KStest: statistic = %s , pvalue = %s' %(stat_eta, pvalue_eta))
 
+#binned cumulative dist analysis
+nbins = 5
+data.binned_cumulative_dist(nbins, dmid_fun, params_dmid, params_shape, 'dL')
+data.binned_cumulative_dist(nbins, dmid_fun, params_dmid, params_shape, 'Mtot')
+data.binned_cumulative_dist(nbins, dmid_fun, params_dmid, params_shape, 'Mc')
+data.binned_cumulative_dist(nbins, dmid_fun, params_dmid, params_shape, 'eta')
 
-
-bounds = [ (50, 150), (-1,1), (-1, 1), (-1, 1), (-1,1) ]
+#bounds = [ (50, 150), (-1,1), (-1, 1), (-1, 1), (-1,1) ]
 ######## PLOTS TO CHECK DMID DEPENDANCE ON MASS PARAMETERS (from binned analysis) ########
 
 # plt.close('all')
@@ -638,12 +738,12 @@ bounds = [ (50, 150), (-1,1), (-1, 1), (-1, 1), (-1,1) ]
 ###### PLOT TO CHECK EPSILON(DL) WITH OPT PARAMETERS #######
 #gamma_opt, delta_opt, emax_opt = np.loadtxt(f'{dmid_fun}/joint_fit_shape.dat')[-1, :-1]
 
-plt.figure(figsize=(7,6))
-plt.plot(data.dL, data.sigmoid(data.dL, data.Dmid_mchirp_expansion(data.m1, data.m2, data.z, params_dmid), gamma_opt, delta_opt, emax_opt), '.')
-t = ('gamma = %.3f , delta = %.3f , emax = %.3f' %(gamma_opt, delta_opt, emax_opt) )
-plt.title(t)
-plt.xlabel('dL')
-plt.ylabel(r'$\epsilon (dL, dmid(m), \gamma_{opt}, \delta_{opt}, emax_{opt})$')
-plt.show()
-plt.savefig(f'{dmid_fun}/shape/opt_epsilon_plot.png')
+# plt.figure(figsize=(7,6))
+# plt.plot(data.dL, data.sigmoid(data.dL, data.Dmid_mchirp_expansion(data.m1, data.m2, data.z, params_dmid), gamma_opt, delta_opt, emax_opt), '.')
+# t = ('gamma = %.3f , delta = %.3f , emax = %.3f' %(gamma_opt, delta_opt, emax_opt) )
+# plt.title(t)
+# plt.xlabel('dL')
+# plt.ylabel(r'$\epsilon (dL, dmid(m), \gamma_{opt}, \delta_{opt}, emax_{opt})$')
+# plt.show()
+# plt.savefig(f'{dmid_fun}/shape/opt_epsilon_plot.png')
 
