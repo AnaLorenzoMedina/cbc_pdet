@@ -120,7 +120,7 @@ class Found_injections:
         self.delta_opt = 0.13166
         self.emax_opt = 0.79928
         
-        self.dmid_params_names = {'Dmid_mchirp': 'cte', 'Dmid_mchirp_expansion': ['cte', 'a20', 'a01', 'a21', 'a30']}
+        self.dmid_params_names = {'Dmid_mchirp': 'cte', 'Dmid_mchirp_expansion': ['cte', 'a20', 'a01', 'a21', 'a30', 'a_10']}
         self.emax_params_names = {'emax' : ['gamma_opt, delta_opt, b_0, b_1, b_2'] }
         print('finished initializing')
     
@@ -191,7 +191,7 @@ class Found_injections:
         Dmid(m1,m2) in the detector's frame
 
         """
-        cte , a_20, a_01, a_21, a_30 = params
+        cte , a_20, a_01, a_21, a_30, a_10 = params
         
         m1_det = m1 * (1 + z) 
         m2_det = m2 * (1 + z)
@@ -200,7 +200,7 @@ class Found_injections:
         
         Mc = (m1_det * m2_det)**(3/5) / (m1_det + m2_det)**(1/5)
         
-        pol = cte *(1+ a_20 * M**2 / 2 + a_01 * (1 - 4*eta) + a_21 * M**2 * (1 - 4*eta) / 2 + a_30 * M**3)
+        pol = cte *(1+ a_20 * M**2 / 2 + a_01 * (1 - 4*eta) + a_21 * M**2 * (1 - 4*eta) / 2 + a_30 * M**3 + a_10 * M)
         
         return pol * Mc**(5/6)
     
@@ -388,10 +388,10 @@ class Found_injections:
         -min_likelihood : maximum log likelihood. 
 
         """
-        gamma_guess, delta_guess, emax_guess = params_shape_guess
+        #gamma_guess, delta_guess, emax_guess = params_shape_guess
         
         res = opt.minimize(fun=lambda in_param: -self.logL(dmid_fun, params_dmid, in_param), 
-                           x0=np.array([gamma_guess, delta_guess, emax_guess]), 
+                           x0=np.array([params_shape_guess]), 
                            args=(), 
                            method=methods)
         
@@ -545,7 +545,7 @@ class Found_injections:
     
     def binned_cumulative_dist(self, nbins, dmid_fun, dmid_params, shape_params, var_cmd , var_binned, emax_fun = None):
         
-        emax_dic = {'None' : 'cmds', 'emax' : 'emax_exp_cmds'}
+        emax_dic = {None: 'cmds', 'emax' : 'emax_exp_cmds'}
         
         try:
             os.mkdir(f'{dmid_fun}/{emax_dic[emax_fun]}')
@@ -676,18 +676,13 @@ except OSError as e:
     if e.errno != errno.EEXIST:
         raise
         
-try:
-    os.mkdir(f'{dmid_fun}/shape')
-except OSError as e:
-    if e.errno != errno.EEXIST:
-        raise
-        
 cte_guess = 99
 a20_guess= 0.0001
 a01_guess= -0.4
 a21_guess = -0.0001
 #a22_guess = -0.0002
 a30_guess = 0.0001
+a10_guess = 0.0001
 
 # b0_guess = -3
 # b1_guess = -0.05
@@ -704,8 +699,8 @@ emax_guess = 0.79928
 
 shape_guess = [gamma_guess, delta_guess, emax_guess]
 
-params_guess = {'Dmid_mchirp': cte_guess, 'Dmid_mchirp_expansion': [cte_guess, a20_guess, a01_guess, a21_guess, a30_guess]}
-params_names = {'Dmid_mchirp': 'cte', 'Dmid_mchirp_expansion': ['cte', 'a20', 'a01', 'a21', 'a30']}
+params_guess = {'Dmid_mchirp': cte_guess, 'Dmid_mchirp_expansion': [cte_guess, a20_guess, a01_guess, a21_guess, a30_guess, a10_guess]}
+params_names = {'Dmid_mchirp': 'cte', 'Dmid_mchirp_expansion': ['cte', 'a20', 'a01', 'a21', 'a30', 'a10']}
 
 
 
@@ -736,27 +731,27 @@ params_names = {'Dmid_mchirp': 'cte', 'Dmid_mchirp_expansion': ['cte', 'a20', 'a
 
 # # ~~~~~~~~~ THESE LINES ARE NECESSARY TO DO THE JOINT FIT WITH EMAX FUN ~~~~~~~~~
 
-# params_dmid = np.loadtxt(f'{dmid_fun}/joint_fit_dmid.dat')[-1, :-1]
-# gamma_opt, delta_opt, emax_opt = np.loadtxt(f'{dmid_fun}/joint_fit_shape.dat')[-1, :-1]
-# params_shape = [gamma_opt, delta_opt, emax_opt]
+params_dmid = np.loadtxt(f'{dmid_fun}/joint_fit_dmid.dat')[-1, :-1]
+gamma_opt, delta_opt, emax_opt = np.loadtxt(f'{dmid_fun}/joint_fit_shape.dat')[-1, :-1]
+params_shape = [gamma_opt, delta_opt, emax_opt]
 
 # shape_guess_emax = [gamma_opt, delta_opt, b0_guess, b1_guess, b2_guess]
 
 # # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ 
 
-# print('\nparams_dmid:\n', params_dmid)
-# print('\ngamma, delta, emax:\n', gamma_opt, delta_opt, emax_opt, '\n')
+print('\nparams_dmid:\n', params_dmid)
+print('\ngamma, delta, emax:\n', gamma_opt, delta_opt, emax_opt, '\n')
 
 ########## JOINT FIT WITH EMAX FUNCTION ###########
 # data.joint_MLE('Nelder-Mead', dmid_fun, params_dmid, shape_guess_emax, emax_fun, precision = 1e-2)
 
-params_dmid = np.loadtxt(f'{dmid_fun}/joint_fit_dmid_emaxfun.dat')[-1, :-1]
-params_shape = np.loadtxt(f'{dmid_fun}/joint_fit_shape_emaxfun.dat')[-1, :-1]
-gamma_opt, delta_opt = params_shape[:2]
-params_emax = params_shape[2:]
+# params_dmid = np.loadtxt(f'{dmid_fun}/joint_fit_dmid_emaxfun.dat')[-1, :-1]
+# params_shape = np.loadtxt(f'{dmid_fun}/joint_fit_shape_emaxfun.dat')[-1, :-1]
+# gamma_opt, delta_opt = params_shape[:2]
+# params_emax = params_shape[2:]
 
-print('\nparams_dmid:\n', params_dmid)
-print('\ngamma, delta, b0, b1, b2:\n', gamma_opt, delta_opt, params_emax, '\n')
+# print('\nparams_dmid:\n', params_dmid)
+# print('\ngamma, delta, b0, b1, b2:\n', gamma_opt, delta_opt, params_emax, '\n')
 
 ########## KS TEST ##########
 
@@ -776,10 +771,10 @@ plt.close('all')
 
 #binned cumulative dist analysis
 nbins = 5
-data.binned_cumulative_dist(nbins, dmid_fun, params_dmid, params_shape, 'dL', 'eta', emax_fun)
-data.binned_cumulative_dist(nbins, dmid_fun, params_dmid, params_shape, 'Mtot', 'eta', emax_fun)
-data.binned_cumulative_dist(nbins, dmid_fun, params_dmid, params_shape, 'Mc', 'eta', emax_fun)
-data.binned_cumulative_dist(nbins, dmid_fun, params_dmid, params_shape, 'eta', 'eta', emax_fun)
+data.binned_cumulative_dist(nbins, dmid_fun, params_dmid, params_shape, 'dL', 'dL')
+data.binned_cumulative_dist(nbins, dmid_fun, params_dmid, params_shape, 'Mtot', 'dL')
+data.binned_cumulative_dist(nbins, dmid_fun, params_dmid, params_shape, 'Mc', 'dL')
+data.binned_cumulative_dist(nbins, dmid_fun, params_dmid, params_shape, 'eta', 'dL')
 
 #bounds = [ (50, 150), (-1,1), (-1, 1), (-1, 1), (-1,1) ]
 
@@ -794,25 +789,26 @@ data.binned_cumulative_dist(nbins, dmid_fun, params_dmid, params_shape, 'eta', '
 # plt.xlabel('dL')
 # plt.ylabel(r'$\epsilon (dL, dmid(m), \gamma_{opt}, \delta_{opt}, emax_{opt})$')
 # plt.show()
-#plt.savefig(f'{dmid_fun}/opt_epsilon_plot.png')
+# plt.savefig(f'{dmid_fun}/opt_epsilon_plot.png')
 
 ###### PLOT TO CHECK EPSILON(DL) WITH OPT PARAMETERS and emax fun #######
 #gamma_opt, delta_opt, emax_opt = np.loadtxt(f'{dmid_fun}/joint_fit_shape.dat')[-1, :-1]
 
-plt.figure(figsize=(7,6))
-plt.plot(data.dL, data.sigmoid(data.dL, data.Dmid_mchirp_expansion(data.m1, data.m2, data.z, params_dmid), data.emax(data.m1, data.m2, params_emax), gamma_opt, delta_opt), '.')
-plt.xlabel('dL')
-plt.ylabel(r'$\epsilon (dL, dmid(m), emax(m), \gamma_{opt}, \delta_{opt})$')
-plt.show()
-plt.savefig(f'{dmid_fun}/opt_epsilon_plot_emaxfun.png')
+# plt.figure(figsize=(7,6))
+# plt.plot(data.dL, data.sigmoid(data.dL, data.Dmid_mchirp_expansion(data.m1, data.m2, data.z, params_dmid), data.emax(data.m1, data.m2, params_emax), gamma_opt, delta_opt), '.')
+# plt.xlabel('dL')
+# plt.ylabel(r'$\epsilon (dL, dmid(m), emax(m), \gamma_{opt}, \delta_{opt})$')
+# plt.show()
+# plt.savefig(f'{dmid_fun}/opt_epsilon_plot_emaxfun.png')
 
-x = np.linspace(0,data.mmax*2, 500)
-y = 1 - np.exp(params_emax[0] + params_emax[1] * x + params_emax[2] * x**2)
-plt.figure()
-plt.plot(x, y, '.')
-plt.ylim(0.2, 2)
-plt.grid()
-plt.xlabel('Mtot')
-plt.ylabel('emax(m)')
-plt.savefig(f'{dmid_fun}/emax(m).png')
+# x = np.linspace(0,data.mmax*2, 500)
+# y = 1 - np.exp(params_emax[0] + params_emax[1] * x + params_emax[2] * x**2)
+# plt.figure()
+# plt.plot(x, y, '.')
+# plt.ylim(0.2, 2)
+# plt.grid()
+# plt.xlabel('Mtot')
+# plt.ylabel('emax(m)')
+# plt.savefig(f'{dmid_fun}/emax(m).png')
 
+-341915.4082902343
