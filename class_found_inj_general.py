@@ -120,8 +120,14 @@ class Found_injections:
         self.delta_opt = 0.13166
         self.emax_opt = 0.79928
         
-        self.dmid_params_names = {'Dmid_mchirp': 'cte', 'Dmid_mchirp_expansion': ['cte', 'a20', 'a01', 'a21', 'a30', 'a10'], 'Dmid_mchirp_expansion_asqrt': ['cte', 'a20', 'a01', 'a21', 'a30', 'asqrt'], 'Dmid_mchirp_power': ['cte', 'a20', 'a01', 'a21', 'a30', 'power_param']}
+        self.dmid_params_names = {'Dmid_mchirp': 'cte', 
+                                  'Dmid_mchirp_expansion': ['cte', 'a20', 'a01', 'a21', 'a30', 'a10'], 
+                                  'Dmid_mchirp_expansion_a11': ['cte', 'a20', 'a01', 'a21', 'a30', 'a10','a11'],
+                                  'Dmid_mchirp_expansion_asqrt': ['cte', 'a20', 'a01', 'a21', 'a30', 'asqrt'], 
+                                  'Dmid_mchirp_power': ['cte', 'a20', 'a01', 'a21', 'a30', 'power_param']}
+        
         self.emax_params_names = {'emax' : ['gamma_opt, delta_opt, b_0, b_1, b_2'] }
+        
         print('finished initializing')
     
     #now we define methods for this class
@@ -234,6 +240,38 @@ class Found_injections:
         
         return pol * Mc**(5/6)
     
+    def Dmid_mchirp_expansion_a11(self, m1, m2, z, params):
+        """
+        Dmid values (distance where Pdet = 0.5) as a function of the masses 
+        in the detector frame (our first guess)
+
+        Parameters
+        ----------
+        m1 : mass1 
+        m2: mass2
+        z : redshift
+        params : parameters that we will be optimizing
+        
+        Returns
+        -------
+        Dmid(m1,m2) in the detector's frame
+
+        """
+        cte , a_20, a_01, a_21, a_30, a_10, a_11 = params
+        
+        m1_det = m1 * (1 + z) 
+        m2_det = m2 * (1 + z)
+        M = m1_det + m2_det
+        eta = m1*m2 / (m1+m2)**2
+        
+        Mc = (m1_det * m2_det)**(3/5) / (m1_det + m2_det)**(1/5)
+        
+        pol = cte *(1+ a_20 * M**2  + a_01 * (1 - 4*eta) + a_21 * M**2 * (1 - 4*eta)  + a_30 * M**3 + a_10 * M + a_11 * M * (1 - 4*eta))
+        
+        return pol * Mc**(5/6)
+    
+    
+    
     def Dmid_mchirp_power(self, m1, m2, z, params):
         """
         Dmid values (distance where Pdet = 0.5) as a function of the masses 
@@ -264,8 +302,10 @@ class Found_injections:
         
         return pol * Mc**((5+power_param)/6)
     
-    def emax(self, m1, m2, params):
-        Mtot = m1 + m2
+    def emax(self, m1, m2, z, params):
+        m1_det = m1 * (1 + z) 
+        m2_det = m2 * (1 + z)
+        Mtot = m1_det + m2_det
         b_0, b_1, b_2 = params
         return 1 - np.exp(b_0 + b_1 * Mtot + b_2 * Mtot**2)
     
@@ -332,7 +372,7 @@ class Found_injections:
             emax = getattr(Found_injections, emax_fun)
             gamma, delta = shape_params[0], shape_params[1]
             emax_params = shape_params[2:]
-            Nexp = np.sum(self.sigmoid(self.dL, dmid(self, self.m1, self.m2, self.z, dmid_params), emax(self, self.m1, self.m2, emax_params), gamma, delta))
+            Nexp = np.sum(self.sigmoid(self.dL, dmid(self, self.m1, self.m2, self.z, dmid_params), emax(self, self.m1, self.m2, self.z, emax_params), gamma, delta))
         
         # elif shape_params is None and emax_params is not None:
         #     emax = getattr(Found_injections, emax_fun)
@@ -374,7 +414,7 @@ class Found_injections:
             emax = getattr(Found_injections, emax_fun)
             gamma, delta = shape_params[0], shape_params[1]
             emax_params = shape_params[2:]
-            lamda = self.sigmoid(dL, dmid(self, m1, m2, z, dmid_params), emax(self, m1, m2, emax_params), gamma, delta) * m_pdf * dL_pdf * self.Ntotal
+            lamda = self.sigmoid(dL, dmid(self, m1, m2, z, dmid_params), emax(self, m1, m2, z, emax_params), gamma, delta) * m_pdf * dL_pdf * self.Ntotal
             
         # elif shape_params is None and emax_fun is not None:
         #     emax = getattr(Found_injections, emax_fun)
@@ -592,7 +632,7 @@ class Found_injections:
         zo = self.z[indexo]
         
         if emax_fun is not None:
-            cmd = np.cumsum(self.sigmoid(dLo, dmid(self, m1o, m2o, zo, dmid_params), emax(self, m1o, m2o, emax_params), gamma, delta))
+            cmd = np.cumsum(self.sigmoid(dLo, dmid(self, m1o, m2o, zo, dmid_params), emax(self, m1o, m2o, zo, emax_params), gamma, delta))
         else:
             cmd = np.cumsum(self.sigmoid(dLo, dmid(self, m1o, m2o, zo, dmid_params), emax, gamma, delta))
         
@@ -613,7 +653,7 @@ class Found_injections:
         
         #KS test
         if emax_fun is not None:
-            pdet = self.sigmoid(self.dL, dmid(self, self.m1, self.m2, self.z, dmid_params), emax(self, self.m1, self.m2, emax_params), gamma, delta)
+            pdet = self.sigmoid(self.dL, dmid(self, self.m1, self.m2, self.z, dmid_params), emax(self, self.m1, self.m2, self.z, emax_params), gamma, delta)
         else:    
             pdet = self.sigmoid(self.dL, dmid(self, self.m1, self.m2, self.z, dmid_params), emax, gamma, delta)
         
@@ -699,7 +739,7 @@ class Found_injections:
             z = z_inbin[indexo]
             
             if emax_fun is not None:
-                cmd = np.cumsum(self.sigmoid(dL, dmid(self, m1, m2, z, dmid_params), emax(self, m1, m2, emax_params), gamma, delta))
+                cmd = np.cumsum(self.sigmoid(dL, dmid(self, m1, m2, z, dmid_params), emax(self, m1, m2, z, emax_params), gamma, delta))
             else:
                 cmd = np.cumsum(self.sigmoid(dL, dmid(self, m1, m2, z, dmid_params), emax, gamma, delta))
             
@@ -723,7 +763,7 @@ class Found_injections:
             
             #KS test
             if emax_fun is not None:
-                pdet = self.sigmoid(dL_inbin, dmid(self, m1_inbin, m2_inbin, z_inbin, dmid_params), emax(self, m1_inbin, m2_inbin, emax_params), gamma, delta)
+                pdet = self.sigmoid(dL_inbin, dmid(self, m1_inbin, m2_inbin, z_inbin, dmid_params), emax(self, m1_inbin, m2_inbin, z_inbin, emax_params), gamma, delta)
             else:    
                 pdet = self.sigmoid(dL_inbin, dmid(self, m1_inbin, m2_inbin, z_inbin, dmid_params), emax, gamma, delta)
             
@@ -748,7 +788,8 @@ file = h5py.File('endo3_bbhpop-LIGO-T2100113-v12.hdf5', 'r')
 data = Found_injections(file)
 
 # function for dmid and emax we wanna use
-dmid_fun = 'Dmid_mchirp_expansion_asqrt'
+dmid_fun = 'Dmid_mchirp_expansion_a11'
+#dmid_fun = 'Dmid_mchirp_expansion_asqrt'
 #dmid_fun = 'Dmid_mchirp_expansion'
 emax_fun = 'emax'
 
@@ -765,10 +806,11 @@ a21_guess = -0.0001
 #a22_guess = -0.0002
 a30_guess = 0.0001
 a10_guess = 0
+a11_guess = 0
 asqrt_guess = 0
 power_guess = 1
 
-b0_guess = -2.4
+b0_guess = -3.5
 b1_guess = 0
 b2_guess = 0
 
@@ -778,8 +820,17 @@ emax_guess = 0.79928
 
 shape_guess = [gamma_guess, delta_guess, emax_guess]
 
-params_guess = {'Dmid_mchirp': cte_guess, 'Dmid_mchirp_expansion': [cte_guess, a20_guess, a01_guess, a21_guess, a30_guess, a10_guess], 'Dmid_mchirp_expansion_asqrt': [cte_guess, a20_guess, a01_guess, a21_guess, a30_guess, asqrt_guess], 'Dmid_mchirp_power': [cte_guess, a20_guess, a01_guess, a21_guess, a30_guess, power_guess]}
-params_names = {'Dmid_mchirp': 'cte', 'Dmid_mchirp_expansion': ['cte', 'a20', 'a01', 'a21', 'a30', 'a10'], 'Dmid_mchirp_expansion_asqrt': ['cte', 'a20', 'a01', 'a21', 'a30', 'asqrt'], 'Dmid_mchirp_power': ['cte', 'a20', 'a01', 'a21', 'a30', 'power_param']}
+params_guess = {'Dmid_mchirp': cte_guess, 
+                'Dmid_mchirp_expansion': [cte_guess, a20_guess, a01_guess, a21_guess, a30_guess, a10_guess], 
+                'Dmid_mchirp_expansion_a11': [cte_guess, a20_guess, a01_guess, a21_guess, a30_guess, a10_guess, a11_guess],
+                'Dmid_mchirp_expansion_asqrt': [cte_guess, a20_guess, a01_guess, a21_guess, a30_guess, asqrt_guess], 
+                'Dmid_mchirp_power': [cte_guess, a20_guess, a01_guess, a21_guess, a30_guess, power_guess]}
+
+params_names = {'Dmid_mchirp': 'cte', 
+                'Dmid_mchirp_expansion': ['cte', 'a20', 'a01', 'a21', 'a30', 'a10'], 
+                'Dmid_mchirp_expansion_a11': ['cte', 'a20', 'a01', 'a21', 'a30', 'a10','a11'],
+                'Dmid_mchirp_expansion_asqrt': ['cte', 'a20', 'a01', 'a21', 'a30', 'asqrt'], 
+                'Dmid_mchirp_power': ['cte', 'a20', 'a01', 'a21', 'a30', 'power_param']}
 
 
 
@@ -823,8 +874,17 @@ params_names = {'Dmid_mchirp': 'cte', 'Dmid_mchirp_expansion': ['cte', 'a20', 'a
 
 ########## JOINT FIT WITH EMAX FUNCTION ###########
 
-params_dmid = [91.72267028049346, -1.2569702940809277e-05/2, -0.5671077334172103, 9.99097583380413e-06/2, 6.5686541980284065e-09, 0]
-shape_guess_emax  = [-0.5403600227437229, 0.21498422370452497, -2.2413634572753316, -0.014261526887000078, 0.00010764305058111201]
+#initial values from joint fit with emax fun and 'cte', 'a20', 'a01', 'a21', 'a30'
+#params_dmid = [91.72267028049346, -1.2569702940809277e-05/2, -0.5671077334172103, 9.99097583380413e-06/2, 6.5686541980284065e-09, 0]
+#shape_guess_emax  = [-0.5403600227437229, 0.21498422370452497, -2.2413634572753316, -0.014261526887000078, 0.00010764305058111201]
+
+#initial values from joint fit with emax fun and 'cte', 'a20', 'a01', 'a21', 'a30', 'a10'
+#params_dmid = [83.6359221338493, -1.7720389246237178e-05, -0.6202851605751052, 5.799384584576895e-06, 2.2901587693040153e-08, 0.0020739921788790177, 0]
+#shape_guess_emax  = [-0.5852595282336299, 0.22144333868817984, -3.4645779484229804, 0.01073830230180733, 1.9110955783665044e-06 ]
+
+#initial values from joint fit with emax fun and 'cte', 'a20', 'a01', 'a21', 'a30', 'a10'
+params_dmid = [82.785950741024, -1.9044508883488783e-05, -0.41084970235333484, 2.3427319051426644e-05, 2.4624863341861382e-08, 0.0023167923193285157, -0.004968986350895854 ]
+shape_guess_emax  = [-0.5934933873985427, 0.22291710406565518, -3.4645779484229804, -0.001, 0.00001]
 
 data.joint_MLE('Nelder-Mead', dmid_fun, params_dmid, shape_guess_emax, emax_fun, precision = 1e-2)
 
@@ -852,7 +912,7 @@ print('Mc KStest: statistic = %s , pvalue = %s' %(stat_Mc, pvalue_Mc))
 stat_eta, pvalue_eta = data.cumulative_dist(dmid_fun, params_dmid, params_shape, 'eta', emax_fun) 
 print('eta KStest: statistic = %s , pvalue = %s' %(stat_eta, pvalue_eta))
 
-# binned cumulative dist analysis
+## binned cumulative dist analysis
 nbins = 5
 data.binned_cumulative_dist(nbins, dmid_fun, params_dmid, params_shape, 'dL', 'dL', emax_fun)
 data.binned_cumulative_dist(nbins, dmid_fun, params_dmid, params_shape, 'Mtot', 'dL', emax_fun)
@@ -903,34 +963,59 @@ dmid = getattr(data, dmid_fun)
 #gamma_opt, delta_opt, emax_opt = np.loadtxt(f'{dmid_fun}/joint_fit_shape.dat')[-1, :-1]
 
 plt.figure(figsize=(7,6))
-plt.plot(data.dL, data.sigmoid(data.dL, dmid(data.m1, data.m2, data.z, params_dmid), data.emax(data.m1, data.m2, params_emax), gamma_opt, delta_opt), '.')
-plt.xlabel('dL')
+plt.plot(data.dL/dmid(data.m1, data.m2, data.z, params_dmid), data.sigmoid(data.dL, dmid(data.m1, data.m2, data.z, params_dmid), data.emax(data.m1, data.m2, data.z, params_emax), gamma_opt, delta_opt), '.')
+plt.xlabel('dL/dL_mid')
 plt.ylabel(r'$\epsilon (dL, dmid(m), emax(m), \gamma_{opt}, \delta_{opt})$')
 plt.show()
 plt.savefig(f'{dmid_fun}/opt_epsilon_plot_emaxfun.png')
 
-x = np.linspace(0,data.mmax*2, 500)
+order=np.argsort(data.dL)
+dL=data.dL[order]
+m1=data.m1[order]
+m2=data.m2[order]
+z=data.z[order]
+
+plt.figure(figsize=(7,6))
+plt.scatter(m1, m2, s=1, c=dmid(m1, m2, z, params_dmid))
+plt.xlabel('m1')
+plt.ylabel('m2')
+plt.colorbar(label='dL_mid')
+plt.show()
+plt.savefig(f'{dmid_fun}/opt_epsilon_plot_emaxfun.png')
+
+plt.figure(figsize=(7,6))
+plt.scatter(m1*(1+z), m2*(1+z), s=1, c=dmid(m1, m2, z, params_dmid))
+plt.xlabel('m1_det')
+plt.ylabel('m2_det')
+plt.colorbar(label='dL_mid')
+plt.show()
+plt.savefig(f'{dmid_fun}/opt_epsilon_plot_emaxfun.png')
+
+x = np.linspace(min(m1*(1+z)+m2*(1+z)),max(m1*(1+z)+m2*(1+z)), 500)
 y = 1 - np.exp(params_emax[0] + params_emax[1] * x + params_emax[2] * x**2)
 plt.figure()
 plt.plot(x, y, '.')
-plt.ylim(0.2, 2)
+plt.ylim(0, 2)
 plt.grid()
-plt.xlabel('Mtot')
+plt.xlabel('Mtot_det')
 plt.ylabel('emax(m)')
 plt.savefig(f'{dmid_fun}/emax(m).png')
 
-M = np.linspace(4,data.mmax*2, 200)
-eta = 0.175*np.ones(len(M))
+eta_choice=0.175
+
+M = np.linspace(min(m1*(1+z)+m2*(1+z)),max(m1*(1+z)+m2*(1+z)), 200)
+eta = eta_choice*np.ones(len(M))
 
 cte = params_dmid[0] * np.ones(len(M))
 a20 = params_dmid[1] * M**2 
 a01 = params_dmid[2] * (1 - 4*eta)
 a21 = params_dmid[3] * M**2 * (1 - 4*eta) 
 a30 = params_dmid[4] * M**3
-#a10 = params_dmid[5] * M
-asqrt = params_dmid[5] * M**(1/2)
+a10 = params_dmid[5] * M
+#asqrt = params_dmid[5] * M**(1/2)
+a11 = params_dmid[6] * M * (1 - 4*eta) 
 
-tot = a20 + a01 +a21 + a30 + asqrt
+tot = a20 + a01 +a21 + a30 + a10 + a11
 
 # plt.figure()
 # #plt.plot(M, np.abs(cte), '-', label='cte')
@@ -951,17 +1036,20 @@ tot = a20 + a01 +a21 + a30 + asqrt
 
 plt.figure()
 #plt.plot(M, np.abs(cte), '-', label='cte')
-#plt.plot(M, a10, '-', label='a_10 * M')
-plt.plot(M, np.abs(asqrt), '-', label='a_sqrt * M^(1/2)')
+plt.plot(M, a10, '-', label='a_10 * M')
+#plt.plot(M, np.abs(asqrt), '-', label='a_sqrt * M^(1/2)')
 plt.plot(M, a20, '-', label='a_20 * M^2')
 plt.plot(M, a30, '-', label='a_30 * M^3')
 plt.plot(M, a21, '-', label='a_21 * M^ 2 * (1 - 4*eta)')
 plt.plot(M, a01, '-', label='a_01 * (1 - 4*eta)')
+plt.plot(M, a11, '-', label='a_11 * M * (1 - 4*eta)')
 plt.plot(M, tot, '-', label='tot')
+plt.semilogx()
+plt.ylim(-1, 1)
 plt.grid()
-plt.title('eta = 0.175')
+plt.title(f'eta = {eta_choice}')
 plt.legend()
 #plt.semilogy()
-plt.xlabel('Mtot')
+plt.xlabel('Mtot_det')
 plt.ylabel('contributions to dmid (abs value)')
-plt.savefig(f'{dmid_fun}/dmid_params.png')
+plt.savefig(f'{dmid_fun}/dmid_params_{eta_choice}.png')
