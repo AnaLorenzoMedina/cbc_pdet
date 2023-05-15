@@ -124,6 +124,7 @@ class Found_injections:
         
         self.dmid_params_names = {'Dmid_mchirp': 'cte', 
                                   'Dmid_mchirp_expansion': ['cte', 'a20', 'a01', 'a21', 'a30', 'a10'], 
+                                  'Dmid_mchirp_expansion_noa30': ['cte', 'a20', 'a01', 'a21', 'a10','a11'],
                                   'Dmid_mchirp_expansion_a11': ['cte', 'a20', 'a01', 'a21', 'a30', 'a10','a11'],
                                   'Dmid_mchirp_expansion_exp': ['cte', 'a20', 'a01', 'a21', 'a30', 'a10','a11', 'Mstar'],
                                   'Dmid_mchirp_expansion_asqrt': ['cte', 'a20', 'a01', 'a21', 'a30', 'asqrt'], 
@@ -334,6 +335,36 @@ class Found_injections:
         pol = cte *(1+ a_20 * M**2  + a_01 * (1 - 4*eta) + a_21 * M**2 * (1 - 4*eta)  + a_30 * M**3 + a_10 * M + a_11 * M * (1 - 4*eta))
         
         return pol * Mc**(5/6) * np.exp(-M/Mstar)
+    
+    def Dmid_mchirp_expansion_noa30(self, m1, m2, z, params):
+        """
+        Dmid values (distance where Pdet = 0.5) as a function of the masses 
+        in the detector frame (our first guess)
+
+        Parameters
+        ----------
+        m1 : mass1 
+        m2: mass2
+        z : redshift
+        params : parameters that we will be optimizing
+        
+        Returns
+        -------
+        Dmid(m1,m2) in the detector's frame
+
+        """
+        cte , a_20, a_01, a_21, a_10, a_11 = params
+        
+        m1_det = m1 * (1 + z) 
+        m2_det = m2 * (1 + z)
+        M = m1_det + m2_det
+        eta = m1*m2 / (m1+m2)**2
+        
+        Mc = (m1_det * m2_det)**(3/5) / (m1_det + m2_det)**(1/5)
+        
+        pol = cte *(1+ a_20 * M**2  + a_01 * (1 - 4*eta) + a_21 * M**2 * (1 - 4*eta) + a_10 * M + a_11 * M * (1 - 4*eta))
+        
+        return pol * Mc**(5/6) 
     
     def emax(self, m1, m2, z, params):
         m1_det = m1 * (1 + z) 
@@ -682,7 +713,7 @@ class Found_injections:
         plt.ylabel('Cumulative found injections')
         plt.legend(loc='best')
         name=f'{dmid_fun}/{emax_dic[emax_fun]}/{var}_cumulative.png'
-        plt.savefig(name, format='png', dpi=1000)
+        plt.savefig(name, format='png')
         
         #KS test
         if emax_fun is not None:
@@ -825,7 +856,8 @@ file = h5py.File('endo3_bbhpop-LIGO-T2100113-v12.hdf5', 'r')
 data = Found_injections(file)
 
 # function for dmid and emax we wanna use
-dmid_fun = 'Dmid_mchirp_expansion_exp'
+dmid_fun = 'Dmid_mchirp_expansion_noa30'
+#dmid_fun = 'Dmid_mchirp_expansion_exp'
 #dmid_fun = 'Dmid_mchirp_expansion_a11'
 #dmid_fun = 'Dmid_mchirp_expansion_asqrt'
 #dmid_fun = 'Dmid_mchirp_expansion'
@@ -927,11 +959,15 @@ params_names = {'Dmid_mchirp': 'cte',
 #params_dmid = [82.785950741024, -1.9044508883488783e-05, -0.41084970235333484, 2.3427319051426644e-05, 2.4624863341861382e-08, 0.0023167923193285157, -0.004968986350895854 ]
 #shape_guess_emax  = [-0.5934933873985427, 0.22291710406565518, -3.4645779484229804, -0.001, 0.00001]
 
-#initial values FOR EXP IN DMID from joint fit with emax fun and 'cte', 'a20', 'a01', 'a21', 'a30', 'a10', 'a11'
-params_dmid = [80.82424577472355, -1.617118775455203e-05, -0.4172004525844498, 2.0548889990723283e-05, 2.0737945867597705e-08, 0.0020630686367234022, -0.00459527905804538, 500]
+#initial values FOR EXP IN DMID from joint fit with emax fun and 'cte', 'a20', 'a01', 'a21', 'a30', 'a10', 'a11', 'Mstar'
+# params_dmid = [80.82424577472355, -1.617118775455203e-05, -0.4172004525844498, 2.0548889990723283e-05, 2.0737945867597705e-08, 0.0020630686367234022, -0.00459527905804538, 500]
+# shape_guess_emax  = [-0.7354844677038638, 0.24989182786857905 ,-4.296148078417843, 0.014417414295816396, -1.1933745117035866e-05 ]
+
+#initial values FOR EXP IN DMID from joint fit with emax fun and 'cte', 'a20', 'a01', 'a21', 'a10', 'a11'
+params_dmid = [1000.82424577472355, 1.617118775455203e-03, 0.2172004525844498, 2.0548889990723283e-05, 0.0020630686367234022, -0.00459527905804538]
 shape_guess_emax  = [-0.7354844677038638, 0.24989182786857905 ,-4.296148078417843, 0.014417414295816396, -1.1933745117035866e-05 ]
 
-data.joint_MLE('Nelder-Mead', dmid_fun, params_dmid, shape_guess_emax, emax_fun, precision = 1e-2)
+#data.joint_MLE('Nelder-Mead', dmid_fun, params_dmid, shape_guess_emax, emax_fun, precision = 1e-2)
 
 params_dmid = np.loadtxt(f'{dmid_fun}/joint_fit_dmid_emaxfun.dat')[-1, :-1]
 params_shape = np.loadtxt(f'{dmid_fun}/joint_fit_shape_emaxfun.dat')[-1, :-1]
@@ -1034,7 +1070,7 @@ plt.plot(data.dL/dmid(data.m1, data.m2, data.z, params_dmid), data.sigmoid(data.
 plt.xlabel('D/D_mid')
 plt.ylabel('Pdet')
 plt.show()
-plt.savefig(f'{dmid_fun}/opt_epsilon_plot_emaxfun.png', dpi=1000)
+plt.savefig(f'{dmid_fun}/opt_epsilon_plot_emaxfun.png')
 
 
 order=np.argsort(data.dL)
@@ -1049,7 +1085,7 @@ plt.xlabel('m1')
 plt.ylabel('m2')
 plt.colorbar(label='dL_mid')
 plt.show()
-plt.savefig(f'{dmid_fun}/m1m2_dmid.png', dpi=1000)
+plt.savefig(f'{dmid_fun}/m1m2_dmid.png')
 
 plt.figure(figsize=(7,6))
 plt.scatter(m1*(1+z), m2*(1+z), s=1, c=dmid(m1, m2, z, params_dmid))
@@ -1057,7 +1093,7 @@ plt.xlabel('m1_det')
 plt.ylabel('m2_det')
 plt.colorbar(label='dL_mid')
 plt.show()
-plt.savefig(f'{dmid_fun}/m1m2det_dmid.png', dpi=1000)
+plt.savefig(f'{dmid_fun}/m1m2det_dmid.png')
 
 x = np.linspace(min(m1*(1+z)+m2*(1+z)),max(m1*(1+z)+m2*(1+z)), 500)
 y = 1 - np.exp(params_emax[0] + params_emax[1] * x + params_emax[2] * x**2)
@@ -1067,7 +1103,7 @@ plt.ylim(0, 2)
 plt.grid()
 plt.xlabel('Mtot_det')
 plt.ylabel('emax(m)')
-plt.savefig(f'{dmid_fun}/emax(m).png', dpi=1000)
+plt.savefig(f'{dmid_fun}/emax(m).png')
 
 eta_choice=0.175
 
@@ -1078,12 +1114,13 @@ cte = params_dmid[0] * np.ones(len(M))
 a20 = params_dmid[1] * M**2 
 a01 = params_dmid[2] * (1 - 4*eta)
 a21 = params_dmid[3] * M**2 * (1 - 4*eta) 
-a30 = params_dmid[4] * M**3
-a10 = params_dmid[5] * M
+#a30 = params_dmid[4] * M**3
+a10 = params_dmid[4] * M
 #asqrt = params_dmid[5] * M**(1/2)
-a11 = params_dmid[6] * M * (1 - 4*eta) 
+a11 = params_dmid[5] * M * (1 - 4*eta) 
+#Mstar = np.exp(-M/params_dmid[7])
 
-tot = a20 + a01 +a21 + a30 + a10 + a11
+tot = a20 + a01 +a21 + a10 + a11
 
 # plt.figure()
 # #plt.plot(M, np.abs(cte), '-', label='cte')
@@ -1104,13 +1141,13 @@ tot = a20 + a01 +a21 + a30 + a10 + a11
 
 plt.figure()
 #plt.plot(M, np.abs(cte), '-', label='cte')
-plt.plot(M, a10, '-', label='a_10 * M')
+plt.plot(M, a10, '-', label=r'$a_{10} M$')
 #plt.plot(M, np.abs(asqrt), '-', label='a_sqrt * M^(1/2)')
-plt.plot(M, a20, '-', label='a_20 * M^2')
-plt.plot(M, a30, '-', label='a_30 * M^3')
-plt.plot(M, a21, '-', label='a_21 * M^ 2 * (1 - 4*eta)')
-plt.plot(M, a01, '-', label='a_01 * (1 - 4*eta)')
-plt.plot(M, a11, '-', label='a_11 * M * (1 - 4*eta)')
+plt.plot(M, a20, '-', label=r'$a_{20} M^2$')
+#plt.plot(M, a30, '-', label=r'$a_{30} M^3$')
+plt.plot(M, a21, '-', label=r'$a_{21} M^2 (1 - 4\eta)$')
+plt.plot(M, a01, '-', label=r'$a_{01} (1 - 4\eta)$')
+plt.plot(M, a11, '-', label=r'$a_{11} M (1 - 4\eta)$')
 plt.plot(M, tot, '-', label='tot')
 plt.semilogx()
 plt.ylim(-1, 1)
@@ -1119,5 +1156,5 @@ plt.title(f'eta = {eta_choice}')
 plt.legend()
 #plt.semilogy()
 plt.xlabel('Mtot_det')
-plt.ylabel('contributions to dmid (abs value)')
-plt.savefig(f'{dmid_fun}/dmid_params_{eta_choice}.png', dpi=1000)
+plt.ylabel('contributions to dmid (abs value)*exp(-M/Mstar)')
+plt.savefig(f'{dmid_fun}/dmid_params_{eta_choice}.png')
