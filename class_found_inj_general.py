@@ -130,7 +130,9 @@ class Found_injections:
                                   'Dmid_mchirp_expansion_asqrt': ['cte', 'a20', 'a01', 'a21', 'a30', 'asqrt'], 
                                   'Dmid_mchirp_power': ['cte', 'a20', 'a01', 'a21', 'a30', 'power_param']}
         
-        self.emax_params_names = {'emax' : ['gamma_opt, delta_opt, b_0, b_1, b_2'] }
+        self.emax_params_names = {'emax' : ['gamma_opt, delta_opt, b_0, b_1, b_2'],
+                                  'emax_sigmoid' : ['gamma_opt, delta_opt, b_0, k, M_0'],
+                                  }
         
         print('finished initializing')
     
@@ -373,11 +375,13 @@ class Found_injections:
         b_0, b_1, b_2 = params
         return 1 - np.exp(b_0 + b_1 * Mtot + b_2 * Mtot**2)
     
-    # def emax(self, m1, m2, params):
-    #     Mtot = m1 + m2
-    #     b_0, b_1 = params
-    #     #y=1-np.exp(-0.9-0.003*(x-80)-0.0003*(x-80)**2)
-    #     return 1 - np.exp(b_0 + b_1 * Mtot )
+    def emax_sigmoid(self, m1, m2, z, params):
+        m1_det = m1 * (1 + z) 
+        m2_det = m2 * (1 + z)
+        Mtot = m1_det + m2_det
+        b_0, k, M_0 = params
+        L = 1 - np.exp(b_0)
+        return L / (1 + np.exp(k * (Mtot - M_0)))
     
  
     def fun_m_pdf(self, m1, m2):
@@ -654,8 +658,8 @@ class Found_injections:
         elif emax_fun is not None:
             shape_results = np.column_stack((all_gamma, all_delta, np.delete(all_emax_params, 0, axis=0), total_lnL))
             shape_header = f'{self.emax_params_names[emax_fun]} , maxL'
-            name_dmid = f'{dmid_fun}/joint_fit_dmid_emaxfun.dat'
-            np.savetxt(f'{dmid_fun}/joint_fit_shape_emaxfun.dat', shape_results, header = shape_header, fmt='%s')
+            name_dmid = f'{dmid_fun}/{emax_fun}/joint_fit_dmid_emaxfun.dat'
+            np.savetxt(f'{dmid_fun}/{emax_fun}/joint_fit_shape_emaxfun.dat', shape_results, header = shape_header, fmt='%s')
         
         
         all_dmid_params = np.delete(all_dmid_params, 0, axis=0)
@@ -668,7 +672,7 @@ class Found_injections:
 
     def cumulative_dist(self, dmid_fun, dmid_params, shape_params, var = 'dL', emax_fun = None):
         
-        emax_dic = {None: 'cmds', 'emax' : 'emax_exp_cmds'}
+        emax_dic = {None: 'cmds', 'emax' : 'emax_exp_cmds', 'emax_sigmoid' : 'emax_sigmoid_cmds'}
         
         dmid = getattr(Found_injections, dmid_fun)
         dic = {'dL': self.dL, 'Mc': self.Mc, 'Mtot': self.Mtot, 'eta': self.eta, 'Mc_det': self.Mc_det, 'Mtot_det': self.Mtot_det}
@@ -731,7 +735,7 @@ class Found_injections:
     
     def binned_cumulative_dist(self, nbins, dmid_fun, dmid_params, shape_params, var_cmd , var_binned, emax_fun = None):
         
-        emax_dic = {None: 'cmds', 'emax' : 'emax_exp_cmds'}
+        emax_dic = {None: 'cmds', 'emax' : 'emax_exp_cmds', 'emax_sigmoid' : 'emax_sigmoid_cmds'}
         
         try:
             os.mkdir(f'{dmid_fun}/{emax_dic[emax_fun]}')
@@ -861,10 +865,17 @@ dmid_fun = 'Dmid_mchirp_expansion_noa30'
 #dmid_fun = 'Dmid_mchirp_expansion_a11'
 #dmid_fun = 'Dmid_mchirp_expansion_asqrt'
 #dmid_fun = 'Dmid_mchirp_expansion'
-emax_fun = 'emax'
+#emax_fun = 'emax'
+emax_fun = 'emax_sigmoid'
 
 try:
     os.mkdir(f'{dmid_fun}')
+except OSError as e:
+    if e.errno != errno.EEXIST:
+        raise
+        
+try:
+    os.mkdir(f'{dmid_fun}/{emax_fun}')
 except OSError as e:
     if e.errno != errno.EEXIST:
         raise
@@ -964,10 +975,15 @@ params_names = {'Dmid_mchirp': 'cte',
 # shape_guess_emax  = [-0.7354844677038638, 0.24989182786857905 ,-4.296148078417843, 0.014417414295816396, -1.1933745117035866e-05 ]
 
 #initial values FOR EXP IN DMID from joint fit with emax fun and 'cte', 'a20', 'a01', 'a21', 'a10', 'a11'
-params_dmid = [1000.82424577472355, 1.617118775455203e-03, 0.2172004525844498, 2.0548889990723283e-05, 0.0020630686367234022, -0.00459527905804538]
-shape_guess_emax  = [-0.7354844677038638, 0.24989182786857905 ,-4.296148078417843, 0.014417414295816396, -1.1933745117035866e-05 ]
+#params_dmid = [1000.82424577472355, 1.617118775455203e-03, 0.2172004525844498, 2.0548889990723283e-05, 0.0020630686367234022, -0.00459527905804538]
+#shape_guess_emax  = [-0.7354844677038638, 0.24989182786857905 ,-4.296148078417843, 0.014417414295816396, -1.1933745117035866e-05 ]
 
-#data.joint_MLE('Nelder-Mead', dmid_fun, params_dmid, shape_guess_emax, emax_fun, precision = 1e-2)
+#initial values FOR EXP IN DMID from joint fit with EMAX_SIGMOID fun and 'cte', 'a20', 'a01', 'a21', 'a10', 'a11'
+params_dmid = [1000.82424577472355, 1.617118775455203e-03, 0.2172004525844498, 2.0548889990723283e-05, 0.0020630686367234022, -0.00459527905804538]
+shape_guess_emax  = [-0.7354844677038638, 0.24989182786857905 ,-4.296148078417843, 0.1, 300]
+
+
+data.joint_MLE('Nelder-Mead', dmid_fun, params_dmid, shape_guess_emax, emax_fun, precision = 1e-2)
 
 params_dmid = np.loadtxt(f'{dmid_fun}/joint_fit_dmid_emaxfun.dat')[-1, :-1]
 params_shape = np.loadtxt(f'{dmid_fun}/joint_fit_shape_emaxfun.dat')[-1, :-1]
@@ -1070,7 +1086,7 @@ plt.plot(data.dL/dmid(data.m1, data.m2, data.z, params_dmid), data.sigmoid(data.
 plt.xlabel('D/D_mid')
 plt.ylabel('Pdet')
 plt.show()
-plt.savefig(f'{dmid_fun}/opt_epsilon_plot_emaxfun.png')
+plt.savefig(f'{dmid_fun}/{emax_fun}/opt_epsilon_plot_emaxfun.png')
 
 
 order=np.argsort(data.dL)
@@ -1085,7 +1101,7 @@ plt.xlabel('m1')
 plt.ylabel('m2')
 plt.colorbar(label='dL_mid')
 plt.show()
-plt.savefig(f'{dmid_fun}/m1m2_dmid.png')
+plt.savefig(f'{dmid_fun}/{emax_fun}/m1m2_dmid.png')
 
 plt.figure(figsize=(7,6))
 plt.scatter(m1*(1+z), m2*(1+z), s=1, c=dmid(m1, m2, z, params_dmid))
@@ -1093,7 +1109,7 @@ plt.xlabel('m1_det')
 plt.ylabel('m2_det')
 plt.colorbar(label='dL_mid')
 plt.show()
-plt.savefig(f'{dmid_fun}/m1m2det_dmid.png')
+plt.savefig(f'{dmid_fun}/{emax_fun}/m1m2det_dmid.png')
 
 x = np.linspace(min(m1*(1+z)+m2*(1+z)),max(m1*(1+z)+m2*(1+z)), 500)
 y = 1 - np.exp(params_emax[0] + params_emax[1] * x + params_emax[2] * x**2)
@@ -1103,7 +1119,7 @@ plt.ylim(0, 2)
 plt.grid()
 plt.xlabel('Mtot_det')
 plt.ylabel('emax(m)')
-plt.savefig(f'{dmid_fun}/emax(m).png')
+plt.savefig(f'{dmid_fun}/{emax_fun}/emax(m).png')
 
 eta_choice=0.175
 
@@ -1121,23 +1137,6 @@ a11 = params_dmid[5] * M * (1 - 4*eta)
 #Mstar = np.exp(-M/params_dmid[7])
 
 tot = a20 + a01 +a21 + a10 + a11
-
-# plt.figure()
-# #plt.plot(M, np.abs(cte), '-', label='cte')
-# plt.plot(M, np.abs(a10), '-', label='a_10 * M')
-# plt.plot(M, np.abs(a20), '-', label='a_20 * M^2')
-# plt.plot(M, np.abs(a30), '-', label='a_30 * M^3')
-# plt.plot(M, np.abs(a21), '-', label='a_21 * M^ 2 * (1 - 4*eta)')
-# plt.plot(M, np.abs(a01), '-', label='a_01 * (1 - 4*eta)')
-# #plt.plot(M, np.abs(asqrt), '-', label='M^(1/2)')
-# plt.plot(M, tot, '-', label='tot')
-# plt.grid()
-# plt.title('eta = 0.175')
-# plt.legend()
-# #plt.semilogy()
-# plt.xlabel('Mtot')
-# plt.ylabel('contributions to dmid (abs value)')
-# plt.savefig(f'{dmid_fun}/dmid_params.png')
 
 plt.figure()
 #plt.plot(M, np.abs(cte), '-', label='cte')
@@ -1157,4 +1156,4 @@ plt.legend()
 #plt.semilogy()
 plt.xlabel('Mtot_det')
 plt.ylabel('contributions to dmid (abs value)*exp(-M/Mstar)')
-plt.savefig(f'{dmid_fun}/dmid_params_{eta_choice}.png')
+plt.savefig(f'{dmid_fun}/{emax_fun}/dmid_params_{eta_choice}.png')
