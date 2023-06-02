@@ -72,16 +72,19 @@ class Found_injections:
         self.dL_pdf = self.z_pdf / dL_dif
         
         #mass chirp
-        self.Mc = (self.m1 * self.m2)**(3/5) / (self.m1 + self.m2)**(1/5) 
-        self.Mc_det = (self.m1 * self.m2 * (1+self.z)**2 )**(3/5) / (self.m1 * (1+self.z) + self.m2 * (1+self.z))**(1/5) 
+        self.Mc = file["events"][:]["Mc_source"]
+        self.Mc_det = file["events"][:]["Mc"]
+        # self.Mc = (self.m1 * self.m2)**(3/5) / (self.m1 + self.m2)**(1/5) 
+        # self.Mc_det = (self.m1 * self.m2 * (1+self.z)**2 )**(3/5) / (self.m1 * (1+self.z) + self.m2 * (1+self.z))**(1/5) 
         
         #total mass (m1+m2)
         self.Mtot = self.m1 + self.m2
         self.Mtot_det = self.m1 * (1+self.z) + self.m2 * (1+self.z)
         
         #eta aka symmetric mass ratio
-        mu = (self.m1 * self.m2) / (self.m1 + self.m2)
-        self.eta = mu / self.Mtot
+        #mu = (self.m1 * self.m2) / (self.m1 + self.m2)
+        #self.eta = mu / self.Mtot
+        self.eta = file["events"][:]["eta"]
         
         #False alarm rate statistics from each pipeline
         # self.far_pbbh = file["injections/far_pycbc_bbh"][:]
@@ -1054,9 +1057,9 @@ params_names = {'Dmid_mchirp': 'cte',
 # params_dmid = [83.6359221338493, -1.7720389246237178e-05, -0.6202851605751052, 5.799384584576895e-06, 2.2901587693040153e-08, 0.0020739921788790177, 0]
 # shape_guess_emax  = [-0.5852595282336299, 0.22144333868817984, -3.4645779484229804, 0.01073830230180733, 1.9110955783665044e-06 ]
 
-#initial values FOR EXP IN DMID from joint fit with emax fun and 'cte', 'a20', 'a01', 'a21', 'a10', 'a11'
-params_dmid = [1000.82424577472355, 1.617118775455203e-03, 0.2172004525844498, 2.0548889990723283e-05, 0.0020630686367234022, -0.00459527905804538]
-shape_guess_emax  = [-0.7354844677038638, 0.24989182786857905 ,-4.296148078417843, 0.014417414295816396, -1.1933745117035866e-05 ]
+#initial values from joint fit with emax fun and 'cte', 'a20', 'a01', 'a21', 'a10', 'a11'
+params_dmid = [60, 1.617118775455203e-03, 0.2172004525844498, 2.0548889990723283e-05, 0.0020630686367234022, -0.00459527905804538]
+shape_guess_emax  = [-0.7354844677038638, 0.24989182786857905 ,-4.296148078417843, 0.014417414295816396, -1.1933745117035866e-05]
 
 
 data.joint_MLE('Nelder-Mead', dmid_fun, params_dmid, shape_guess_emax, emax_fun, precision = 1e-2)
@@ -1093,7 +1096,7 @@ stat_eta, pvalue_eta = data.cumulative_dist(dmid_fun, params_dmid, params_shape,
 print('eta KStest: statistic = %s , pvalue = %s' %(stat_eta, pvalue_eta))
 
 
-# binned cumulative dist analysis
+# # binned cumulative dist analysis
 nbins = 5
 data.binned_cumulative_dist(nbins, dmid_fun, params_dmid, params_shape, 'dL', 'dL', emax_fun)
 data.binned_cumulative_dist(nbins, dmid_fun, params_dmid, params_shape, 'Mtot', 'dL', emax_fun)
@@ -1166,6 +1169,7 @@ plt.figure(figsize=(7,6))
 plt.plot(data.dL/dmid(m1_det, m2_det, params_dmid), data.sigmoid(data.dL, dmid(m1_det, m2_det, params_dmid), emax(m1_det, m2_det, params_emax), gamma_opt, delta_opt), '.')
 plt.xlabel('D/D_mid')
 plt.ylabel('Pdet')
+plt.xlim(0, 10)
 plt.show()
 plt.savefig(f'{data.run}/{dmid_fun}/{emax_fun}/opt_epsilon_plot_emaxfun.png')
 
@@ -1197,13 +1201,13 @@ y = 1 - np.exp(params_emax[0] + params_emax[1] * x + params_emax[2] * x**2)
 #y = (1 - np.exp(params_emax[0])) / (1 + np.exp(params_emax[1]*(x-params_emax[2])))
 plt.figure()
 plt.plot(x, y, '.')
-plt.ylim(0, 2)
+#plt.ylim(0, 2)
 plt.grid()
 plt.xlabel('Mtot_det')
 plt.ylabel('emax(m)')
 plt.savefig(f'{data.run}/{dmid_fun}/{emax_fun}/emax(m).png')
 
-eta_choice=0.175
+eta_choice=0.1
 
 M = np.linspace(min(m1*(1+z)+m2*(1+z)),max(m1*(1+z)+m2*(1+z)), 200)
 eta = eta_choice*np.ones(len(M))
@@ -1231,7 +1235,7 @@ plt.plot(M, a01, '-', label=r'$a_{01} (1 - 4\eta)$')
 plt.plot(M, a11, '-', label=r'$a_{11} M (1 - 4\eta)$')
 plt.plot(M, tot, '-', label='tot')
 plt.semilogx()
-plt.ylim(-1, 1)
+#plt.ylim(-1, 1)
 plt.grid()
 plt.title(f'eta = {eta_choice}')
 plt.legend()
