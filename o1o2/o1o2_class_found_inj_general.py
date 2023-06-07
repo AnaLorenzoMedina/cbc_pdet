@@ -14,6 +14,7 @@ import scipy.optimize as opt
 import matplotlib.pyplot as plt
 import os
 import errno
+import math
 
 class Found_injections:
     """
@@ -85,6 +86,18 @@ class Found_injections:
         #mu = (self.m1 * self.m2) / (self.m1 + self.m2)
         #self.eta = mu / self.Mtot
         self.eta = file["events"][:]["eta"]
+        self.q = file["events"][:]["q"]
+        
+        self.s1x = file["events"][:]["spin1x"]
+        self.s1y = file["events"][:]["spin1y"]
+        self.s1z = file["events"][:]["spin1z"]
+        
+        self.s2x = file["events"][:]["spin2x"]
+        self.s2y = file["events"][:]["spin2y"]
+        self.s2z = file["events"][:]["spin2z"]
+        
+        self.a1 = np.sqrt(self.s1x**2 + self.s1y**2 + self.s1z**2)
+        self.a2 = np.sqrt(self.s2x**2 + self.s2y**2 + self.s2z**2)
         
         #False alarm rate statistics from each pipeline
         # self.far_pbbh = file["injections/far_pycbc_bbh"][:]
@@ -153,6 +166,7 @@ class Found_injections:
         frac = dL / dLmid
         denom = 1. + frac ** alpha * \
             np.exp(gamma * (frac - 1.) + delta * (frac**2 - 1.))
+            
         return emax / denom
     
     def Dmid_mchirp(self, m1_det, m2_det, cte):
@@ -434,13 +448,13 @@ class Found_injections:
         
         if emax_fun is None:
             gamma, delta, emax = shape_params[0], shape_params[1], shape_params[2]
-            Nexp = np.sum(self.sigmoid(self.dL, dmid(self, m1_det, m2_det, dmid_params), emax, gamma, delta))
+            Nexp = np.nansum(self.sigmoid(self.dL, dmid(self, m1_det, m2_det, dmid_params), emax, gamma, delta))
             
         else:
             emax = getattr(Found_injections, emax_fun)
             gamma, delta = shape_params[0], shape_params[1]
             emax_params = shape_params[2:]
-            Nexp = np.sum(self.sigmoid(self.dL, dmid(self, m1_det, m2_det, dmid_params), emax(self, m1_det, m2_det, emax_params), gamma, delta))
+            Nexp = np.nansum(self.sigmoid(self.dL, dmid(self, m1_det, m2_det, dmid_params), emax(self, m1_det, m2_det, emax_params), gamma, delta))
         
         return Nexp
         
@@ -486,7 +500,7 @@ class Found_injections:
 
         return lamda
     
-    def logL(self, dmid_fun, dmid_params, shape_params = None, emax_fun = None):
+    def logL_dmid(self, dmid_fun, dmid_params, shape_params = None, emax_fun = None):
         """
         log likelihood of the expected density of found injections
 
@@ -504,7 +518,32 @@ class Found_injections:
         float 
 
         """
-            
+         
+        lnL = -self.Nexp(dmid_fun, dmid_params, shape_params, emax_fun) + np.sum(np.log(self.lamda(dmid_fun, dmid_params, shape_params, emax_fun)))
+        #print(lnL)
+        return lnL
+    
+    def logL_shape(self, dmid_fun, dmid_params, shape_params = None, emax_fun = None):
+        """
+        log likelihood of the expected density of found injections
+
+        Parameters
+        ----------
+        dmid_fun : str, name of the method used for the dmid function
+        dmid_params : parameters of the Dmid function, 1D array
+        shape_params : gamma, delta and emax params, 1D array
+        emax_fun : str, name of the method used for the emax function
+                   if given None, shape_params should be only 3 numbers
+                   if given a method, shape_params should be [gamma, delta, emax_params]
+
+        Returns
+        -------
+        float 
+
+        """
+        
+        shape_params[1] = np.exp(shape_params[1])
+         
         lnL = -self.Nexp(dmid_fun, dmid_params, shape_params, emax_fun) + np.sum(np.log(self.lamda(dmid_fun, dmid_params, shape_params, emax_fun)))
         #print(lnL)
         return lnL
@@ -531,7 +570,7 @@ class Found_injections:
         -min_likelihood : maximum log likelihood, float
 
         """
-        res = opt.minimize(fun=lambda in_param: -self.logL(dmid_fun, in_param, shape_params, emax_fun), 
+        res = opt.minimize(fun=lambda in_param: -self.logL_dmid(dmid_fun, in_param, shape_params, emax_fun), 
                            x0=np.array([dmid_params_guess]), 
                            args=(), 
                            method=methods)
@@ -559,13 +598,14 @@ class Found_injections:
         -min_likelihood : maximum log likelihood, float
 
         """
+        shape_params_guess[1] = np.log(shape_params_guess[1])
         
-        res = opt.minimize(fun=lambda in_param: -self.logL(dmid_fun, dmid_params, in_param), 
+        res = opt.minimize(fun=lambda in_param: -self.logL_shape(dmid_fun, dmid_params, in_param), 
                            x0=np.array([shape_params_guess]), 
                            args=(), 
                            method=methods)
         
-        gamma, delta, emax = res.x
+        gamma, delta, emax = res.x[0], np.exp(res.x[1]), res.x[2]
         min_likelihood = res.fun  
 
         return gamma, delta, emax, -min_likelihood
@@ -588,13 +628,15 @@ class Found_injections:
         -min_likelihood : maximum log likelihood, float
 
         """
+        shape_params_guess[1] = np.log(shape_params_guess[1])
         
-        res = opt.minimize(fun=lambda in_param: -self.logL(dmid_fun, dmid_params, in_param, emax_fun), 
+        res = opt.minimize(fun=lambda in_param: -self.logL_shape(dmid_fun, dmid_params, in_param, emax_fun), 
                            x0=np.array([shape_params_guess]), 
                            args=(), 
                            method=methods)
         
         opt_params = res.x
+        opt_params[1] = np.exp(opt_params[1])
         min_likelihood = res.fun  
 
         return opt_params, -min_likelihood
@@ -1059,9 +1101,9 @@ params_names = {'Dmid_mchirp': 'cte',
 
 #initial values from joint fit with emax fun and 'cte', 'a20', 'a01', 'a21', 'a10', 'a11'
 params_dmid = [60, 1.617118775455203e-03, 0.2172004525844498, 2.0548889990723283e-05, 0.0020630686367234022, -0.00459527905804538]
-shape_guess_emax  = [-0.7354844677038638, 0.24989182786857905 ,-4.296148078417843, 0.014417414295816396, -1.1933745117035866e-05]
+shape_guess_emax  = [-0.7354844677038638, 0.24 ,-4.296148078417843, 0.014417414295816396, -1.1933745117035866e-05]
 
-
+#%%
 data.joint_MLE('Nelder-Mead', dmid_fun, params_dmid, shape_guess_emax, emax_fun, precision = 1e-2)
 
 
@@ -1096,7 +1138,7 @@ stat_eta, pvalue_eta = data.cumulative_dist(dmid_fun, params_dmid, params_shape,
 print('eta KStest: statistic = %s , pvalue = %s' %(stat_eta, pvalue_eta))
 
 
-# # binned cumulative dist analysis
+# binned cumulative dist analysis
 nbins = 5
 data.binned_cumulative_dist(nbins, dmid_fun, params_dmid, params_shape, 'dL', 'dL', emax_fun)
 data.binned_cumulative_dist(nbins, dmid_fun, params_dmid, params_shape, 'Mtot', 'dL', emax_fun)
@@ -1162,6 +1204,7 @@ emax = getattr(data, emax_fun)
 #gamma_opt, delta_opt, emax_opt = np.loadtxt(f'{dmid_fun}/joint_fit_shape.dat')[-1, :-1]
 
 #%%
+
 m1_det = data.m1 * (1 + data.z)
 m2_det = data.m2 * (1 + data.z)
 
@@ -1169,7 +1212,7 @@ plt.figure(figsize=(7,6))
 plt.plot(data.dL/dmid(m1_det, m2_det, params_dmid), data.sigmoid(data.dL, dmid(m1_det, m2_det, params_dmid), emax(m1_det, m2_det, params_emax), gamma_opt, delta_opt), '.')
 plt.xlabel('D/D_mid')
 plt.ylabel('Pdet')
-plt.xlim(0, 10)
+#plt.xlim(0, 10)
 plt.show()
 plt.savefig(f'{data.run}/{dmid_fun}/{emax_fun}/opt_epsilon_plot_emaxfun.png')
 
@@ -1241,5 +1284,57 @@ plt.title(f'eta = {eta_choice}')
 plt.legend()
 #plt.semilogy()
 plt.xlabel('Mtot_det')
-plt.ylabel('contributions to dmid (abs value)*exp(-M/Mstar)')
+plt.ylabel('contributions to dmid (abs value)')
 plt.savefig(f'{data.run}/{dmid_fun}/{emax_fun}/dmid_params_{eta_choice}.png')
+
+'''
+plt.figure()
+plt.scatter(data.dL[data.snr < 10], data.Mc_det[data.snr < 10], label=r'SNR$<$ 10')
+plt.scatter(data.dL[data.found_any], data.Mc_det[data.found_any], label=r'SNR$\geq$ 10', alpha=0.3)
+plt.legend()
+plt.loglog()
+plt.xlabel('dL')
+plt.ylabel('Mc')
+plt.title(f'{data.run} injections')
+plt.savefig(f'{data.run}/{dmid_fun}/{emax_fun}/found_inj.png')
+
+plt.figure()
+plt.scatter(data.dL[data.snr < 10]/(data.Mc_det[data.snr < 10])**(5/6), data.q[data.snr < 10], label=r'SNR$<$ 10', s=0.8)
+plt.scatter(data.dL[data.found_any]/(data.Mc_det[data.found_any])**(5/6), data.q[data.found_any], label=r'SNR$\geq$ 10', alpha=0.6, s=0.8)
+plt.legend()
+#plt.loglog()
+plt.xlabel(r'dL/Mc$^{5/6}$')
+plt.ylabel('q')
+plt.title(f'{data.run} injections')
+plt.semilogx()
+plt.savefig(f'{data.run}/{dmid_fun}/{emax_fun}/q_vs_chirp_distance.png')
+
+plt.figure()
+plt.scatter(data.dL[data.snr < 10]/(data.Mc_det[data.snr < 10])**(5/6), data.a1[data.snr < 10], label=r'SNR$<$ 10', s=0.8)
+plt.scatter(data.dL[data.found_any]/(data.Mc_det[data.found_any])**(5/6), data.a1[data.found_any], label=r'SNR$\geq$ 10', alpha=0.6, s=0.8)
+plt.legend()
+#plt.loglog()
+plt.xlabel(r'dL/Mc$^{5/6}$')
+plt.ylabel('a1')
+plt.title(f'{data.run} injections')
+plt.semilogx()
+plt.savefig(f'{data.run}/{dmid_fun}/{emax_fun}/a1_vs_chirp_distance.png')
+
+plt.figure()
+plt.scatter(data.dL[data.snr < 10]/(data.Mc_det[data.snr < 10])**(5/6), data.a2[data.snr < 10], label=r'SNR$<$ 10', s=0.8)
+plt.scatter(data.dL[data.found_any]/(data.Mc_det[data.found_any])**(5/6), data.a2[data.found_any], label=r'SNR$\geq$ 10', alpha=0.6, s=0.8)
+plt.legend()
+#plt.loglog()
+plt.xlabel(r'dL/Mc$^{5/6}$')
+plt.ylabel('a2')
+plt.title(f'{data.run} injections')
+plt.semilogx()
+plt.savefig(f'{data.run}/{dmid_fun}/{emax_fun}/a2_vs_chirp_distance.png')
+'''
+
+o3_dmid_params = np.loadtxt('/Users/ana/Documents/Pdet_git/cbc_pdet/Dmid_mchirp_expansion_noa30/emax_exp/joint_fit_dmid_emaxfun.dat')[-1, :-1]
+o3_shape_params = np.loadtxt('/Users/ana/Documents/Pdet_git/cbc_pdet/Dmid_mchirp_expansion_noa30/emax_exp/joint_fit_shape_emaxfun.dat')[-1, :-1]
+
+found_inj = data.Nexp(dmid_fun, o3_dmid_params, o3_shape_params, emax_fun)
+
+print(found_inj)
