@@ -337,8 +337,8 @@ gamma_plot = np.loadtxt('dL_joint_fit_results_emax_vary/all_gamma.dat')[-1]
 delta_plot = np.loadtxt('dL_joint_fit_results_emax_vary/all_delta.dat')[-1]
 emax_plot = np.loadtxt(f'dL_joint_fit_results_emax_vary/emax/emax_{k}.dat')
 
-for i in range(0,nbin1):
-    for j in range(0,nbin2):
+for i in range(12,13):
+    for j in range(12,13):
         
         try:
             data_binned = np.loadtxt(f'dL_binned/{i}{j}_data.dat')
@@ -354,13 +354,14 @@ for i in range(0,nbin1):
         plt.figure()
         plt.plot(mid_dL, pdL_binned, '.', label='bins over dL')
         plt.errorbar(mid_dL[nonzero], pdL_binned[nonzero], yerr=pdL_binned[nonzero]/np.sqrt(dLm_detections[nonzero]), fmt="none", color="k", capsize=2, elinewidth=0.4)
-        plt.plot(dL_com_1, sigmoid_2(dL_com_1, dLmid_plot[i,j], gamma_plot, delta_plot, emax_plot[i,j]), '-', label=r'$\varepsilon_2$')
+        plt.plot(dL_com_1, sigmoid_2(dL_com_1, dLmid_plot[i,j], gamma_plot, delta_plot, emax_plot[i,j]), '-', label='sigmoid model')
         plt.xlabel(r'$dL$', fontsize=14)
         plt.ylabel(r'$P_{det}(dL)$', fontsize=14)
         plt.title(r'$m_1:$ %.0f-%.0f M$_{\odot}$ \& $m_2:$ %.0f-%.0f M$_{\odot}$' %(m1_bin[i], m1_bin[i+1], m2_bin[j], m2_bin[j+1]) )
         plt.legend(fontsize=14)
-        name=f"dL_joint_fit_results_emax_vary/final_plots/{i}_{j}.png"
-        plt.savefig(name, format='png')
+        #name=f"dL_joint_fit_results_emax_vary/final_plots/{i}_{j}.png"
+        name=f"dL_joint_fit_results_emax_vary/{i}_{j}.png"
+        plt.savefig(name, format='png', dpi=1000)
         
         plt.close()
         
