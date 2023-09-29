@@ -360,7 +360,7 @@ for i in range(12,13):
         plt.title(r'$m_1:$ %.0f-%.0f M$_{\odot}$ \& $m_2:$ %.0f-%.0f M$_{\odot}$' %(m1_bin[i], m1_bin[i+1], m2_bin[j], m2_bin[j+1]) )
         plt.legend(fontsize=14)
         #name=f"dL_joint_fit_results_emax_vary/final_plots/{i}_{j}.png"
-        name=f"dL_joint_fit_results_emax_vary/{i}_{j}.png"
+        name=f"dL_joint_fit_results_emax_vary/final_plots/{i}_{j}.png"
         plt.savefig(name, format='png', dpi=1000)
         
         plt.close()
