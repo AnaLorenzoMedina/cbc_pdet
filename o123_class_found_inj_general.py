@@ -16,7 +16,7 @@ import os
 import errno
 from scipy.optimize import fsolve
 from astropy.cosmology import FlatLambdaCDM
-from matplotlib.colors import LogNorm
+
 
 class Found_injections:
     """
@@ -29,7 +29,7 @@ class Found_injections:
 
     """
     
-    def __init__(self, dmid_fun = 'Dmid_mchirp_expansion_noa30', emax_fun = 'emax_exp', alpha_vary = None, thr_far = 1, thr_snr = 10, ini_files = None):
+    def __init__(self, dmid_fun = 'Dmid_mchirp_expansion_noa30', emax_fun = 'emax_exp', alpha_vary = None, ini_files = None, thr_far = 1, thr_snr = 10):
         
         '''
         Argument ini_files must be a list or a numpy array with two elements
@@ -40,6 +40,9 @@ class Found_injections:
         self.get_ini_values()
         
         '''
+        
+        import fitting_functions as functions #python module which contains the dmid and emax functions
+        
         # assert isinstance(ini_files, list) or isinstance(ini_files, np.ndarray),\
 
         assert isinstance(thr_far, float) or isinstance(thr_far, int),\
@@ -53,11 +56,9 @@ class Found_injections:
         
         self.dmid_fun = dmid_fun #dmid function name
         self.emax_fun = emax_fun #emax function name
-        self.dmid = getattr(Found_injections, dmid_fun) #class method for dmid
-        self.emax = getattr(Found_injections, emax_fun) #class method for emax
+        self.dmid = getattr(functions, dmid_fun) #class method for dmid
+        self.emax = getattr(functions, emax_fun) #class method for emax
         self.alpha_vary = alpha_vary
-        
-        #self.dmid = 
         
         self.H0 = 67.9 #km/sMpc
         self.c = 3e5 #km/s
@@ -70,10 +71,10 @@ class Found_injections:
         self.shape_params = self.shape_ini_values
         
         if self.alpha_vary is None:
-            self.path = f'{run_fit}/{self.dmid_fun}' if self.emax_fun is None else f'{run_fit}/{self.dmid_fun}/{self.emax_fun}'
+            self.path = f'{self.dmid_fun}' if self.emax_fun is None else f'{self.dmid_fun}/{self.emax_fun}'
           
         else: 
-            self.path = f'{run_fit}/alpha_vary/{self.dmid_fun}' if self.emax_fun is None else f'{run_fit}/alpha_vary/{self.dmid_fun}/{self.emax_fun}'
+            self.path = f'alpha_vary/{self.dmid_fun}' if self.emax_fun is None else f'alpha_vary/{self.dmid_fun}/{self.emax_fun}'
         
         self.runs = ['o1', 'o2', 'o3']
         
@@ -93,40 +94,54 @@ class Found_injections:
                                   'Dmid_mchirp_expansion_asqrt': ['cte', 'a20', 'a01', 'a21', 'a30', 'asqrt'], 
                                   'Dmid_mchirp_power': ['cte', 'a20', 'a01', 'a21', 'a30', 'power_param']}
         
-        self.emax_params_names = {'emax_exp' : ['gamma_opt, delta_opt, b_0, b_1, b_2'],
-                                  'emax_sigmoid' : ['gamma_opt, delta_opt, b_0, k, M_0'],
+        sigmoid_names = ['gamma', 'delta']
+        
+        if self.emax_fun is None:
+            sigmoid_names.append('emax')
+            
+        if self.alpha_vary is not None:
+            sigmoid_names.append('alpha')
+        
+        self.shape_params_names = {'emax_exp' :  sigmoid_names + ['b_0, b_1, b_2'],
+                                  'emax_sigmoid' : sigmoid_names + ['b_0, k, M_0'],
+                                   None : sigmoid_names,
                                   }
         
-        self.shape_params_dict = { 'emax_exp' : 1,
-            
-                                    }
-        
         self.cosmo = FlatLambdaCDM(self.H0, self.omega_m)
-
+        
+        
+    def make_folders(self, run):
+        
         try:
-            os.mkdir(f'{run_dataset}')
+            os.mkdir(f'{run}')
         except OSError as e:
             if e.errno != errno.EEXIST:
                 raise
                 
-        if alpha_vary is not None:
+        if self.alpha_vary is not None:
+            
+            path = f'{run}/alpha_vary'
             try:
-                os.mkdir(f'{run_dataset}/alpha_vary')
+                os.mkdir(f'{run}/alpha_vary')
             except OSError as e:
                 if e.errno != errno.EEXIST:
                     raise
+        else:
+            path = f'{run}'
                 
         try:
-            os.mkdir(path)
+            os.mkdir(path + f'/{self.dmid_fun}')
         except OSError as e:
             if e.errno != errno.EEXIST:
                 raise
                 
         try:
-            os.mkdir(path + f'/{emax_fun}')
+            os.mkdir(path + f'/{self.dmid_fun}/{self.emax_fun}')
         except OSError as e:
             if e.errno != errno.EEXIST:
                 raise
+                
+        return
         
     def read_o1o2_set(self, run_dataset):
         assert run_dataset =='o1' or run_dataset == 'o2',\
@@ -176,8 +191,6 @@ class Found_injections:
         return
        
     def read_o3_set(self):
-        assert run_dataset =='o3',\
-        "Argument (run_dataset) must be 'o3'. "
         
         file = h5py.File('endo3_bbhpop-LIGO-T2100113-v12.hdf5', 'r')
         
@@ -220,7 +233,7 @@ class Found_injections:
 
         #indexes of the found injections
         self.found_any = found_pbbh | found_gstlal | found_mbta | found_pfull
-        print(f'Found inj in {run_dataset} set: ', self.found_any.sum())  
+        print('Found inj in o3 set: ', self.found_any.sum())  
         
         return
         
@@ -306,14 +319,9 @@ class Found_injections:
         else: #rescale o1 and o2
             run_fit_touse = 'o3'
             
-                
         try:
-            if self.alpha_vary is None:
-                path = f'{run_fit_touse}/{self.dmid_fun}' if self.emax_fun is None else f'{run_fit_touse}/{self.dmid_fun}/{self.emax_fun}'
-                    
-            else: 
-                path = f'{run_fit_touse}/alpha_vary/{self.dmid_fun}' if self.emax_fun is None else f'{run_fit}_touse/alpha_vary/{self.dmid_fun}/{self.emax_fun}'
-        
+            
+            path = f'{run_fit_touse}/' + self.path
             self.dmid_params = np.loadtxt( path + '/joint_fit_dmid.dat')[-1, :-1]
             self.shape_params = np.loadtxt( path + '/joint_fit_shape.dat')[-1, :-1]
         
@@ -336,13 +344,12 @@ class Found_injections:
         shape_ini_values : 1D array. Initial values for the shape optiization
         
         '''
-        
         try:
             if self.alpha_vary is None:
                 path = f'ini_values/{self.dmid_fun}' if self.emax_fun is None else f'ini_values/{self.dmid_fun}_{self.emax_fun}'
                     
             else: 
-                path = f'ini_values/alpha_vary_{self.dmid_fun}' if emax_fun is None else f'ini_values/alpha_vary_{self.dmid_fun}_{self.emax_fun}'
+                path = f'ini_values/alpha_vary_{self.dmid_fun}' if self.emax_fun is None else f'ini_values/alpha_vary_{self.dmid_fun}_{self.emax_fun}'
             
             dmid_ini_values = np.loadtxt( path + '_dmid.dat')
             shape_ini_values = np.loadtxt( path + '_shape.dat')
@@ -352,7 +359,7 @@ class Found_injections:
     
         return dmid_ini_values, shape_ini_values
     
-    def set_shape_params(self):
+    def get_shape_params(self):
         '''
         Gets the right shape parameters depending on sigmoid settings (dmid, emax and alpha options we initialise the class with).
 
@@ -376,6 +383,12 @@ class Found_injections:
         
         return emax_params, gamma, delta, alpha
     
+    def set_shape_params(self):
+        
+        self.emax_params, self.gamma, self.delta, self.alpha = self.get_shape_params()
+        
+        return
+    
     def sigmoid(self, dL, dLmid, emax , gamma , delta , alpha = 2.05):
         """
         Sigmoid function used to estime the probability of detection of bbh events
@@ -398,224 +411,6 @@ class Found_injections:
         denom = 1. + frac ** alpha * \
             np.exp(gamma * (frac - 1.) + delta * (frac**2 - 1.))
         return emax / denom
-    
-    def Dmid_mchirp(self, m1_det, m2_det, cte):
-        """
-        Dmid values (distance where Pdet = 0.5) as a function of the masses 
-        in the detector frame (our first guess)
-
-        Parameters
-        ----------
-        m1_det : detector frame mass1, float or 1D array
-        m2_det: detector frame mass2, float or 1D array
-        cte : parameter that we will be optimizing, float
-        
-        Returns
-        -------
-        Dmid(m1,m2) in the detector's frame
-
-        """
-        M = m1_det + m2_det
-        Mc = (m1_det * m2_det)**(3/5) / M**(1/5)
-        return cte * Mc**(5/6) 
-
-    def Dmid_mchirp_expansion(self, m1_det, m2_det, params):
-        """
-        Dmid values (distance where Pdet = 0.5) as a function of the masses 
-        in the detector frame 
-
-        Parameters
-        ----------
-        m1_det : detector frame mass1, float or 1D array
-        m2_det: detector frame mass2, float or 1D array
-        params : parameters that we will be optimizing, 1D array
-        
-        Returns
-        -------
-        Dmid(m1,m2) in the detector's frame
-
-        """
-        cte , a_20, a_01, a_21, a_30, a_10 = params
-        
-        M = m1_det + m2_det
-        eta = m1_det * m2_det / M**2
-        Mc = (m1_det * m2_det)**(3/5) / M**(1/5)
-        
-        pol = cte *(1+ a_20 * M**2  + a_01 * (1 - 4*eta) + a_21 * M**2 * (1 - 4*eta)  + a_30 * M**3 + a_10 * M )
-        
-        return pol * Mc**(5/6)
-    
-    def Dmid_mchirp_expansion_asqrt(self, m1_det, m2_det, params):
-        """
-        Dmid values (distance where Pdet = 0.5) as a function of the masses 
-        in the detector frame 
-
-        Parameters
-        ----------
-        m1_det : detector frame mass1, float or 1D array
-        m2_det: detector frame mass2, float or 1D array
-        params : parameters that we will be optimizing, 1D array
-        
-        Returns
-        -------
-        Dmid(m1,m2) in the detector's frame
-
-        """
-        cte , a_20, a_01, a_21, a_30, a_sqrt = params
-        
-        M = m1_det + m2_det
-        eta = m1_det * m2_det / M**2
-        Mc = (m1_det * m2_det)**(3/5) / M**(1/5)
-        
-        pol = cte *(1+ a_20 * M**2  + a_01 * (1 - 4*eta) + a_21 * M**2 * (1 - 4*eta)  + a_30 * M**3 + a_sqrt * M**(1/2) )
-        
-        return pol * Mc**(5/6) 
-    
-    def Dmid_mchirp_expansion_a11(self, m1_det, m2_det, params):
-        """
-        Dmid values (distance where Pdet = 0.5) as a function of the masses 
-        in the detector frame 
-
-        Parameters
-        ----------
-        m1_det : detector frame mass1, float or 1D array
-        m2_det: detector frame mass2, float or 1D array
-        params : parameters that we will be optimizing, 1D array
-        
-        Returns
-        -------
-        Dmid(m1,m2) in the detector's frame
-
-        """ 
-        cte , a_20, a_01, a_21, a_30, a_10, a_11 = params
-        
-        M = m1_det + m2_det
-        eta = m1_det * m2_det / M**2
-        Mc = (m1_det * m2_det)**(3/5) / M**(1/5)
-        
-        pol = cte *(1+ a_20 * M**2  + a_01 * (1 - 4*eta) + a_21 * M**2 * (1 - 4*eta)  + a_30 * M**3 + a_10 * M + a_11 * M * (1 - 4*eta))
-        
-        return pol * Mc**(5/6)
-    
-    
-    def Dmid_mchirp_power(self, m1_det, m2_det, params):
-        """
-        Dmid values (distance where Pdet = 0.5) as a function of the masses 
-        in the detector frame 
-        Parameters
-        ----------
-        m1_det : detector frame mass1, float or 1D array
-        m2_det: detector frame mass2, float or 1D array
-        params : parameters that we will be optimizing, 1D array
-        
-        Returns
-        -------
-        Dmid(m1,m2) in the detector's frame
-
-        """
-        cte , a_20, a_01, a_21, a_30, power_param = params
-        
-        M = m1_det + m2_det
-        eta = m1_det * m2_det / M**2
-        Mc = (m1_det * m2_det)**(3/5) / M**(1/5)
-        
-        pol = cte *(1+ a_20 * M**2 / 2 + a_01 * (1 - 4*eta) + a_21 * M**2 * (1 - 4*eta) / 2 + a_30 * M**3 )
-        
-        return pol * Mc**((5+power_param)/6)
-    
-    def Dmid_mchirp_expansion_exp(self, m1_det, m2_det, params):
-        """
-        Dmid values (distance where Pdet = 0.5) as a function of the masses 
-        in the detector frame 
-
-        Parameters
-        ----------
-        m1_det : detector frame mass1, float or 1D array
-        m2_det: detector frame mass2, float or 1D array
-        params : parameters that we will be optimizing, 1D array
-        
-        Returns
-        -------
-        Dmid(m1,m2) in the detector's frame
-
-        """
-        cte , a_20, a_01, a_21, a_30, a_10, a_11, Mstar = params
-        
-        M = m1_det + m2_det
-        eta = m1_det * m2_det / M**2
-        Mc = (m1_det * m2_det)**(3/5) / M**(1/5)
-        
-        pol = cte *(1+ a_20 * M**2  + a_01 * (1 - 4*eta) + a_21 * M**2 * (1 - 4*eta)  + a_30 * M**3 + a_10 * M + a_11 * M * (1 - 4*eta))
-        
-        return pol * Mc**(5/6) * np.exp(-M/Mstar)
-    
-    def Dmid_mchirp_expansion_noa30(self, m1_det, m2_det, params):
-        """
-        Dmid values (distance where Pdet = 0.5) as a function of the masses 
-        in the detector frame 
-
-        Parameters
-        ----------
-        m1_det : detector frame mass1, float or 1D array
-        m2_det: detector frame mass2, float or 1D array
-        params : parameters that we will be optimizing, 1D array
-        
-        Returns
-        -------
-        Dmid(m1,m2) in the detector's frame
-
-        """
-        cte , a_20, a_01, a_21, a_10, a_11 = params
-
-        M = m1_det + m2_det
-        eta = m1_det * m2_det / M**2
-        
-        Mc = (m1_det * m2_det)**(3/5) / M**(1/5)
-        
-        pol = cte *(1+ a_20 * M**2  + a_01 * (1 - 4*eta) + a_21 * M**2 * (1 - 4*eta) + a_10 * M + a_11 * M * (1 - 4*eta))
-        
-        return pol * Mc**(5/6)
-    
-    def emax_exp(self, m1_det, m2_det, params):
-        """
-        maximun search sensitivity (emax) as a function of the masses
-        in the detector frame
-
-        Parameters
-        ----------
-        m1_det : detector frame mass1, float or 1D array
-        m2_det: detector frame mass2, float or 1D array
-        params : parameters that we will be optimizing, 1D array
-
-        Returns
-        -------
-        emax(m1, m2) in the detector frame
-
-        """
-        Mtot = m1_det + m2_det
-        b_0, b_1, b_2 = params
-        return 1 - np.exp(b_0 + b_1 * Mtot + b_2 * Mtot**2)
-    
-    def emax_sigmoid(self, m1_det, m2_det, params):
-        """
-        maximun search sensitivity (emax) as a function of the masses
-        in the detector frame
-
-        Parameters
-        ----------
-        m1_det : detector frame mass1, float or 1D array
-        m2_det: detector frame mass2, float or 1D array
-        params : parameters that we will be optimizing, 1D array
-
-        Returns
-        -------
-        emax(m1, m2) in the detector frame
-
-        """
-        Mtot = m1_det + m2_det
-        b_0, k, M_0 = params
-        L = 1 - np.exp(b_0)
-        return L / (1 + np.exp(k * (Mtot - M_0)))
     
  
     def fun_m_pdf(self, m1, m2):
@@ -657,13 +452,9 @@ class Found_injections:
 
         Parameters
         ----------
-        dmid_fun : str, name of the method used for the dmid function
         dmid_params : parameters of the Dmid function, 1D array
         shape_params : gamma, delta and emax params, 1D array
-        emax_fun : str, name of the method used for the emax function
-                   if given None, shape_params should be only 3 numbers
-                   if given a method, shape_params should be [gamma, delta, emax_params]
-
+        
         Returns
         -------
         float
@@ -673,7 +464,7 @@ class Found_injections:
         m2_det = self.m2 * (1 + self.z)
         mtot_det = m1_det + m2_det
         
-        dmid_values = self.dmid(self, m1_det, m2_det, dmid_params)
+        dmid_values = self.dmid(m1_det, m2_det, dmid_params)
         self.apply_dmid_mtotal_max(dmid_values, mtot_det)
         
         if self.emax_fun is None and self.alpha_vary is None:
@@ -695,7 +486,7 @@ class Found_injections:
             gamma, delta = shape_params[0], shape_params[1]
             emax_params = shape_params[2:]
             
-            emax_values = self.emax(self, m1_det, m2_det, emax_params)
+            emax_values = self.emax(m1_det, m2_det, emax_params)
             
             Nexp = np.sum(self.sigmoid(self.dL, dmid_values, emax_values, gamma, delta))
           
@@ -705,7 +496,7 @@ class Found_injections:
             gamma, delta, alpha = shape_params[0], shape_params[1], shape_params[2]
             emax_params = shape_params[3:]
             
-            emax_values = self.emax(self, m1_det, m2_det, emax_params)
+            emax_values = self.emax(m1_det, m2_det, emax_params)
             
             Nexp = np.sum(self.sigmoid(self.dL, dmid_values, emax_values, gamma, delta, alpha))
         
@@ -717,13 +508,9 @@ class Found_injections:
 
         Parameters
         ----------
-        dmid_fun : str, name of the method used for the dmid function
         dmid_params : parameters of the Dmid function, 1D array
         shape_params : gamma, delta and emax params, 1D array
-        emax_fun : str, name of the method used for the emax function
-                   if given None, shape_params should be only 3 numbers
-                   if given a method, shape_params should be [gamma, delta, emax_params]
-
+        
         Returns
         -------
         float
@@ -740,7 +527,7 @@ class Found_injections:
         m2_det = m2 * (1 + z)
         mtot_det = m1_det + m2_det
         
-        dmid_values = self.dmid(self, m1_det, m2_det, dmid_params)
+        dmid_values = self.dmid(m1_det, m2_det, dmid_params)
         self.apply_dmid_mtotal_max(dmid_values, mtot_det)
         
         if self.emax_fun is None and self.alpha_vary is None:
@@ -762,7 +549,7 @@ class Found_injections:
             gamma, delta = shape_params[0], shape_params[1]
             emax_params = shape_params[2:]
             
-            emax_values = self.emax(self, m1_det, m2_det, emax_params)
+            emax_values = self.emax(m1_det, m2_det, emax_params)
             
             lamda = self.sigmoid(dL, dmid_values, emax_values, gamma, delta) * m_pdf * dL_pdf * self.Ntotal
 
@@ -772,7 +559,7 @@ class Found_injections:
             gamma, delta, alpha = shape_params[0], shape_params[1], shape_params[2]
             emax_params = shape_params[3:]
             
-            emax_values = self.emax(self, m1_det, m2_det, emax_params)
+            emax_values = self.emax(m1_det, m2_det, emax_params)
             
             lamda = self.sigmoid(dL, dmid_values, emax_values, gamma, delta, alpha) * m_pdf * dL_pdf * self.Ntotal
 
@@ -784,13 +571,9 @@ class Found_injections:
 
         Parameters
         ----------
-        dmid_fun : str, name of the method used for the dmid function
         dmid_params : parameters of the Dmid function, 1D array
         shape_params : gamma, delta and emax params, 1D array
-        emax_fun : str, name of the method used for the emax function
-                   if given None, shape_params should be only 3 numbers
-                   if given a method, shape_params should be [gamma, delta, emax_params]
-
+        
         Returns
         -------
         float 
@@ -805,13 +588,9 @@ class Found_injections:
 
         Parameters
         ----------
-        dmid_fun : str, name of the method used for the dmid function
         dmid_params : parameters of the Dmid function, 1D array
         shape_params : gamma, delta and emax params, 1D array
-        emax_fun : str, name of the method used for the emax function
-                   if given None, shape_params should be only 3 numbers
-                   if given a method, shape_params should be [gamma, delta, emax_params]
-
+        
         Returns
         -------
         float 
@@ -830,17 +609,10 @@ class Found_injections:
         Parameters
         ----------
         methods : str, scipy method used to minimize -logL
-        dmid_fun : str, name of the method used for the dmid function
-        dmid_params_guess : initial guess for dmid params, 1D array
-        shape_params : gamma, delta and emax params, 1D array
-        emax_fun : str, name of the method used for the emax function
-                   if given None, shape_params should be only 3 numbers
-                   if given a method, shape_params should be [gamma, delta, emax_params]
-
-
+        
         Returns
         -------
-        params_res : optimized value for Dmid params, 1D array
+        opt_params : optimized value for Dmid params, 1D array
         -min_likelihood : maximum log likelihood, float
 
         """
@@ -863,15 +635,10 @@ class Found_injections:
         Parameters
         ----------
         methods : scipy method used to minimize -logL
-        dmid_fun : str, name of the method used for the dmid function
-        dmid_params : parameters of the Dmid function, 1D array
-        shape_params_guess : initial guess for gamma, delta and emax, 1D array
-
+    
         Returns
         -------
-        gamma: optimized value for gamma, float
-        delta: optimized value for delta, float
-        emax: optimized value for emax, float
+        opt_params: optimized values for [gamma, delta, emax], 1D array
         -min_likelihood : maximum log likelihood, float
 
         """
@@ -898,10 +665,6 @@ class Found_injections:
         Parameters
         ----------
         methods : scipy method used to minimize -logL
-        dmid_fun : str, name of the method used for the dmid function
-        dmid_params : parameters of the Dmid function, 1D array
-        shape_params_guess : initial guess for [gamma, delta, emax_params], 1D array
-        emax_fun : str, name of the method used for the emax function
 
         Returns
         -------
@@ -924,20 +687,15 @@ class Found_injections:
 
         return opt_params, -min_likelihood
     
-    def joint_MLE(self, run_dataset, run_fit, methods, precision = 1e-2):
+    def joint_MLE(self, run_dataset, run_fit, methods = 'Nelder-Mead', precision = 1e-2):
         '''
         joint optimization of log likelihood, alternating between optimizing dmid params and shape params
         until the difference in the log L is <= precision . Saves the results of each iteration in txt files.
 
         Parameters
         ----------
+        run_dataset : str. Observing run injections that we want to fit. Must be 'o1', 'o2' or 'o3'.
         methods : str, scipy method used to minimize -logL
-        dmid_fun : str, name of the method used for the dmid function
-        dmid_params : 1D array, initial guess for dmid params
-        shape_params : 1D array, initial guess for shape params
-        emax_fun : str, optional. Name of the method used for the emax function. The default is None.
-                   if given None, shape_params should be only 3 numbers
-                   if given a method, shape_params should be [gamma, delta, emax_params]
         precision : float (positive), optional. Tolerance for termination . The default is 1e-2.
 
         Returns
@@ -946,25 +704,24 @@ class Found_injections:
 
         '''
         
+        self.make_folders(run_dataset)
+        
         total_lnL = np.zeros([1])
         all_gamma = []
         all_delta = []
         all_emax = []
         all_alpha = []
-        all_dmid_params = np.zeros([1,len(self.dmid_params)])
+        all_dmid_params = np.zeros([1,len(np.atleast_1d(self.dmid_params))])
+        
+        path = f'{run_dataset}/' + self.path
         
         if self.alpha_vary is None:
-            all_emax_params = np.zeros([1,len(self.shape_params[2:])])
+            all_emax_params = np.zeros([1,len(np.atleast_1d(self.shape_params[2:]))])
             params_emax = None if self.emax is None else np.copy(self.shape_params[2:])
-            shape_params_names_file = 'gamma_opt, delta_opt, emax_opt, maxL'
-            path = f'{run_fit}/{self.dmid_fun}'
             
         else:
-            all_emax_params = np.zeros([1,len(self.shape_params[3:])])
+            all_emax_params = np.zeros([1,len(np.atleast_1d(self.shape_params[3:]))])
             params_emax = None if self.emax_fun is None else np.copy(self.shape_params[3:])
-            
-            shape_params_names_file = 'gamma_opt, delta_opt, emax_opt, alpha_opt, maxL'
-            path = f'{run_fit}/alpha_vary/{self.dmid_fun}'
         
         for i in range(0, 10000):
             
@@ -1008,23 +765,27 @@ class Found_injections:
 
         total_lnL = np.delete(total_lnL, 0)
         
+        shape_header = f'{self.shape_params_names[self.emax_fun]} , maxL'
+        
+        name_dmid_file = path + '/joint_fit_dmid.dat'
+        name_shape_file = path + '/joint_fit_shape.dat'
+        
+        #saving opt shape params file
+        
         if self.emax_fun is None:
-            shape_results = np.column_stack((all_gamma, all_delta, all_emax, total_lnL)) if alpha_vary is None else np.column_stack((all_gamma, all_delta, all_emax, all_alpha, total_lnL))
-            shape_header = shape_params_names_file
-            name_dmid = path + '/joint_fit_dmid.dat'
-            np.savetxt(path + '/joint_fit_shape.dat', shape_results, header = shape_header, fmt='%s')
+            shape_results = np.column_stack((all_gamma, all_delta, all_emax, total_lnL)) if self.alpha_vary is None else np.column_stack((all_gamma, all_delta, all_emax, all_alpha, total_lnL))
         
-        elif self.emax_fun is not None:
-            shape_results = np.column_stack((all_gamma, all_delta, np.delete(all_emax_params, 0, axis=0), total_lnL)) if alpha_vary is None else np.column_stack((all_gamma, all_delta, all_alpha, np.delete(all_emax_params, 0, axis=0), total_lnL)) 
-            shape_header = f'{self.emax_params_names[self.emax]} , maxL'
-            name_dmid = path + f'/{self.emax_fun}/joint_fit_dmid_emaxfun.dat'
-            np.savetxt(path + f'/{self.emax_fun}/joint_fit_shape_emaxfun.dat', shape_results, header = shape_header, fmt='%s')
+        else:
+            shape_results = np.column_stack((all_gamma, all_delta, np.delete(all_emax_params, 0, axis=0), total_lnL)) if self.alpha_vary is None else np.column_stack((all_gamma, all_delta, all_alpha, np.delete(all_emax_params, 0, axis=0), total_lnL)) 
+            
+        np.savetxt(name_shape_file, shape_results, header = shape_header, fmt='%s')
         
+        #saving opt dmid params file
         
         all_dmid_params = np.delete(all_dmid_params, 0, axis=0)
         dmid_results = np.column_stack((all_dmid_params, total_lnL))
         dmid_header = f'{self.dmid_params_names[self.dmid_fun]} , maxL'
-        np.savetxt(name_dmid, dmid_results, header = dmid_header, fmt='%s')
+        np.savetxt(name_dmid_file, dmid_results, header = dmid_header, fmt='%s')
         
         return
 
@@ -1035,9 +796,8 @@ class Found_injections:
 
         Parameters
         ----------
-        dmid_fun : str, name of the method used for the dmid function
-        dmid_params : 1D array, parameters of Dmid function
-        shape_params : 1D array, [gamma, delta, emax] or [gamma, delta, emax_params]
+        run_dataset : str. Observing run from which we want the injections. Must be 'o1', 'o2' or 'o3'.
+        run_fit : str. Observing run from which we want to use its fit. Must be 'o1', 'o2' or 'o3'.
         var : str, variable for the CDFs and KS tests. Options:
             'dL' - luminosity distance
             'Mc' - chirp mass
@@ -1045,9 +805,6 @@ class Found_injections:
             'eta' - symmetric mass ratio
             'Mc_det' - chirp mass in the detector frame
             'Mtot_det' - total mass in the detector frame
-        emax_fun : str, optional. Name of the method used for the emax function. The default is None.
-                   if given None, shape_params should be only 3 numbers
-                   if given a method, shape_params should be [gamma, delta, emax_params]
 
         Returns
         -------
@@ -1058,10 +815,12 @@ class Found_injections:
         
         self.get_opt_params(run_fit)
         
+        self.make_folders(run_fit)
+        
         emax_dic = {None: 'cmds', 'emax_exp' : 'emax_exp_cmds', 'emax_sigmoid' : 'emax_sigmoid_cmds'}
         
         dic = {'dL': self.dL, 'Mc': self.Mc, 'Mtot': self.Mtot, 'eta': self.eta, 'Mc_det': self.Mc_det, 'Mtot_det': self.Mtot_det, 'chi_eff': self.chi_eff}
-        path = f'{run_fit}/{dmid_fun}' if self.alpha_vary is None else f'alpha_vary/{self.dmid_fun}'
+        path = f'{run_fit}/{self.dmid_fun}' if self.alpha_vary is None else f'{run_fit}/alpha_vary/{self.dmid_fun}'
         
         try:
             os.mkdir( path + f'/{emax_dic[self.emax_fun]}')
@@ -1080,13 +839,13 @@ class Found_injections:
         m2o_det = m2o * (1 + zo)
         mtoto_det = m1o_det + m2o_det
         
-        dmid_values = self.dmid(self, m1o_det, m2o_det, self.dmid_params)
+        dmid_values = self.dmid(m1o_det, m2o_det, self.dmid_params)
         self.apply_dmid_mtotal_max(dmid_values, mtoto_det)
         
-        emax_params, gamma, delta, alpha = self.set_shape_params()
+        emax_params, gamma, delta, alpha = self.get_shape_params()
         
         if self.emax_fun is not None:
-            emax = self.emax(self, m1o_det, m2o_det, emax_params)
+            emax = self.emax(m1o_det, m2o_det, emax_params)
             
         else:
             emax = np.copy(emax_params)
@@ -1114,11 +873,11 @@ class Found_injections:
         m2_det = self.m2 * (1 + self.z)
         mtot_det = m1_det + m2_det
         
-        dmid_values = self.dmid(self, m1_det, m2_det, self.dmid_params)
+        dmid_values = self.dmid(m1_det, m2_det, self.dmid_params)
         self.apply_dmid_mtotal_max(dmid_values, mtot_det)
         
         if self.emax_fun is not None:
-            emax = self.emax(self, m1_det, m2_det, emax_params)
+            emax = self.emax(m1_det, m2_det, emax_params)
                
         pdet = self.sigmoid(self.dL, dmid_values, emax, gamma, delta, alpha)
         
@@ -1138,10 +897,9 @@ class Found_injections:
 
         Parameters
         ----------
+        run_dataset : str. Observing run from which we want the injections. Must be 'o1', 'o2' or 'o3'.
+        run_fit : str. Observing run from which we want to use its fit. Must be 'o1', 'o2' or 'o3'.
         nbins : int, number of bins
-        dmid_fun : str, name of the method used for the dmid function
-        dmid_params : 1D array, parameters of Dmid function
-        shape_params : 1D array, [gamma, delta, emax] or [gamma, delta, emax_params]
         var_cmd : str, variable for the CDFs and KS tests. Options:
             'dL' - luminosity distance
             'Mc' - chirp mass
@@ -1150,9 +908,7 @@ class Found_injections:
             'Mc_det' - chirp mass in the detector frame
             'Mtot_det' - total mass in the detector frame
         var_binned : str, variable in which we are taking bins. Same options as var_cmd
-        emax_fun : str, optional. Name of the method used for the emax function. The default is None.
-                   if given None, shape_params should be only 3 numbers
-                   if given a method, shape_params should be [gamma, delta, emax_params]
+        
 
         Returns
         -------
@@ -1164,8 +920,10 @@ class Found_injections:
         
         self.get_opt_params(run_fit)
         
+        self.make_folders(run_fit)
+        
         emax_dic = {None: 'cmds', 'emax_exp' : 'emax_exp_cmds', 'emax_sigmoid' : 'emax_sigmoid_cmds'}
-        path = f'{run_fit}/{self.dmid_fun}' if self.alpha_vary is None else f'alpha_vary/{self.dmid_fun}'
+        path = f'{run_fit}/{self.dmid_fun}' if self.alpha_vary is None else f'{run_fit}/alpha_vary/{self.dmid_fun}'
         
         try:
             os.mkdir( path + f'/{emax_dic[self.emax_fun]}')
@@ -1237,13 +995,13 @@ class Found_injections:
             m2_det = m2_det_inbin[indexo]
             mtot_det = m1_det + m2_det
             
-            dmid_values = self.dmid(self, m1_det, m2_det, self.dmid_params)
+            dmid_values = self.dmid(m1_det, m2_det, self.dmid_params)
             self.apply_dmid_mtotal_max(dmid_values, mtot_det)
             
-            emax_params, gamma, delta, alpha = self.set_shape_params()
+            emax_params, gamma, delta, alpha = self.get_shape_params()
             
             if self.emax_fun is not None:
-                emax = self.emax(self, m1_det, m2_det, emax_params)
+                emax = self.emax(m1_det, m2_det, emax_params)
             
             else:
                 emax = np.copy(emax_params)
@@ -1274,7 +1032,7 @@ class Found_injections:
                 mid_values.append( (data_inbin[0] + data_inbin[-1]) / 2 )
             
                 nbins = np.linspace(-1, 1, 11)
-                c1 = 0.7
+                #c1 = 0.7
                 def chieff_corr(x, c1):
                     return  np.exp(c1 * x)
                 
@@ -1300,25 +1058,25 @@ class Found_injections:
                 
                 chi_eff_params.append(popt)
             
-            #KS test
+            # KS test
             
-        #     dmid_values = self.dmid(self, m1_det_inbin, m2_det_inbin, self.dmid_params)
-        #     self.apply_dmid_mtotal_max(dmid_values, Mtot_det_inbin)
+            dmid_values = self.dmid(m1_det_inbin, m2_det_inbin, self.dmid_params)
+            self.apply_dmid_mtotal_max(dmid_values, Mtot_det_inbin)
             
-        #     if self.emax_fun is not None:
-        #         emax = self.emax(self, m1_det_inbin, m2_det_inbin, emax_params)
+            if self.emax_fun is not None:
+                emax = self.emax(m1_det_inbin, m2_det_inbin, emax_params)
                 
-        #     pdet = self.sigmoid(dL_inbin, dmid_values, emax, gamma, delta, alpha)
+            pdet = self.sigmoid(dL_inbin, dmid_values, emax, gamma, delta, alpha)
             
-        #     def cdf(x):
-        #         values = [np.sum(pdet[cmd_dic[var_cmd]<value])/np.sum(pdet) for value in x]
-        #         return np.array(values)
+            def cdf(x):
+                values = [np.sum(pdet[cmd_dic[var_cmd]<value])/np.sum(pdet) for value in x]
+                return np.array(values)
             
-        #     stat, pvalue = kstest(found_inj_inbin_sorted, lambda x: cdf(x) )
+            stat, pvalue = kstest(found_inj_inbin_sorted, lambda x: cdf(x) )
             
-        #     print(f'{var_cmd} KStest in {i} bin: statistic = %s , pvalue = %s' %(stat, pvalue))
+            print(f'{var_cmd} KStest in {i} bin: statistic = %s , pvalue = %s' %(stat, pvalue))
         
-        # print('')   
+        print('')   
         
         if var_cmd == 'chi_eff':
             name_opt = path + f'/{emax_dic[self.emax_fun]}/{var_binned}_bins/{var_cmd}_cmd/chi_eff_opt_param'
@@ -1329,16 +1087,34 @@ class Found_injections:
         return
     
     def sensitive_volume(self, run_fit, m1, m2):
+        '''
+        Sensitive volume for a merger with given masses (m1 and m2), computed from the fit to whichever observed run we want.
+        Integrated within the total range of redshift available in the injection's dataset.
+        In order to use this method on its own, you need to have a injection set loaded.
+
+        Parameters
+        ----------
+        run_fit : str. Observing run from which we want to use its fit. Must be 'o1', 'o2' or 'o3'.
+        m1 : float. Mass 1 
+        m2 : float. Mass 2
+
+        Returns
+        -------
+        pdet * Vtot : float. Sensitive volume
+
+        '''
+        assert hasattr(self, 'interp_z'),\
+        "You need to load an injection set (i.e., use self.load_inj_set() before using this method"
         
         self.get_opt_params(run_fit)
         
-        dmid = lambda dL_int : self.dmid(self, m1*(1 + self.interp_z(dL_int)), m2*(1 + self.interp_z(dL_int)), self.dmid_params)
+        dmid = lambda dL_int : self.dmid(m1*(1 + self.interp_z(dL_int)), m2*(1 + self.interp_z(dL_int)), self.dmid_params)
         mtot = lambda dL_int :m1*(1 + self.interp_z(dL_int)) + m2*(1 + self.interp_z(dL_int))
         
-        emax_params, gamma, delta, alpha = self.set_shape_params()
+        emax_params, gamma, delta, alpha = self.get_shape_params()
         
         if self.emax_fun is not None:
-            emax = lambda dL_int : self.emax(self, m1*(1 + self.interp_z(dL_int)), m2*(1 + self.interp_z(dL_int)), emax_params)
+            emax = lambda dL_int : self.emax(m1*(1 + self.interp_z(dL_int)), m2*(1 + self.interp_z(dL_int)), emax_params)
             quad_fun = lambda dL_int : self.sigmoid(dL_int, self.apply_dmid_mtotal_max(np.array(dmid(dL_int)), np.array(mtot(dL_int))), emax(dL_int) , gamma , delta, alpha) * self.interp_dL_pdf(dL_int)
             
         else:
@@ -1353,7 +1129,21 @@ class Found_injections:
         return pdet * Vtot
     
     
-    def total_sensitive_volume(self, run_fit, m1, m2):
+    def total_sensitive_volume(self, m1, m2):
+        '''
+        total sensitive volume computed with the fractions of o1, o2 and o3 observing times and the o1, o2 rescaled fit
+        Vtot = V1 * t1_frac + V2 * t2_frac + V3 * t3_frac
+
+        Parameters
+        ----------
+        m1 : float. Mass 1 
+        m2 : float. Mass 2
+
+        Returns
+        -------
+        Vtot : float. Total sensitive volume
+
+        '''
         
         Vtot = 0
         
@@ -1368,6 +1158,19 @@ class Found_injections:
         return Vtot
     
     def find_dmid_cte_found_inj(self, run_dataset, run_fit = 'o3'):
+        '''
+        method for finding the rescaled factor (d0) for whatever injection set we want (usually o1 or o2) using the run_fit that we want (usually o3)
+
+        Parameters
+        ----------
+        run_dataset : str. Injection set that we want to obtain the reescaled fit from
+        run_fit :  str. Observibg run that we want to use its fit to rescale the others. The default is 'o3'.
+
+        Returns
+        -------
+        float. Reescaled constant d0
+
+        '''
         
         try:
         
@@ -1384,13 +1187,13 @@ class Found_injections:
             m2_det = self.m2 * (1 + self.z)
             mtot_det = m1_det + m2_det
             
-            dmid_values = self.dmid(self, m1_det, m2_det, dmid_params)
+            dmid_values = self.dmid(m1_det, m2_det, dmid_params)
             #self.apply_dmid_mtotal_max(dmid_values, mtot_det)
             
-            emax_params, gamma, delta, alpha = self.set_shape_params()
+            emax_params, gamma, delta, alpha = self.get_shape_params()
             
             if self.emax_fun is not None:
-                emax = self.emax(self, m1_det, m2_det, emax_params)
+                emax = self.emax(m1_det, m2_det, emax_params)
                 
             else:
                 emax = np.copy(emax_params)
@@ -1418,7 +1221,20 @@ class Found_injections:
         
     
     
-    def predicted_events(self, run_fit):
+    def predicted_events(self, run_fit, run_dataset='o3'):
+        '''
+        find the predicted found events in each run using reescaled fits from one injections set
+
+        Parameters
+        ----------
+        run_fit : str. Observibg run that we want to use its fit to rescale the others
+        run_dataset : str. Injection set. Must be 'o1' , 'o2' or 'o3'. The default is 'o3'.
+
+        Returns
+        -------
+        float. predicted found events
+
+        '''
         
         self.load_inj_set(run_dataset)
         Nfound = self.found_any.sum()
@@ -1434,13 +1250,13 @@ class Found_injections:
         m2_det = self.m2 * (1 + self.z)
         mtot_det = m1_det + m2_det
         
-        dmid_values = self.dmid(self, m1_det, m2_det, dmid_params)
+        dmid_values = self.dmid(m1_det, m2_det, dmid_params)
         self.apply_dmid_mtotal_max(dmid_values, mtot_det)
         
-        emax_params, gamma, delta, alpha = self.set_shape_params()
+        emax_params, gamma, delta, alpha = self.get_shape_params()
         
         if self.emax_fun is not None:
-            emax = self.emax(self, m1_det, m2_det, emax_params)
+            emax = self.emax(m1_det, m2_det, emax_params)
             
         else:
             emax = np.copy(emax_params)
@@ -1467,18 +1283,34 @@ class Found_injections:
         return pred_nev
     
     def run_pdet(self, dL, m1_det, m2_det, run, rescale_o3 = True):
+        """
+        probability of detection for some given masses and distance
+
+        Parameters
+        ----------
+        dL : float. luminosity distance [Mpc]
+        m1_det : float. Mass 1 in the detector's frame masses
+        m2_det : float. Mass 2 in the detector's frame masses
+        run : str. observing run from which we want the fit. Must be 'o1', 'o2' or 'o3'
+        rescale_o3 : True or False, optional. The default is True. If True, we iuse the rescaled fit for o1 and o2. If False, the direct fit.
+
+        Returns
+        -------
+        pdet_i : probability of detection of a merger with masses m1, m2 and at a distance dL.
+
+        """
         
         self.get_opt_params(run, rescale_o3) 
         
         mtot_det = m1_det + m2_det
         
-        dmid_values = self.dmid(self, m1_det, m2_det, self.dmid_params)
+        dmid_values = self.dmid(m1_det, m2_det, self.dmid_params)
         self.apply_dmid_mtotal_max(np.array(dmid_values), mtot_det)
         
-        emax_params, gamma, delta, alpha = self.set_shape_params()
+        emax_params, gamma, delta, alpha = self.get_shape_params()
         
         if self.emax_fun is not None:
-            emax = self.emax(self, m1_det, m2_det, emax_params)
+            emax = self.emax(m1_det, m2_det, emax_params)
             
         else:
             emax = np.copy(emax_params)
@@ -1489,8 +1321,25 @@ class Found_injections:
     
     
     def total_pdet(self, dL, m1_det, m2_det, rescale_o3 = True):
+        '''
+        total prob of detection, a combination of the prob of detection with o1, o2 and o3 proportions
+
+        Parameters
+        ----------
+        dL : float. luminosity distance [Mpc]
+        m1_det : float. Mass 1 in the detector's frame masses
+        m2_det : float. Mass 2 in the detector's frame masses
+        run : str. observing run from which we want the fit. Must be 'o1', 'o2' or 'o3'
+        rescale_o3 : True or False, optional. The default is True. If True, we iuse the rescaled fit for o1 and o2. If False, the direct fit.
+
+
+        Returns
+        -------
+        pdet : total prob of detection
+
+        '''
         
-        pdet = np.zeros(len(dL))
+        pdet = np.zeros(len(np.atleast_1d(dL)))
         
         for run, prop in zip(self.runs, self.prop_obs_time):
             
@@ -1500,124 +1349,3 @@ class Found_injections:
             
         return pdet
         
-
-plt.close('all')
-
-run_fit = 'o3'
-run_dataset = 'o3'
-
-# function for dmid and emax we wanna use
-dmid_fun = 'Dmid_mchirp_expansion_noa30'
-#dmid_fun = 'Dmid_mchirp_expansion_exp'
-#dmid_fun = 'Dmid_mchirp_expansion_a11'
-#dmid_fun = 'Dmid_mchirp_expansion_asqrt'
-#dmid_fun = 'Dmid_mchirp_expansion'
-emax_fun = 'emax_exp'
-#emax_fun = 'emax_sigmoid'
-
-alpha_vary = None
-
-path = f'{run_dataset}/{dmid_fun}' if alpha_vary is None else f'{run_dataset}/alpha_vary/{dmid_fun}'
-if emax_fun is not None:
-    path = path + f'/{emax_fun}'
-
-try:
-    os.mkdir(f'{run_dataset}')
-except OSError as e:
-    if e.errno != errno.EEXIST:
-        raise
-        
-if alpha_vary is not None:
-    try:
-        os.mkdir(f'{run_dataset}/alpha_vary')
-    except OSError as e:
-        if e.errno != errno.EEXIST:
-            raise
-        
-try:
-    os.mkdir(path)
-except OSError as e:
-    if e.errno != errno.EEXIST:
-        raise
-        
-try:
-    os.mkdir(path + f'/{emax_fun}')
-except OSError as e:
-    if e.errno != errno.EEXIST:
-        raise
-        
-data = Found_injections(dmid_fun, emax_fun, alpha_vary)
-
-#data.load_inj_set(run_dataset)
-#data.get_opt_params(run_fit)
-
-# npoints = 10000
-# index = np.random.choice(np.arange(len(data.dL)), npoints, replace=False)
-# m1 = data.m1[index]
-# m2=data.m2[index]
-
-# vsensitive = np.array([data.sensitive_volume(run_dataset, run_fit, m1[i], m2[i]) for i in range(len(m1))])
-
-# plt.figure()
-# plt.scatter(m1, m2, s=1, c=vsensitive/1e9, norm=LogNorm())
-# plt.xlabel('m1')
-# plt.ylabel('m2')
-# plt.colorbar(label=r'Sensitive volume [Gpc$^3$]')
-# plt.savefig( path + f'/Vsensitive_{npoints}.png')
-
-# m1_det = data.m1*(1+data.z)
-# m2_det = data.m2*(1+data.z)
-
-# total_pdet = data.total_pdet(data.dL, m1_det, m2_det)
-
-# plt.figure()
-# plt.scatter(data.dL/data.dmid(data, m1_det, m2_det, data.dmid_params), total_pdet, s=1)
-# plt.xlabel('dL/dmid')
-# plt.ylabel('total Pdet')
-#plt.savefig( path + '/total_pdet.png')
-
-#data.load_inj_set('o2')
-
-#plt.figure()
-#plt.plot(data.dL, data.chi_eff, '.')
-#plt.plot(data.dL, data.chieff_d, '.', alpha=0.1)
-#plt.plot(data.dL, data.chi_eff - data.chieff_d, '.')
-
-# nbins = 5
-
-# data.binned_cumulative_dist(run_dataset, run_fit, nbins,'chi_eff', 'dL')
-# data.binned_cumulative_dist(run_dataset, run_fit, nbins, 'chi_eff', 'Mtot')
-# data.binned_cumulative_dist(run_dataset, run_fit, nbins,'chi_eff', 'Mc')
-# data.binned_cumulative_dist(run_dataset, run_fit, nbins,'chi_eff', 'Mtot_det')
-# data.binned_cumulative_dist(run_dataset, run_fit, nbins, 'chi_eff', 'Mc_det')
-# data.binned_cumulative_dist(run_dataset, run_fit, nbins,'chi_eff', 'eta')
-
-# npoints = 10000
-# index = np.random.choice(np.arange(len(data.dL)), npoints, replace=False)
-# m1 = data.m1[index]
-# m2=data.m2[index]
-
-# tot_vsensitive = np.array([data.total_sensitive_volume(run_fit, m1[i], m2[i]) for i in range(len(m1))])
-
-# plt.figure()
-# plt.scatter(m1, m2, s=1, c=tot_vsensitive/1e9, norm=LogNorm())
-# plt.xlabel('m1')
-# plt.ylabel('m2')
-# plt.colorbar(label=r'Total sensitive volume [Gpc$^3$]')
-# plt.savefig( path + f'/total_Vsensitive_{npoints}.png')
-
-# cmds_bins = ['dL' , 'Mtot', 'Mc', 'Mtot_det', 'Mc_det', 'eta']
-# chi_eff_opt_params = {}
-# mid_values = {}
-
-# for i in cmds_bins:
-#     chi_eff_opt_params[f'{i}_bins'] = np.loadtxt(f'o3/Dmid_mchirp_expansion_noa30/emax_exp_cmds/{i}_bins/chi_eff_cmd/chi_eff_opt_param')
-#     mid_values[f'{i}_bins'] = np.loadtxt(f'o3/Dmid_mchirp_expansion_noa30/emax_exp_cmds/{i}_bins/chi_eff_cmd/mid_values')
-            
-# for i in cmds_bins:
-#     plt.figure()
-#     plt.plot(mid_values[f'{i}_bins'], chi_eff_opt_params[f'{i}_bins'], 'o')
-#     plt.xlabel(f'{i} (middle bin points)')
-#     plt.ylabel('c1')
-#     plt.title(r'$\chi_{eff}$ correction $ = exp(\chi_{eff} \, c_1)$')
-#     plt.savefig(f'o3/Dmid_mchirp_expansion_noa30/emax_exp_cmds/chi_eff_corr_{i}_bins.png')
