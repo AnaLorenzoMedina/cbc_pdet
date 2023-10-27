@@ -92,7 +92,9 @@ class Found_injections:
                                   'Dmid_mchirp_expansion_a11': ['cte', 'a20', 'a01', 'a21', 'a30', 'a10','a11'],
                                   'Dmid_mchirp_expansion_exp': ['cte', 'a20', 'a01', 'a21', 'a30', 'a10','a11', 'Mstar'],
                                   'Dmid_mchirp_expansion_asqrt': ['cte', 'a20', 'a01', 'a21', 'a30', 'asqrt'], 
-                                  'Dmid_mchirp_power': ['cte', 'a20', 'a01', 'a21', 'a30', 'power_param']}
+                                  'Dmid_mchirp_power': ['cte', 'a20', 'a01', 'a21', 'a30', 'power_param'], 
+                                  'Dmid_mchirp_fdmid': ['cte', 'a20', 'a01', 'a21', 'a10','a11'], 
+                                  'Dmid_mchirp_fdmid_fspin': ['cte', 'a20', 'a01', 'a21', 'a10','a11', 'c1', 'c11']}
         
         sigmoid_names = ['gamma', 'delta']
         
@@ -329,7 +331,7 @@ class Found_injections:
             print('ERROR in self.get_opt_params: There are not such files because there is not a fit yet with these options.')
     
         if rescale_o3 and run_fit != 'o3':
-            d0 = self.find_dmid_cte_found_inj(self, run_fit, 'o3')
+            d0 = self.find_dmid_cte_found_inj(run_fit, 'o3')
             self.dmid_params[0] = d0
             
         return
@@ -464,7 +466,11 @@ class Found_injections:
         m2_det = self.m2 * (1 + self.z)
         mtot_det = m1_det + m2_det
         
-        dmid_values = self.dmid(m1_det, m2_det, dmid_params)
+        if self.dmid_fun == 'Dmid_mchirp_fdmid_fspin':
+            dmid_values = self.dmid(m1_det, m2_det, self.chi_eff, dmid_params)
+        else: 
+            dmid_values = self.dmid(m1_det, m2_det, dmid_params)
+            
         self.apply_dmid_mtotal_max(dmid_values, mtot_det)
         
         if self.emax_fun is None and self.alpha_vary is None:
@@ -522,12 +528,17 @@ class Found_injections:
         z = self.z[self.found_any]
         m1 = self.m1[self.found_any]
         m2 = self.m2[self.found_any]
+        chieff = self.chi_eff[self.found_any]
         
         m1_det = m1 * (1 + z) 
         m2_det = m2 * (1 + z)
         mtot_det = m1_det + m2_det
         
-        dmid_values = self.dmid(m1_det, m2_det, dmid_params)
+        if self.dmid_fun == 'Dmid_mchirp_fdmid_fspin':
+            dmid_values = self.dmid(m1_det, m2_det, chieff, dmid_params)
+        else: 
+            dmid_values = self.dmid(m1_det, m2_det, dmid_params)
+            
         self.apply_dmid_mtotal_max(dmid_values, mtot_det)
         
         if self.emax_fun is None and self.alpha_vary is None:
@@ -617,9 +628,9 @@ class Found_injections:
 
         """
         dmid_params_guess = np.copy(self.dmid_params)
-            
+        
         res = opt.minimize(fun=lambda in_param: -self.logL_dmid(in_param, self.shape_params), 
-                           x0=np.array([dmid_params_guess]), 
+                           x0=np.array(dmid_params_guess), 
                            args=(), 
                            method=methods)
         opt_params = res.x
@@ -647,7 +658,7 @@ class Found_injections:
         shape_params_guess[1] = np.log(shape_params_guess[1])
         
         res = opt.minimize(fun=lambda in_param: -self.logL_shape(self.dmid_params, in_param), 
-                           x0=np.array([shape_params_guess]), 
+                           x0=np.array(shape_params_guess), 
                            args=(), 
                            method=methods)
         
@@ -676,7 +687,7 @@ class Found_injections:
         shape_params_guess[1] = np.log(shape_params_guess[1])
         
         res = opt.minimize(fun=lambda in_param: -self.logL_shape(self.dmid_params, in_param), 
-                           x0=np.array([shape_params_guess]), 
+                           x0=np.array(shape_params_guess), 
                            args=(), 
                            method=methods)
         
@@ -835,11 +846,16 @@ class Found_injections:
         m1o = self.m1[indexo]
         m2o = self.m2[indexo]
         zo = self.z[indexo]
+        chieffo = self.chi_eff[indexo]
         m1o_det = m1o * (1 + zo) 
         m2o_det = m2o * (1 + zo)
         mtoto_det = m1o_det + m2o_det
         
-        dmid_values = self.dmid(m1o_det, m2o_det, self.dmid_params)
+        if self.dmid_fun == 'Dmid_mchirp_fdmid_fspin':
+            dmid_values = self.dmid(m1o_det, m2o_det, chieffo, self.dmid_params)
+        else: 
+            dmid_values = self.dmid(m1o_det, m2o_det, self.dmid_params)
+        
         self.apply_dmid_mtotal_max(dmid_values, mtoto_det)
         
         emax_params, gamma, delta, alpha = self.get_shape_params()
@@ -873,7 +889,11 @@ class Found_injections:
         m2_det = self.m2 * (1 + self.z)
         mtot_det = m1_det + m2_det
         
-        dmid_values = self.dmid(m1_det, m2_det, self.dmid_params)
+        if self.dmid_fun == 'Dmid_mchirp_fdmid_fspin':
+            dmid_values = self.dmid(m1_det, m2_det, self.chi_eff, self.dmid_params)
+        else: 
+           dmid_values = self.dmid(m1_det, m2_det, self.dmid_params)
+           
         self.apply_dmid_mtotal_max(dmid_values, mtot_det)
         
         if self.emax_fun is not None:
@@ -994,8 +1014,13 @@ class Found_injections:
             m1_det = m1_det_inbin[indexo]
             m2_det = m2_det_inbin[indexo]
             mtot_det = m1_det + m2_det
+            chi_eff = chi_eff_inbin[indexo]
             
-            dmid_values = self.dmid(m1_det, m2_det, self.dmid_params)
+            if self.dmid_fun == 'Dmid_mchirp_fdmid_fspin':
+                dmid_values = self.dmid(m1_det, m2_det, chi_eff, self.dmid_params)
+            else: 
+                dmid_values = self.dmid(m1_det, m2_det, self.dmid_params)
+
             self.apply_dmid_mtotal_max(dmid_values, mtot_det)
             
             emax_params, gamma, delta, alpha = self.get_shape_params()
@@ -1060,7 +1085,11 @@ class Found_injections:
             
             # KS test
             
-            dmid_values = self.dmid(m1_det_inbin, m2_det_inbin, self.dmid_params)
+            if self.dmid_fun == 'Dmid_mchirp_fdmid_fspin':
+                dmid_values = self.dmid(m1_det_inbin, m2_det_inbin, chi_eff_inbin, self.dmid_params)
+            else: 
+                dmid_values = self.dmid(m1_det_inbin, m2_det_inbin, self.dmid_params)
+                
             self.apply_dmid_mtotal_max(dmid_values, Mtot_det_inbin)
             
             if self.emax_fun is not None:
@@ -1343,7 +1372,7 @@ class Found_injections:
         
         for run, prop in zip(self.runs, self.prop_obs_time):
             
-            pdet_i = self.run_pdet(self, dL, m1_det, m2_det, run, rescale_o3)
+            pdet_i = self.run_pdet(dL, m1_det, m2_det, run, rescale_o3)
             
             pdet += pdet_i * prop
             
