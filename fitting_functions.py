@@ -249,7 +249,7 @@ def Dmid_mchirp_fdmid(m1_det, m2_det, params):
     
     Mc = (m1_det * m2_det)**(3/5) / M**(1/5)
     
-    f_dmid = (1+ a_20 * M**2  + a_01 * (1 - 4*eta) + a_21 * M**2 * (1 - 4*eta) + a_10 * M + a_11 * M * (1 - 4*eta))
+    f_dmid = (a_20 * M**2  + a_01 * (1 - 4*eta) + a_21 * M**2 * (1 - 4*eta) + a_10 * M + a_11 * M * (1 - 4*eta))
     
     return  Mc**(5/6) * D0 * np.exp(f_dmid)
 
@@ -278,7 +278,7 @@ def Dmid_mchirp_fdmid_fspin(m1_det, m2_det, chi_eff, params):
     
     Mc = (m1_det * m2_det)**(3/5) / M**(1/5)
     
-    f_dmid = (1+ a_20 * M**2  + a_01 * (1 - 4*eta) + a_21 * M**2 * (1 - 4*eta) + a_10 * M + a_11 * M * (1 - 4*eta))
+    f_dmid = (a_20 * M**2  + a_01 * (1 - 4*eta) + a_21 * M**2 * (1 - 4*eta) + a_10 * M + a_11 * M * (1 - 4*eta))
     f_as = (c_1 + c_11 * M) * chi_eff
     
     return  Mc**(5/6) * D0 * np.exp(f_dmid) * np.exp(f_as)
