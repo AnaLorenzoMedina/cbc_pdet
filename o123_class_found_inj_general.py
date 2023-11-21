@@ -296,6 +296,8 @@ class Found_injections:
         
         self.interp_z = interpolate.interp1d(new_dL, new_z)
         
+        self.mmin = 2. ; self.mmax = 100.
+        
         return
     
     def get_opt_params(self, run_fit, rescale_o3 = True):
