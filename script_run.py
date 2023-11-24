@@ -25,8 +25,8 @@ run_dataset = 'o3'
 #dmid_fun = 'Dmid_mchirp_expansion_asqrt'
 #dmid_fun = 'Dmid_mchirp_expansion'
 #dmid_fun = 'Dmid_mchirp'
-dmid_fun = 'Dmid_mchirp_fdmid'
-#dmid_fun = 'Dmid_mchirp_fdmid_fspin'
+#dmid_fun = 'Dmid_mchirp_fdmid'
+dmid_fun = 'Dmid_mchirp_fdmid_fspin'
 emax_fun = 'emax_exp'
 #emax_fun = 'emax_sigmoid'
 
@@ -206,11 +206,11 @@ data.set_shape_params()
 
 plt.figure(figsize=(7,6))
 plt.scatter(data.dL/dmid_values, data.sigmoid(data.dL,dmid_values, data.emax(m1_det, m2_det, data.emax_params), data.gamma, data.delta), s=1)
-plt.xlabel('dL/dmid')
-plt.ylabel('Pdet')
+plt.xlabel(r'$d_L / d_\mathrm{mid}$', fontsize = 15)
+plt.ylabel(r'$P_\mathrm{det}$', fontsize = 15)
 plt.savefig( path + '/pdet_o3.png')
 name = path + '/pdet_o3.pdf'
-plt.savefig(name, format='pdf', dpi=1000, bbox_inches="tight")
+plt.savefig(name, format='pdf', dpi=300, bbox_inches="tight")
 
 
 plt.figure(figsize=(7,6))
@@ -221,5 +221,5 @@ cbar = plt.colorbar(im)
 cbar.set_label(r'$d_\mathrm{mid}$', fontsize=15)
 plt.savefig( path + '/m1m2det_dmid.png')
 name = path + '/m1m2det_dmid.pdf'
-plt.savefig(name, format='pdf', dpi=1000, bbox_inches="tight")
+plt.savefig(name, format='pdf', dpi=300, bbox_inches="tight")
 

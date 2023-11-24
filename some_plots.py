@@ -26,6 +26,7 @@ path = f'{run_dataset}/' + data.path
 data.load_inj_set(run_dataset)
 data.get_opt_params(run_fit)
 
+#%%
 nbin1 = 14
 nbin2 = 14
 
@@ -67,9 +68,9 @@ plt.xlabel(r'$M_z$')
 plt.ylabel(r'$d_\mathrm{mid} \, / \, M_\mathrm{c} ^{5/6}$')
 plt.grid(True, which='both')
 name="dL_joint_fit_results_emax/Mtot.png"
-plt.savefig(name, format='png', dpi=1000)
+plt.savefig(name, format='png', dpi=300)
 name="dL_joint_fit_results_emax/Mtot.pdf"
-plt.savefig(name, format='pdf', dpi=1000, bbox_inches="tight")
+plt.savefig(name, format='pdf', dpi=300, bbox_inches="tight")
 
 
 #plt.plot(Mc_plot.flatten(), 70*(Mc_plot.flatten())**(5/6), 'r-', label='cte = 70')
@@ -82,9 +83,9 @@ plt.xlabel(r'$q = m2_ / m_1$')
 plt.ylabel(r'$d_\mathrm{mid} \, / \, M_\mathrm{c} ^{5/6}$')
 plt.grid(True, which='both')
 name="dL_joint_fit_results_emax/q.png"
-plt.savefig(name, format='png', dpi=1000)
+plt.savefig(name, format='png', dpi=300)
 name="dL_joint_fit_results_emax/q.pdf"
-plt.savefig(name, format='pdf', dpi=1000, bbox_inches="tight")
+plt.savefig(name, format='pdf', dpi=300, bbox_inches="tight")
 
 plt.figure()
 plt.scatter(eta_plot, dmid_plot/(Mc_plot)**(5/6), c=Mtot_plot)
@@ -93,9 +94,9 @@ plt.xlabel(r'$\eta$')
 plt.ylabel(r'$d_\mathrm{mid} \, / \, M_\mathrm{c} ^{5/6}$')
 plt.grid(True, which='both')
 name="dL_joint_fit_results_emax/eta.png"
-plt.savefig(name, format='png', dpi=1000)
+plt.savefig(name, format='png', dpi=300)
 name="dL_joint_fit_results_emax/eta.pdf"
-plt.savefig(name, format='pdf', dpi=1000, bbox_inches="tight")
+plt.savefig(name, format='pdf', dpi=300, bbox_inches="tight")
 
 #%%
 fig, ax = plt.subplots(subplot_kw=dict(projection='3d'), gridspec_kw=dict(top=1, left=-0.3, right=1.2, bottom=0))
@@ -103,11 +104,11 @@ ax.scatter(Mtot_plot, eta_plot, dmid_plot/(Mc_plot)**(5/6), c=dmid_plot/(Mc_plot
 ax.set_xlabel(r'$M_z$', fontsize = 15)
 ax.set_ylabel(r'$\eta$', fontsize = 15)
 ax.set_zlabel(r'$d_\mathrm{mid} \, / \, M_\mathrm{c} ^{5/6}$', fontsize = 15)
-#fig.subplots_adjust(right=1.6, top=0.9, bottom=0.1, left=-0.6)
-# name="dL_joint_fit_results_emax/3D_plot.png"
-# plt.savefig(name, format='png', dpi=1000)
-# name="dL_joint_fit_results_emax/3D_plot.pdf"
-# plt.savefig(name, format='pdf', dpi=1000)
+fig.subplots_adjust(right=1.6, top=0.9, bottom=0.1, left=-0.6)
+name="dL_joint_fit_results_emax/3D_plot.png"
+plt.savefig(name, format='png', dpi=300)
+name="dL_joint_fit_results_emax/3D_plot.pdf"
+plt.savefig(name, format='pdf', dpi=300)
 #%%
 fig = plt.figure()
 ax=fig.add_subplot(projection='3d')
@@ -116,7 +117,7 @@ ax.set_xlabel('Mtotal ')
 ax.set_ylabel(r'$\eta$')
 ax.set_zlabel(r'$d_\mathrm{mid} \, / \, M_\mathrm{c} ^{5/6}$')
 name="dL_joint_fit_results_emax/3D_surface_plot.png"
-plt.savefig(name, format='png', dpi=1000)
+plt.savefig(name, format='png', dpi=300)
 
 #%%
 #EMAX PLOTS 
@@ -162,9 +163,9 @@ plt.xlabel(r'$M_z$', fontsize = 15)
 plt.ylabel(r'$\varepsilon_{max}$', fontsize = 15)
 plt.grid(True, which='both')
 name="dL_joint_fit_results_emax_vary/Mtot.png"
-plt.savefig(name, format='png', dpi=1000)
+plt.savefig(name, format='png', dpi=300)
 name="dL_joint_fit_results_emax_vary/Mtot.pdf"
-plt.savefig(name, format='pdf', dpi=1000, bbox_inches="tight")
+plt.savefig(name, format='pdf', dpi=300, bbox_inches="tight")
 
 plt.figure()
 im = plt.scatter(Mtot_plot, emax_plot, c=n_plot, norm=LogNorm())
@@ -175,9 +176,9 @@ plt.xlabel(r'$\log M_z$', fontsize = 15)
 plt.ylabel(r'$\varepsilon_{max}$', fontsize = 15)
 plt.grid(True, which='both')
 name="dL_joint_fit_results_emax_vary/Mtot_log.png"
-plt.savefig(name, format='png', dpi=1000)
+plt.savefig(name, format='png', dpi=300)
 name="dL_joint_fit_results_emax_vary/Mtot_log.pdf"
-plt.savefig(name, format='pdf', dpi=1000, bbox_inches="tight")
+plt.savefig(name, format='pdf', dpi=300, bbox_inches="tight")
 
 plt.figure()
 im = plt.scatter(Mc_plot, emax_plot, c=n_plot)
@@ -187,9 +188,9 @@ plt.xlabel(r'$M_c$', fontsize = 15)
 plt.ylabel(r'$\varepsilon_{max}$', fontsize = 15)
 plt.grid(True, which='both')
 name="dL_joint_fit_results_emax_vary/Mc.png"
-plt.savefig(name, format='png', dpi=1000)
+plt.savefig(name, format='png', dpi=300)
 name="dL_joint_fit_results_emax_vary/Mc.pdf"
-plt.savefig(name, format='pdf', dpi=1000, bbox_inches="tight")
+plt.savefig(name, format='pdf', dpi=300, bbox_inches="tight")
 
 #%%
 plt.figure()
@@ -200,10 +201,10 @@ cbar.set_label('N events', fontsize=15)
 plt.xlabel(r'$\log M_c$', fontsize = 15)
 plt.ylabel(r'$\varepsilon_{max}$', fontsize = 15)
 plt.grid(True, which='both')
-#name="dL_joint_fit_results_emax_vary/Mc_log.png"
-#plt.savefig(name, format='png', dpi=1000)
-#name="dL_joint_fit_results_emax_vary/Mc_log.pdf"
-#plt.savefig(name, format='pdf', dpi=1000, bbox_inches="tight")
+name="dL_joint_fit_results_emax_vary/Mc_log.png"
+plt.savefig(name, format='png', dpi=1000)
+name="dL_joint_fit_results_emax_vary/Mc_log.pdf"
+plt.savefig(name, format='pdf', dpi=1000, bbox_inches="tight")
 #%%
 
 fig, ax = plt.subplots(subplot_kw=dict(projection='3d'), gridspec_kw=dict(top=1, left=-0.3, right=1.2, bottom=0))
@@ -212,9 +213,9 @@ ax.set_xlabel(r'$M_z$', fontsize = 15)
 ax.set_ylabel(r'$M_c$', fontsize = 15)
 ax.set_zlabel(r'$\varepsilon_{max}$', fontsize = 15)
 name="dL_joint_fit_results_emax_vary/3D_plot.png"
-plt.savefig(name, format='png', dpi=1000)
+plt.savefig(name, format='png', dpi=300)
 name="dL_joint_fit_results_emax_vary/3D_plot.pdf"
-plt.savefig(name, format='pdf', dpi=1000)
+plt.savefig(name, format='pdf', dpi=300)
 
 fig = plt.figure()
 ax=fig.add_subplot(projection='3d')
@@ -223,7 +224,7 @@ ax.set_xlabel(r'$M_z$', fontsize = 15)
 ax.set_ylabel(r'$M_c$', fontsize = 15)
 ax.set_zlabel(r'$\varepsilon_{max}$', fontsize = 15)
 name="dL_joint_fit_results_emax_vary/3D_surface_plot.png"
-plt.savefig(name, format='png', dpi=1000)
+plt.savefig(name, format='png', dpi=300)
 
 
 #%% 
@@ -253,7 +254,7 @@ ax.spines[["left", "bottom"]].set_position(('data', 0))
 ax.spines[["top", "right"]].set_visible(False)
 ax.plot(1, 0, ">k", transform=ax.get_yaxis_transform(), clip_on=False)
 #ax.plot(0, 1, "^k", transform=ax.get_xaxis_transform(), clip_on=False)
-plt.savefig('plots/pdet_ideal.pdf', format='pdf', dpi=1000, bbox_inches="tight")
+plt.savefig('plots/pdet_ideal.pdf', format='pdf', dpi=300, bbox_inches="tight")
 
 fig, ax = plt.subplots()
 ax.plot(d2, fun2, 'r-')
@@ -275,7 +276,7 @@ ax.spines[["left", "bottom"]].set_position(('data', 0))
 ax.spines[["top", "right"]].set_visible(False)
 ax.plot(1, 0, ">k", transform=ax.get_yaxis_transform(), clip_on=False)
 #ax.plot(0, 1, "^k", transform=ax.get_xaxis_transform(), clip_on=False)
-plt.savefig('plots/pdet_real.pdf', format='pdf', dpi=1000, bbox_inches="tight")
+plt.savefig('plots/pdet_real.pdf', format='pdf', dpi=300, bbox_inches="tight")
 
 #%%
 
@@ -288,7 +289,7 @@ m2 = data.m2
 z = data.z
 dmid_values = data.dmid(m1_det, m2_det, data.dmid_params)
 data.apply_dmid_mtotal_max(dmid_values, mtot_det)
-total_pdet = data.total_pdet(data.dL, m1_det, m2_det)
+#total_pdet = data.total_pdet(data.dL, m1_det, m2_det)
 
 #%%
 plt.figure(figsize=(7,6))
@@ -300,7 +301,7 @@ cbar.set_label(r'$d_\mathrm{mid}$', fontsize=15)
 plt.show()
 plt.savefig( path + '/m1m2det_dmid.png')
 name = path + '/m1m2det_dmid.pdf'
-plt.savefig(name, format='pdf', dpi=1000, bbox_inches="tight")
+plt.savefig(name, format='pdf', dpi=300, bbox_inches="tight")
 
 #%%
 plt.figure()
@@ -310,7 +311,7 @@ plt.xlabel(r'$d_L / d_\mathrm{mid}$', fontsize = 15)
 plt.ylabel(r'total $P_\mathrm{det}$', fontsize = 15)
 plt.savefig( path + '/total_pdet.png')
 name = path + '/total_pdet.pdf'
-plt.savefig(name, format='pdf', dpi=1000, bbox_inches="tight")
+plt.savefig(name, format='pdf', dpi=300, bbox_inches="tight")
 
 #%%
 
@@ -335,7 +336,7 @@ plt.scatter(data.dL/dmid_values, data.run_pdet(data.dL, m1_det, m2_det, 'o3'), s
 plt.xlabel(r'$d_L / d_\mathrm{mid}$', fontsize = 15)
 plt.ylabel(r'$P_\mathrm{det}$', fontsize = 15)
 name = path + '/pdet_o3.pdf'
-plt.savefig(name, format='pdf', dpi=1000, bbox_inches="tight")
+plt.savefig(name, format='pdf', dpi=300, bbox_inches="tight")
 
 #%%
 
@@ -346,7 +347,7 @@ cbar.set_label(r'$M_z [M_{\odot}]$', fontsize=15)
 plt.xlabel(r'$d_L$ [Mpc]', fontsize = 15)
 plt.ylabel(r'$P_\mathrm{det}$', fontsize = 15)
 name = path + '/pdet_o3_cmap.pdf'
-plt.savefig(name, format='pdf', dpi=1000, bbox_inches="tight")
+plt.savefig(name, format='pdf', dpi=300, bbox_inches="tight")
 
 #%%
 
@@ -357,7 +358,7 @@ cbar.set_label(r'$P_\mathrm{det}$', fontsize=15)
 plt.xlabel(r'$m_{1z} [M_{\odot}]$', fontsize = 15)
 plt.ylabel(r'$m_{2z} [M_{\odot}]$', fontsize = 15)
 name = path + '/m12_pdet.pdf'
-plt.savefig(name, format='pdf', dpi=1000, bbox_inches="tight")
+plt.savefig(name, format='pdf', dpi=300, bbox_inches="tight")
 
 #%%
 
@@ -376,7 +377,7 @@ plt.grid()
 plt.xlabel(r'$M_z [M_{\odot}]$', fontsize=15)
 plt.ylabel(r'$\varepsilon_{max}$', fontsize=15)
 name = path + '/emax.pdf'
-plt.savefig(name, format='pdf', dpi=1000, bbox_inches="tight")
+plt.savefig(name, format='pdf', dpi=300, bbox_inches="tight")
 
 #%%
 
@@ -407,7 +408,7 @@ cbar.set_label(r'$\varepsilon_{max}$', fontsize=15)
 plt.xlabel(r'$m_{1z} [M_{\odot}]$', fontsize = 15)
 plt.ylabel(r'$m_{2z} [M_{\odot}]$', fontsize = 15)
 name = path + '/m12_emax.pdf'
-plt.savefig(name, format='pdf', dpi=1000, bbox_inches="tight")
+plt.savefig(name, format='pdf', dpi=300, bbox_inches="tight")
 
 #%%
 
@@ -415,3 +416,52 @@ plt.figure()
 plt.scatter(m1_det[data.found_any], m2_det[data.found_any], s=1)
 plt.xlabel('m1')
 plt.ylabel('m2')
+
+#%%
+plt.close('all')
+
+plt.figure(figsize=(8,4.8))
+im = plt.scatter(data.Mc, dmid_values, c=data.dL, s=1)
+cbar = plt.colorbar(im)
+cbar.set_label(r'$d_L$ [Mpc]', fontsize=15)
+plt.xlabel(r'$M_c [M_{\odot}]$', fontsize=15)
+plt.ylabel(r'$d_\mathrm{mid}$', fontsize=15)
+name = path + '/dmid_vs_mchirp.png'
+#plt.savefig(name, format='pdf', dpi=300, bbox_inches="tight")
+plt.savefig(name, format='png', dpi=300, bbox_inches="tight")
+
+#%%
+
+plt.figure(figsize=(8,4.8))
+im = plt.scatter(data.Mc_det, dmid_values, c=data.dL, s=1)
+cbar = plt.colorbar(im)
+cbar.set_label(r'$d_L$ [Mpc]', fontsize=15)
+plt.xlabel(r'$M_c det[M_{\odot}]$', fontsize=15)
+plt.ylabel(r'$d_\mathrm{mid}$', fontsize=15)
+name = path + '/dmid_vs_mchirp_det.png'
+#plt.savefig(name, format='pdf', dpi=300, bbox_inches="tight")
+plt.savefig(name, format='png', dpi=300, bbox_inches="tight")
+
+#%%
+
+plt.figure(figsize=(8,4.8))
+im = plt.scatter(data.Mc_det, dmid_values, c=data.eta, s=1)
+cbar = plt.colorbar(im)
+cbar.set_label(r'$\eta$', fontsize=15)
+plt.xlabel(r'$M_c det [M_{\odot}]$', fontsize=15)
+plt.ylabel(r'$d_\mathrm{mid}$', fontsize=15)
+name = path + '/dmid_vs_mchirp_eta.png'
+#plt.savefig(name, format='pdf', dpi=300, bbox_inches="tight")
+plt.savefig(name, format='png', dpi=300, bbox_inches="tight")
+
+#%%
+
+plt.figure(figsize=(8,4.8))
+im = plt.scatter(data.dL, data.Mc, c=dmid_values, s=1)
+cbar = plt.colorbar(im, )
+cbar.set_label(r'$d_\mathrm{mid}$', fontsize=15)
+plt.ylabel(r'$M_c [M_{\odot}]$', fontsize=15)
+plt.xlabel(r'$d_L$ [Mpc]', fontsize=15)
+name = path + '/dL_vs_mchirp.png'
+#plt.savefig(name, format='pdf', dpi=300, bbox_inches="tight")
+plt.savefig(name, format='png', dpi=300, bbox_inches="tight")
