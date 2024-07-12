@@ -94,7 +94,10 @@ class Found_injections:
                                   'Dmid_mchirp_expansion_asqrt': ['cte', 'a20', 'a01', 'a21', 'a30', 'asqrt'], 
                                   'Dmid_mchirp_power': ['cte', 'a20', 'a01', 'a21', 'a30', 'power_param'], 
                                   'Dmid_mchirp_fdmid': ['cte', 'a20', 'a01', 'a21', 'a10','a11'], 
-                                  'Dmid_mchirp_fdmid_fspin': ['cte', 'a20', 'a01', 'a21', 'a10','a11', 'c1', 'c11']}
+                                  'Dmid_mchirp_fdmid_fspin': ['cte', 'a20', 'a01', 'a21', 'a10','a11', 'c1', 'c11'],
+                                  'Dmid_mchirp_fdmid_fspin_c21': ['cte', 'a20', 'a01', 'a21', 'a10','a11', 'c1', 'c11', 'c21']}
+        
+        self.spin_functions = ['Dmid_mchirp_fdmid_fspin','Dmid_mchirp_fdmid_fspin_c21']
         
         sigmoid_names = ['gamma', 'delta']
         
@@ -468,7 +471,7 @@ class Found_injections:
         m2_det = self.m2 * (1 + self.z)
         mtot_det = m1_det + m2_det
         
-        if self.dmid_fun == 'Dmid_mchirp_fdmid_fspin':
+        if self.dmid_fun in self.spin_functions:
             dmid_values = self.dmid(m1_det, m2_det, self.chi_eff, dmid_params)
         else: 
             dmid_values = self.dmid(m1_det, m2_det, dmid_params)
@@ -536,7 +539,7 @@ class Found_injections:
         m2_det = m2 * (1 + z)
         mtot_det = m1_det + m2_det
         
-        if self.dmid_fun == 'Dmid_mchirp_fdmid_fspin':
+        if self.dmid_fun in self.spin_functions:
             dmid_values = self.dmid(m1_det, m2_det, chieff, dmid_params)
         else: 
             dmid_values = self.dmid(m1_det, m2_det, dmid_params)
@@ -700,7 +703,7 @@ class Found_injections:
 
         return opt_params, -min_likelihood
     
-    def joint_MLE(self, run_dataset, run_fit, methods = 'Nelder-Mead', precision = 1e-2):
+    def joint_MLE(self, run_dataset, run_fit, methods = 'Nelder-Mead', precision = 1e-2, bootstrap = False):
         '''
         joint optimization of log likelihood, alternating between optimizing dmid params and shape params
         until the difference in the log L is <= precision . Saves the results of each iteration in txt files.
@@ -791,16 +794,16 @@ class Found_injections:
         else:
             shape_results = np.column_stack((all_gamma, all_delta, np.delete(all_emax_params, 0, axis=0), total_lnL)) if self.alpha_vary is None else np.column_stack((all_gamma, all_delta, all_alpha, np.delete(all_emax_params, 0, axis=0), total_lnL)) 
             
-        np.savetxt(name_shape_file, shape_results, header = shape_header, fmt='%s')
+        np.savetxt(name_shape_file, shape_results, header = shape_header, fmt='%s') if not bootstrap else None
         
         #saving opt dmid params file
         
         all_dmid_params = np.delete(all_dmid_params, 0, axis=0)
         dmid_results = np.column_stack((all_dmid_params, total_lnL))
         dmid_header = f'{self.dmid_params_names[self.dmid_fun]} , maxL'
-        np.savetxt(name_dmid_file, dmid_results, header = dmid_header, fmt='%s')
+        np.savetxt(name_dmid_file, dmid_results, header = dmid_header, fmt='%s') if not bootstrap else None
         
-        return
+        return shape_results[-1, :-1], dmid_results[-1, :-1]
 
 
     def cumulative_dist(self, run_dataset, run_fit, var):
@@ -834,6 +837,7 @@ class Found_injections:
         
         dic = {'dL': self.dL, 'Mc': self.Mc, 'Mtot': self.Mtot, 'eta': self.eta, 'Mc_det': self.Mc_det, 'Mtot_det': self.Mtot_det, 'chi_eff': self.chi_eff}
         path = f'{run_fit}/{self.dmid_fun}' if self.alpha_vary is None else f'{run_fit}/alpha_vary/{self.dmid_fun}'
+        names_plotting = {'dL': '$d_L$', 'Mc': '$\mathcal{M}$', 'Mtot': '$M$', 'eta': '$\eta$', 'Mc_det': '$\mathcal{M}_z$', 'Mtot_det': '$M_z$', 'chi_eff': '$\chi_{eff}$'}
         
         try:
             os.mkdir( path + f'/{emax_dic[self.emax_fun]}')
@@ -853,7 +857,7 @@ class Found_injections:
         m2o_det = m2o * (1 + zo)
         mtoto_det = m1o_det + m2o_det
         
-        if self.dmid_fun == 'Dmid_mchirp_fdmid_fspin':
+        if self.dmid_fun in self.spin_functions:
             dmid_values = self.dmid(m1o_det, m2o_det, chieffo, self.dmid_params)
         else: 
             dmid_values = self.dmid(m1o_det, m2o_det, self.dmid_params)
@@ -877,21 +881,23 @@ class Found_injections:
         real_found_inj = np.arange(len(var_foundo))+1
     
         plt.figure()
-        plt.plot(varo, cmd, '.', markersize=2, label='model')
-        plt.plot(var_foundo, real_found_inj, '.', markersize=2, label='found injections')
-        plt.xlabel(f'{var}$^*$')
-        plt.ylabel('Cumulative found injections')
-        plt.legend(loc='best')
+        plt.scatter(varo, cmd, s=1, label='model', rasterized=True)
+        plt.scatter(var_foundo, real_found_inj, s=1, label='found injections', rasterized=True)
+        plt.xlabel(names_plotting[var], fontsize = 20)
+        plt.ylabel('Cumulative found injections', fontsize = 20)
+        plt.legend(loc='best', fontsize = 20)
         name = path + f'/{emax_dic[self.emax_fun]}/{var}_cumulative.png'
-        plt.savefig(name, format='png')
+        plt.savefig(name, format='png', bbox_inches="tight")
+        name = path + f'/{emax_dic[self.emax_fun]}/{var}_cumulative.pdf'
+        plt.savefig(name, format='pdf', dpi=150, bbox_inches="tight")
         
         #KS test
-        
+        '''
         m1_det = self.m1 * (1 + self.z) 
         m2_det = self.m2 * (1 + self.z)
         mtot_det = m1_det + m2_det
         
-        if self.dmid_fun == 'Dmid_mchirp_fdmid_fspin':
+        if self.dmid_fun in self.spin_functions:
             dmid_values = self.dmid(m1_det, m2_det, self.chi_eff, self.dmid_params)
         else: 
            dmid_values = self.dmid(m1_det, m2_det, self.dmid_params)
@@ -908,8 +914,11 @@ class Found_injections:
             return np.array(values)
             
         stat, pvalue = kstest(var_foundo, lambda x: cdf(x) )
+        print(f'{var} KStest : statistic = %s , pvalue = %s' %(stat, pvalue))
         
         return stat, pvalue
+'''
+        return
 
     
     
@@ -1018,7 +1027,7 @@ class Found_injections:
             mtot_det = m1_det + m2_det
             chi_eff = chi_eff_inbin[indexo]
             
-            if self.dmid_fun == 'Dmid_mchirp_fdmid_fspin':
+            if self.dmid_fun in self.spin_functions:
                 dmid_values = self.dmid(m1_det, m2_det, chi_eff, self.dmid_params)
             else: 
                 dmid_values = self.dmid(m1_det, m2_det, self.dmid_params)
@@ -1087,7 +1096,7 @@ class Found_injections:
             
             # KS test
             
-            if self.dmid_fun == 'Dmid_mchirp_fdmid_fspin':
+            if self.dmid_fun in self.spin_functions:
                 dmid_values = self.dmid(m1_det_inbin, m2_det_inbin, chi_eff_inbin, self.dmid_params)
             else: 
                 dmid_values = self.dmid(m1_det_inbin, m2_det_inbin, self.dmid_params)
@@ -1313,7 +1322,7 @@ class Found_injections:
         
         return pred_nev
     
-    def run_pdet(self, dL, m1_det, m2_det, run, rescale_o3 = True):
+    def run_pdet(self, dL, m1_det, m2_det, run, chieff = 0, rescale_o3 = True):
         """
         probability of detection for some given masses and distance
 
@@ -1335,7 +1344,11 @@ class Found_injections:
         
         mtot_det = m1_det + m2_det
         
-        dmid_values = self.dmid(m1_det, m2_det, self.dmid_params)
+        if self.dmid_fun in self.spin_functions:
+            dmid_values = self.dmid(m1_det, m2_det, chieff, self.dmid_params)
+        else: 
+            dmid_values = self.dmid(m1_det, m2_det, self.dmid_params)
+            
         self.apply_dmid_mtotal_max(np.array(dmid_values), mtot_det)
         
         emax_params, gamma, delta, alpha = self.get_shape_params()
@@ -1351,7 +1364,7 @@ class Found_injections:
         return pdet_i
     
     
-    def total_pdet(self, dL, m1_det, m2_det, rescale_o3 = True):
+    def total_pdet(self, dL, m1_det, m2_det, chieff = 0, rescale_o3 = True):
         '''
         total prob of detection, a combination of the prob of detection with o1, o2 and o3 proportions
 
@@ -1374,9 +1387,62 @@ class Found_injections:
         
         for run, prop in zip(self.runs, self.prop_obs_time):
             
-            pdet_i = self.run_pdet(dL, m1_det, m2_det, run, rescale_o3)
+            pdet_i = self.run_pdet(dL, m1_det, m2_det, run, chieff, rescale_o3)
             
             pdet += pdet_i * prop
             
         return pdet
+    
+    
+    def bootstrap_resampling(self, n_boots, run_dataset, run_fit):
+        self.load_inj_set(run_dataset)
+        total = len(self.dL)
+        all_params = np.zeros([1,len(np.atleast_1d(self.dmid_params)) + len(np.atleast_1d(self.shape_params))])
+        for i in range(n_boots):
+            self.load_inj_set(run_dataset)
+            injections = np.random.choice(np.arange(total), total, replace=True)
+            
+            self.m1 = self.m1[injections]
+            self.m2 = self.m2[injections]
+            self.z = self.z[injections]
+            self.dL = self.dL[injections]
+            
+            self.m_pdf = self.m_pdf[injections]
+            self.z_pdf = self.z_pdf[injections]
+            
+            self.s1x = self.s1x[injections]
+            self.s1y = self.s1y[injections]
+            self.s1z = self.s1z[injections]
+            
+            self.s2x = self.s2x[injections]
+            self.s2y = self.s2y[injections]
+            self.s2z = self.s2z[injections]
+            
+            self.found_any = self.found_any[injections]
+            
+            self.dL_pdf = self.dL_pdf[injections]
+            
+            self.Mtot = self.Mtot[injections]
+            self.Mtot_det = self.Mtot_det[injections]
+            self.Mc = self.Mc[injections]
+            self.Mc_det = self.Mc_det[injections]
+            self.eta = self.eta[injections]
+            self.q = self.q[injections]
+            
+            self.a1 = self.a1[injections]
+            self.a2 = self.a2[injections]
+            self.chi_eff = self.chi_eff[injections]
+            
+            opt_params_shape, opt_params_dmid = self.joint_MLE(run_dataset, run_fit, bootstrap = True)
+            print(i, 'n boots', opt_params_shape, opt_params_dmid)
+            all_params = np.vstack([all_params, np.hstack((opt_params_shape, opt_params_dmid))])
+        
+        
+        header = f'{self.shape_params_names[self.emax_fun]}, {self.dmid_params_names[self.dmid_fun]}'
+        path = f'{run_dataset}/' + self.path
+        name_file = path + f'/{n_boots}_boots_opt_params.dat'
+        np.savetxt(name_file, all_params, header = header, fmt='%s')
+        
+        
+        
         
