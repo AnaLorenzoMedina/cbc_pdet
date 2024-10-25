@@ -283,5 +283,34 @@ def Dmid_mchirp_fdmid_fspin(m1_det, m2_det, chi_eff, params):
     
     return  Mc**(5/6) * D0 * np.exp(f_dmid) * np.exp(f_as)
 
+def Dmid_mchirp_fdmid_fspin_c21(m1_det, m2_det, chi_eff, params):
+    """
+    Dmid values (distance where Pdet = 0.5) as a function of the masses 
+    in the detector frame and the spins (chi effective)
+
+    Parameters
+    ----------
+    m1_det : detector frame mass1, float or 1D array
+    m2_det: detector frame mass2, float or 1D array
+    chi_eff: chi effective, float or 1D array
+    params : parameters that we will be optimizing, 1D array
+    
+    Returns
+    -------
+    Dmid(m1,m2, chi_eff) in the detector's frame
+
+    """
+    D0 , a_20, a_01, a_21, a_10, a_11, c_1, c_11, c_21 = params
+
+    M = m1_det + m2_det
+    eta = m1_det * m2_det / M**2
+    
+    Mc = (m1_det * m2_det)**(3/5) / M**(1/5)
+    
+    f_dmid = (a_20 * M**2  + a_01 * (1 - 4*eta) + a_21 * M**2 * (1 - 4*eta) + a_10 * M + a_11 * M * (1 - 4*eta))
+    f_as = (c_1 + c_11 * M + c_21 * M**2) * chi_eff
+    
+    return  Mc**(5/6) * D0 * np.exp(f_dmid) * np.exp(f_as)
+
 
 

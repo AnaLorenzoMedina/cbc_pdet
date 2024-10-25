@@ -1,0 +1,43 @@
+[build-system]
+requires = [
+    "oldest-supported-numpy",
+    "setuptools>=42",
+    "wheel",
+    "build",
+    ]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ['cbc_pdet']
+
+[project]
+name = "cbc_pdet"
+version = "0.0.1"
+authors = [
+  { name="Ana Lorenzo-Medina", email="analorenzo.medina@usc.es" },
+  {name = "Thomas Dent", email = "thomas.dent@usc.es"},
+]
+description = "Code for compact binary mergers selection function for population analysis"
+keywords = ['gravitational waves', 'selection effects', 'population', 'inference', 'compact binary mergers']
+readme = "README.md"
+requires-python = ">=3.9.18"
+classifiers = [
+    "Programming Language :: Python :: 3.9",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Topic :: Scientific/Engineering :: Astronomy",
+    "Topic :: Scientific/Engineering :: Physics",
+    "Intended Audience :: Science/Research",
+]
+
+dependencies = [
+    "numpy >= 1.26.4",
+    "scipy >= 1.13.1",
+    "matplotlib >= 3.9.0",
+    "h5py",
+    "astropy >= 5.1",
+    ]
+
+[project.urls]
+Repository = "https://github.com/AnaLorenzoMedina/cbc_pdet.git"
+Issues = "https://github.com/AnaLorenzoMedina/cbc_pdet/issues"

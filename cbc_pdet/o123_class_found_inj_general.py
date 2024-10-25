@@ -16,7 +16,7 @@ import os
 import errno
 from scipy.optimize import fsolve
 from astropy.cosmology import FlatLambdaCDM
-
+import cbc_pdet.fitting_functions as functions #python module which contains the dmid and emax functions
 
 class Found_injections:
     """
@@ -40,8 +40,6 @@ class Found_injections:
         self.get_ini_values()
         
         '''
-        
-        import fitting_functions as functions #python module which contains the dmid and emax functions
         
         # assert isinstance(ini_files, list) or isinstance(ini_files, np.ndarray),\
 
@@ -152,7 +150,7 @@ class Found_injections:
         assert run_dataset =='o1' or run_dataset == 'o2',\
         "Argument (run_dataset) must be 'o1' or 'o2'. "
         
-        file = h5py.File(f'{run_dataset}-bbh-IMRPhenomXPHMpseudoFourPN.hdf5', 'r')
+        file = h5py.File(f'{os.path.dirname(__file__)}/{run_dataset}-bbh-IMRPhenomXPHMpseudoFourPN.hdf5', 'r')
         
         atr = dict(file.attrs.items())
         
@@ -197,7 +195,7 @@ class Found_injections:
        
     def read_o3_set(self):
         
-        file = h5py.File('endo3_bbhpop-LIGO-T2100113-v12.hdf5', 'r')
+        file = h5py.File(f'{os.path.dirname(__file__)}/endo3_bbhpop-LIGO-T2100113-v12.hdf5', 'r')
         
         #Total number of generated injections
         self.Ntotal = file.attrs['total_generated'] 
@@ -223,6 +221,9 @@ class Found_injections:
         self.s2x = file["injections/spin2x"][:]
         self.s2y = file["injections/spin2y"][:]
         self.s2z = file["injections/spin2z"][:]
+        
+        #self.max_s1 = file.attrs['max_spin1'] 
+        #self.max_s2 = file.attrs['max_spin2']
         
         #False alarm rate statistics from each pipeline
         self.far_pbbh = file["injections/far_pycbc_bbh"][:]
@@ -269,10 +270,17 @@ class Found_injections:
         self.a1 = np.sqrt(self.s1x**2 + self.s1y**2 + self.s1z**2)
         self.a2 = np.sqrt(self.s2x**2 + self.s2y**2 + self.s2z**2)
         
+        self.a1_max = np.max(self.a1)
+        self.a2_max = np.max(self.a2)
+        
+        self.s1z_pdf = np.log(self.a1_max / np.abs(self.s1z)) / (2*self.a1_max)
+        self.s2z_pdf = np.log(self.a2_max / np.abs(self.s2z)) / (2*self.a2_max)
+        
         # a1v = np.array([self.s1x , self.s1y , self.s1z])
         # a2v = np.array([self.s1x , self.s1y , self.s1z])
         
         self.chi_eff = (self.s1z * self.m1 + self.s2z* self.m2) / (self.Mtot)
+        
         
         self.max_index = np.argmax(self.dL)
         self.dLmax = self.dL[self.max_index]
@@ -328,12 +336,12 @@ class Found_injections:
             
         try:
             
-            path = f'{run_fit_touse}/' + self.path
+            path = f'{os.path.dirname(__file__)}/{run_fit_touse}/' + self.path
             self.dmid_params = np.loadtxt( path + '/joint_fit_dmid.dat')[-1, :-1]
             self.shape_params = np.loadtxt( path + '/joint_fit_shape.dat')[-1, :-1]
         
         except:
-            print('ERROR in self.get_opt_params: There are not such files because there is not a fit yet with these options.')
+            raise RuntimeError('ERROR in self.get_opt_params: There are not such files because there is not a fit yet with these options.')
     
         if rescale_o3 and run_fit != 'o3':
             d0 = self.find_dmid_cte_found_inj(run_fit, 'o3')
@@ -351,18 +359,19 @@ class Found_injections:
         shape_ini_values : 1D array. Initial values for the shape optiization
         
         '''
-        try:
-            if self.alpha_vary is None:
-                path = f'ini_values/{self.dmid_fun}' if self.emax_fun is None else f'ini_values/{self.dmid_fun}_{self.emax_fun}'
-                    
-            else: 
-                path = f'ini_values/alpha_vary_{self.dmid_fun}' if self.emax_fun is None else f'ini_values/alpha_vary_{self.dmid_fun}_{self.emax_fun}'
+        if self.alpha_vary is None:
+            path = f'{os.path.dirname(__file__)}/ini_values/{self.dmid_fun}' if self.emax_fun is None else f'{os.path.dirname(__file__)}/ini_values/{self.dmid_fun}_{self.emax_fun}'
             
+        else: 
+            path = f'{os.path.dirname(__file__)}/ini_values/alpha_vary_{self.dmid_fun}' if self.emax_fun is None else f'{os.path.dirname(__file__)}/ini_values/alpha_vary_{self.dmid_fun}_{self.emax_fun}'
+            
+        
+        try:
             dmid_ini_values = np.loadtxt( path + '_dmid.dat')
             shape_ini_values = np.loadtxt( path + '_shape.dat')
-        
+            
         except:
-            print('ERROR in self.get_ini_values: Files not found. Please create .dat files with the initial param guesses for this fit.')
+            raise RuntimeError('ERROR in self.get_ini_values: Files not found. Please create .dat files with the initial param guesses for this fit.')
     
         return dmid_ini_values, shape_ini_values
     
@@ -534,6 +543,8 @@ class Found_injections:
         m1 = self.m1[self.found_any]
         m2 = self.m2[self.found_any]
         chieff = self.chi_eff[self.found_any]
+        s1z_pdf = self.s1z_pdf[self.found_any]
+        s2z_pdf = self.s2z_pdf[self.found_any]
         
         m1_det = m1 * (1 + z) 
         m2_det = m2 * (1 + z)
@@ -541,8 +552,11 @@ class Found_injections:
         
         if self.dmid_fun in self.spin_functions:
             dmid_values = self.dmid(m1_det, m2_det, chieff, dmid_params)
+            pdfs = m_pdf * dL_pdf * s1z_pdf * s2z_pdf
+            
         else: 
             dmid_values = self.dmid(m1_det, m2_det, dmid_params)
+            pdfs = m_pdf * dL_pdf
             
         self.apply_dmid_mtotal_max(dmid_values, mtot_det)
         
@@ -550,14 +564,14 @@ class Found_injections:
             
             gamma, delta, emax = shape_params[0], shape_params[1], shape_params[2]
             
-            lamda = self.sigmoid(dL, dmid_values, emax, gamma, delta) * m_pdf * dL_pdf * self.Ntotal
+            lamda = self.sigmoid(dL, dmid_values, emax, gamma, delta) * pdfs * self.Ntotal
             
             
         elif self.emax_fun is None and self.alpha_vary is not None:
             
             gamma, delta, emax, alpha = shape_params[0], shape_params[1], shape_params[2], shape_params[3]
             
-            lamda = self.sigmoid(dL, dmid_values, emax, gamma, delta, alpha) * m_pdf * dL_pdf * self.Ntotal
+            lamda = self.sigmoid(dL, dmid_values, emax, gamma, delta, alpha) * pdfs * self.Ntotal
             
         
         elif self.emax_fun is not None and self.alpha_vary is None:
@@ -567,7 +581,7 @@ class Found_injections:
             
             emax_values = self.emax(m1_det, m2_det, emax_params)
             
-            lamda = self.sigmoid(dL, dmid_values, emax_values, gamma, delta) * m_pdf * dL_pdf * self.Ntotal
+            lamda = self.sigmoid(dL, dmid_values, emax_values, gamma, delta) * pdfs * self.Ntotal
 
 
         else:
@@ -577,7 +591,7 @@ class Found_injections:
             
             emax_values = self.emax(m1_det, m2_det, emax_params)
             
-            lamda = self.sigmoid(dL, dmid_values, emax_values, gamma, delta, alpha) * m_pdf * dL_pdf * self.Ntotal
+            lamda = self.sigmoid(dL, dmid_values, emax_values, gamma, delta, alpha) * pdfs * self.Ntotal
 
         return lamda
     
@@ -892,7 +906,7 @@ class Found_injections:
         plt.savefig(name, format='pdf', dpi=150, bbox_inches="tight")
         
         #KS test
-        '''
+        
         m1_det = self.m1 * (1 + self.z) 
         m2_det = self.m2 * (1 + self.z)
         mtot_det = m1_det + m2_det
@@ -916,8 +930,8 @@ class Found_injections:
         stat, pvalue = kstest(var_foundo, lambda x: cdf(x) )
         print(f'{var} KStest : statistic = %s , pvalue = %s' %(stat, pvalue))
         
-        return stat, pvalue
-'''
+        #return stat, pvalue
+
         return
 
     
@@ -1254,7 +1268,7 @@ class Found_injections:
         
         except:
             
-            d0 = {'o1' : np.loadtxt('d0.dat')[0], 'o2' : np.loadtxt('d0.dat')[1]}
+            d0 = {'o1' : np.loadtxt(f'{os.path.dirname(__file__)}/d0.dat')[0], 'o2' : np.loadtxt(f'{os.path.dirname(__file__)}/d0.dat')[1]}
             
             return d0[run_dataset]
         
