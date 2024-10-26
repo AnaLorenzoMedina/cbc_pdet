@@ -457,6 +457,14 @@ class Found_injections:
     def apply_dmid_mtotal_max(self, dmid_values, Mtot_det, max_mtot = None):
         max_mtot = max_mtot if max_mtot != None else self.Mtot_max
         #return np.putmask(dmid_values, Mtot_det > max_mtot, 0.001)
+        # If dmid_values is a single float, handle it differently
+        if isinstance(dmid_values, (int, float)):
+            if np.any(Mtot_det > max_mtot):
+                return 0.001  # Return the modified single float
+            else:
+                return dmid_values  # Return the original value if condition is not met
+    
+        # If dmid_values is an array, apply the condition across the array
         dmid_values[Mtot_det > max_mtot] = 0.001
         return dmid_values
     
