@@ -12,11 +12,17 @@ from scipy import integrate
 from scipy.stats import kstest
 import scipy.optimize as opt
 import matplotlib.pyplot as plt
+from matplotlib import rc
 import os
 import errno
 from scipy.optimize import fsolve
 from astropy.cosmology import FlatLambdaCDM
-import cbc_pdet.fitting_functions as functions #python module which contains the dmid and emax functions
+import cbc_pdet.fitting_functions as functions #python module from cbc package which contains the dmid and emax functions
+
+rc('text', usetex=True)
+rc('font', **{'family': 'serif', 'serif': ['Comput er Modern']})
+
+Mtot_max = 510.25378
 
 class Found_injections:
     """
@@ -255,7 +261,7 @@ class Found_injections:
         #total mass (m1+m2)
         self.Mtot = self.m1 + self.m2
         self.Mtot_det = self.m1 * (1+self.z) + self.m2 * (1+self.z)
-        self.Mtot_max = np.max(self.Mtot_det)
+        self.Mtot_max = Mtot_max
         
         #mass chirp
         self.Mc = (self.m1 * self.m2)**(3/5) / (self.Mtot)**(1/5) 
@@ -457,6 +463,14 @@ class Found_injections:
     def apply_dmid_mtotal_max(self, dmid_values, Mtot_det, max_mtot = None):
         max_mtot = max_mtot if max_mtot != None else self.Mtot_max
         #return np.putmask(dmid_values, Mtot_det > max_mtot, 0.001)
+        # If dmid_values is a single float, handle it differently
+        if isinstance(dmid_values, (int, float)):
+            if np.any(Mtot_det > max_mtot):
+                return 0.001  # Return the modified single float
+            else:
+                return dmid_values  # Return the original value if condition is not met
+    
+        # If dmid_values is an array, apply the condition across the array
         dmid_values[Mtot_det > max_mtot] = 0.001
         return dmid_values
     
@@ -851,7 +865,7 @@ class Found_injections:
         
         dic = {'dL': self.dL, 'Mc': self.Mc, 'Mtot': self.Mtot, 'eta': self.eta, 'Mc_det': self.Mc_det, 'Mtot_det': self.Mtot_det, 'chi_eff': self.chi_eff}
         path = f'{run_fit}/{self.dmid_fun}' if self.alpha_vary is None else f'{run_fit}/alpha_vary/{self.dmid_fun}'
-        names_plotting = {'dL': '$d_L$', 'Mc': '$\mathcal{M}$', 'Mtot': '$M$', 'eta': '$\eta$', 'Mc_det': '$\mathcal{M}_z$', 'Mtot_det': '$M_z$', 'chi_eff': '$\chi_{eff}$'}
+        names_plotting = {'dL': '$d_L$', 'Mc': '$\mathcal{M}$', 'Mtot': '$M$', 'eta': '$\eta$', 'Mc_det': '$\mathcal{M}_z$', 'Mtot_det': '$M_z$', 'chi_eff': '$\chi_\mathrm{eff}$'}
         
         try:
             os.mkdir( path + f'/{emax_dic[self.emax_fun]}')
@@ -897,9 +911,11 @@ class Found_injections:
         plt.figure()
         plt.scatter(varo, cmd, s=1, label='model', rasterized=True)
         plt.scatter(var_foundo, real_found_inj, s=1, label='found injections', rasterized=True)
-        plt.xlabel(names_plotting[var], fontsize = 20)
-        plt.ylabel('Cumulative found injections', fontsize = 20)
-        plt.legend(loc='best', fontsize = 20)
+        plt.xlabel(names_plotting[var], fontsize = 24)
+        plt.ylabel('Cumulative found injections', fontsize = 24)
+        plt.legend(loc='best', fontsize = 20, markerscale=3.)
+        plt.yticks(fontsize=15)
+        plt.xticks(fontsize=15)
         name = path + f'/{emax_dic[self.emax_fun]}/{var}_cumulative.png'
         plt.savefig(name, format='png', bbox_inches="tight")
         name = path + f'/{emax_dic[self.emax_fun]}/{var}_cumulative.pdf'
@@ -931,7 +947,7 @@ class Found_injections:
         print(f'{var} KStest : statistic = %s , pvalue = %s' %(stat, pvalue))
         
         #return stat, pvalue
-
+        
         return
 
     
@@ -1088,6 +1104,7 @@ class Found_injections:
                 
                 x = np.linspace(-1, 1, 1000)
                 
+                #varo is chieff
                 plt.figure()
                 nchi, _, _ = plt.hist(varo, bins = nbins, density = True, weights = pdet, histtype = 'step', log = True)
                 nfound, _, _, = plt.hist(found_inj_inbin_sorted, bins = nbins, density = True, histtype = 'step', log = True)
