@@ -313,4 +313,3 @@ def Dmid_mchirp_fdmid_fspin_c21(m1_det, m2_det, chi_eff, params):
     return  Mc**(5/6) * D0 * np.exp(f_dmid) * np.exp(f_as)
 
 
-

@@ -14,14 +14,19 @@ from matplotlib import rc
 import sys
 import os
 
+
 # Save the current working directory
 original_working_directory = os.getcwd()
 
 # Change the current working directory to the parent directory
 os.chdir(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
+sys.path.append('../')
+
 # Import the class from the module
 from o123_class_found_inj_general import Found_injections
+
+
 
 
 plt.close('all')
@@ -30,14 +35,14 @@ run_fit = 'o3'
 run_dataset = 'o3'
 
 # function for dmid and emax we wanna use
+dmid_fun = 'Dmid_mchirp_fdmid'
+#dmid_fun = 'Dmid_mchirp_fdmid_fspin'
 #dmid_fun = 'Dmid_mchirp_expansion_noa30'
 #dmid_fun = 'Dmid_mchirp_expansion_exp'
 #dmid_fun = 'Dmid_mchirp_expansion_a11'
 #dmid_fun = 'Dmid_mchirp_expansion_asqrt'
 #dmid_fun = 'Dmid_mchirp_expansion'
 #dmid_fun = 'Dmid_mchirp'
-#dmid_fun = 'Dmid_mchirp_fdmid'
-dmid_fun = 'Dmid_mchirp_fdmid_fspin'
 #dmid_fun = 'Dmid_mchirp_fdmid_fspin_c21'
 emax_fun = 'emax_exp'
 #emax_fun = 'emax_sigmoid'
@@ -66,8 +71,10 @@ data.load_inj_set(run_dataset)
 
 data.joint_MLE(run_dataset, run_fit)
 
-#data.load_inj_set(run_dataset)
-#data.get_opt_params(run_fit)
+data.load_inj_set(run_dataset)
+data.get_opt_params(run_fit)
+
+#%%
 
 # npoints = 10000
 # index = np.random.choice(np.arange(len(data.dL)), npoints, replace=False)
@@ -89,6 +96,7 @@ mtot_det = data.Mtot_det
 
 dmid_values = data.dmid(m1_det, m2_det, data.dmid_params)
 data.apply_dmid_mtotal_max(dmid_values, mtot_det)
+data.set_shape_params()
 '''
 
 pdet = data.run_pdet(data.dL, m1_det, m2_det, 'o3')
@@ -211,6 +219,38 @@ name = path + '/pdet_o3.pdf'
 plt.savefig(name, format='pdf', dpi=300, bbox_inches="tight")
 
 #%%
+
+plt.figure(figsize=(8,4.8))
+im = plt.scatter(data.dL/dmid_values, data.sigmoid(data.dL,dmid_values, data.emax(m1_det, m2_det, data.emax_params), data.gamma, data.delta), s=1, c=mtot_det, rasterized=True)
+plt.xlabel(r'$d_L / d_\mathrm{mid}$', fontsize = 24)
+plt.ylabel(r'$P_\mathrm{det}$', fontsize = 24)
+plt.yticks(fontsize=15)
+plt.xticks(fontsize=15)
+cbar = plt.colorbar(im)
+cbar.ax.tick_params(labelsize=15)
+cbar.set_label(r'$M_z$', fontsize=24)
+plt.show()
+plt.savefig( path + '/pdet_o3_Mtot.png')
+name = path + '/pdet_o3_Mtot.pdf'
+plt.savefig(name, format='pdf', dpi=300, bbox_inches="tight")
+
+#%%
+
+plt.figure(figsize=(8,4.8))
+im = plt.scatter(data.dL/dmid_values, data.sigmoid(data.dL,dmid_values, data.emax(m1_det, m2_det, data.emax_params), data.gamma, data.delta), s=1, c=data.emax(m1_det, m2_det, data.emax_params), rasterized=True)
+plt.xlabel(r'$d_L / d_\mathrm{mid}$', fontsize = 24)
+plt.ylabel(r'$P_\mathrm{det}$', fontsize = 24)
+plt.yticks(fontsize=15)
+plt.xticks(fontsize=15)
+cbar = plt.colorbar(im)
+cbar.ax.tick_params(labelsize=15)
+cbar.set_label(r'$\varepsilon_\mathrm{max}$', fontsize=24)
+plt.show()
+plt.savefig( path + '/pdet_o3_emax.png')
+name = path + '/pdet_o3_emax.pdf'
+plt.savefig(name, format='pdf', dpi=300, bbox_inches="tight")
+
+#%%
 order = np.argsort(dmid_values)
 dmid_values_ordered = dmid_values[order]
 m1_det_ordered = m1_det[order]
@@ -219,10 +259,13 @@ m2_det_ordered = m2_det[order]
 
 plt.figure(figsize=(7,6))
 im = plt.scatter(m1_det_ordered, m2_det_ordered, s=1, c=dmid_values_ordered, rasterized=True)
-plt.xlabel(r'$m_{1z} [M_{\odot}]$', fontsize=15)
-plt.ylabel('$m_{2z} [M_{\odot}]$', fontsize=15)
+plt.xlabel(r'$m_{1z} [M_{\odot}]$', fontsize=24)
+plt.ylabel('$m_{2z} [M_{\odot}]$', fontsize=24)
+plt.yticks(fontsize=15)
+plt.xticks(fontsize=15)
 cbar = plt.colorbar(im)
-cbar.set_label(r'$d_\mathrm{mid}$', fontsize=15)
+cbar.ax.tick_params(labelsize=15)
+cbar.set_label(r'$d_\mathrm{mid}$', fontsize=24)
 plt.savefig( path + '/m1m2det_dmid.png')
 name = path + '/m1m2det_dmid.pdf'
 plt.savefig(name, format='pdf', dpi=300, bbox_inches="tight")

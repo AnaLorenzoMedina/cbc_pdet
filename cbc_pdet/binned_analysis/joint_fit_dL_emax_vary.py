@@ -165,15 +165,14 @@ far_pfull = f["injections/far_pycbc_hyperbank"][:]
 mean_mass_pdf = np.loadtxt('mean_mpdf.dat')
 
 ###################################### for the dL_pdf interpolation 
+import cbc_pdet.fitting_functions as functions
+from astropy.cosmology import FlatLambdaCDM
 
 H0 = 67.9 #km/sMpc
-c = 3e5 #km/s
 omega_m = 0.3065
-A = np.sqrt(omega_m*(1+z_origin)**3+1-omega_m)
+cosmo = FlatLambdaCDM(H0, omega_m)
 
-dL_dif_origin = (c*(1+z_origin)/H0)*(1/A)
-
-dL_pdf_origin = z_pdf_origin/dL_dif_origin
+dL_pdf_origin = z_pdf_origin/functions.dL_derivative(z_origin, dL_origin, cosmo)
 
 index_all = np.argsort(dL_origin)
 all_dL = dL_origin[index_all]

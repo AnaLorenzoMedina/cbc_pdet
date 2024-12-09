@@ -13,12 +13,15 @@ from matplotlib import rc
 import corner
 import sys
 import os
+import matplotlib.ticker as ticker
 
 # Save the current working directory
 original_working_directory = os.getcwd()
 
 # Change the current working directory to the parent directory
 os.chdir(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
+sys.path.append('../')
 
 # Import the class from the module
 from o123_class_found_inj_general import Found_injections
@@ -28,9 +31,9 @@ plt.close('all')
 run_fit = 'o3'
 run_dataset = 'o3'
 
-#dmid_fun = 'Dmid_mchirp_expansion_noa30'
-#dmid_fun = 'Dmid_mchirp_fdmid'
-dmid_fun = 'Dmid_mchirp_fdmid_fspin'
+
+dmid_fun = 'Dmid_mchirp_fdmid'
+#dmid_fun = 'Dmid_mchirp_fdmid_fspin'
 emax_fun = 'emax_exp'
 alpha_vary = None
 
@@ -40,6 +43,7 @@ data.load_inj_set(run_dataset)
 data.get_opt_params(run_fit)
 
 rc('text', usetex=True)
+#rc('font', **{'family': 'serif', 'serif': ['Computer Modern']})
 
 #%%
 nbin1 = 14
@@ -138,7 +142,7 @@ plt.savefig(name, format='png', dpi=300)
 #EMAX PLOTS 
 
 k = 10
-emax = np.loadtxt(f'dL_joint_fit_results_emax_vary/emax/emax_{k}.dat')
+emax = np.loadtxt(f'binned_analysis/dL_joint_fit_results_emax_vary/emax/emax_{k}.dat')
 morethan10 = np.zeros([nbin1,nbin2])
 
 for i in range(nbin1):
@@ -180,20 +184,25 @@ name="dL_joint_fit_results_emax_vary/Mtot.png"
 plt.savefig(name, format='png', dpi=300)
 name="dL_joint_fit_results_emax_vary/Mtot.pdf"
 plt.savefig(name, format='pdf', dpi=300, bbox_inches="tight")
-
+#%%
 plt.figure()
 im = plt.scatter(Mtot_plot, emax_plot, c=n_plot, norm=LogNorm())
 plt.xscale('log')
 cbar = plt.colorbar(im)
-cbar.set_label('N events', fontsize=20)
-plt.xlabel(r'$\log M_z$', fontsize = 20)
-plt.ylabel(r'$\varepsilon_{max}$', fontsize = 20)
+cbar.set_label(r'N events', fontsize=20)
+cbar.ax.yaxis.set_major_formatter(ticker.LogFormatterSciNotation())
+cbar.ax.tick_params(axis='y', which='both', labelsize=15)
+plt.xlabel(r'$M_z$', fontsize = 24)
+plt.ylabel(r'$\varepsilon_\mathrm{max}$', fontsize = 24)
 plt.grid(True, which='both')
-name="dL_joint_fit_results_emax_vary/Mtot_log.png"
+plt.yticks(fontsize=15)
+plt.xticks(fontsize=15)
+name="binned_analysis/dL_joint_fit_results_emax_vary/Mtot_log.png"
 plt.savefig(name, format='png', dpi=300)
-name="dL_joint_fit_results_emax_vary/Mtot_log.pdf"
+name="binned_analysis/dL_joint_fit_results_emax_vary/Mtot_log.pdf"
 plt.savefig(name, format='pdf', dpi=300, bbox_inches="tight")
 
+#%%
 plt.figure()
 im = plt.scatter(Mc_plot, emax_plot, c=n_plot)
 cbar = plt.colorbar(im)
@@ -304,14 +313,18 @@ mtot_det = m1_det + m2_det
 dmid_values = data.dmid(m1_det, m2_det, data.chi_eff, data.dmid_params)
 data.apply_dmid_mtotal_max(dmid_values, mtot_det)
 #total_pdet = data.total_pdet(data.dL, m1_det, m2_det)
+data.set_shape_params()
 
 #%%
 plt.figure(figsize=(7,6))
 im = plt.scatter(m1_det, m2_det, s=1, c=dmid_values, rasterized=True)
-plt.xlabel(r'$m_{1z} [M_{\odot}]$', fontsize=20)
-plt.ylabel('$m_{2z} [M_{\odot}]$', fontsize=20)
+plt.xlabel(r'$m_{1z} [M_{\odot}]$', fontsize=24)
+plt.ylabel('$m_{2z} [M_{\odot}]$', fontsize=24)
+plt.yticks(fontsize=15)
+plt.xticks(fontsize=15)
 cbar = plt.colorbar(im)
-cbar.set_label(r'$d_\mathrm{mid}$', fontsize=20)
+cbar.ax.tick_params(labelsize=15)
+cbar.set_label(r'$d_\mathrm{mid}$', fontsize=24)
 plt.show()
 plt.savefig( path + '/m1m2det_dmid.png')
 name = path + '/m1m2det_dmid.pdf'
@@ -331,9 +344,12 @@ plt.savefig(name, format='pdf', dpi=150, bbox_inches="tight")
 
 #PDET / OPT_EPSILON_PLOT FOR ONLY 1 RUN
 #IMPORTANT TO RERUN THE LOAD INJ SET IN CASE YOU RUNNED OTHER METHODS BEFORE THAT CHANGED DE SET LOADED SUCH AS run_pdet for o1 or o2
-
+dmid_fun = 'Dmid_mchirp_fdmid'
 run_dataset = 'o3'   
+data = Found_injections(dmid_fun, emax_fun, alpha_vary)
+path = f'{run_dataset}/' + data.path
 data.load_inj_set(run_dataset)
+data.get_opt_params(run_fit)
 
 m1_det = data.m1 * (1 + data.z)
 m2_det = data.m2 * (1 + data.z)
@@ -342,15 +358,34 @@ mtot_det = m1_det + m2_det
 dmid_values = data.dmid(m1_det, m2_det, data.dmid_params)
 data.apply_dmid_mtotal_max(dmid_values, mtot_det)
 
+data.set_shape_params()
+
 rc('text', usetex=True)
 
 #%%
 
 plt.figure()
 plt.scatter(data.dL/dmid_values, data.run_pdet(data.dL, m1_det, m2_det, 'o3'), s=1, rasterized=True)
-plt.xlabel(r'$d_L / d_\mathrm{mid}$', fontsize = 20)
-plt.ylabel(r'$P_\mathrm{det}$', fontsize = 20)
+plt.xlabel(r'$d_L / d_\mathrm{mid}$', fontsize = 24)
+plt.ylabel(r'$P_\mathrm{det}$', fontsize = 24)
+plt.yticks(fontsize=15)
+plt.xticks(fontsize=15)
 name = path + '/pdet_o3.pdf'
+plt.savefig(name, format='pdf', dpi=150, bbox_inches="tight")
+
+#%%
+
+plt.figure()
+im = plt.scatter(data.dL/dmid_values, data.run_pdet(data.dL, m1_det, m2_det, 'o3'), s=1, c=mtot_det, rasterized=True)
+plt.xlabel(r'$d_L / d_\mathrm{mid}$', fontsize = 24)
+plt.ylabel(r'$P_\mathrm{det}$', fontsize = 24)
+plt.yticks(fontsize=15)
+plt.xticks(fontsize=15)
+cbar = plt.colorbar(im)
+cbar.ax.tick_params(labelsize=15)
+cbar.set_label(r'$M_z$', fontsize=24)
+plt.show()
+name = path + '/pdet_o3_Mtot.pdf'
 plt.savefig(name, format='pdf', dpi=150, bbox_inches="tight")
 
 #%%
@@ -387,8 +422,10 @@ emax = data.emax(m1det, m2det, data.emax_params)
 plt.figure(figsize=(7,4.8))
 plt.plot(mtot, emax, '-')
 plt.ylim(0, 1.2)
-plt.xlabel(r'$M_z [M_{\odot}]$', fontsize=20)
-plt.ylabel(r'$\varepsilon_{max}$', fontsize=20)
+plt.xlabel(r'$M_z [M_{\odot}]$', fontsize=24)
+plt.ylabel(r'$\varepsilon_\mathrm{max}$', fontsize=24)
+plt.yticks(fontsize=15)
+plt.xticks(fontsize=15)
 name = path + '/emax.pdf'
 plt.savefig(name, format='pdf', dpi=300, bbox_inches="tight")
 
@@ -460,9 +497,12 @@ plt.savefig(name, format='png', dpi=300, bbox_inches="tight")
 plt.figure(figsize=(7,6))
 im = plt.scatter(data.Mc_det, dmid_values, c=data.eta, s=1, rasterized=True)
 cbar = plt.colorbar(im)
-cbar.set_label(r'$\eta$', fontsize=20)
-plt.xlabel(r'$\mathcal{M}_z [M_{\odot}]$', fontsize=20)
-plt.ylabel(r'$d_\mathrm{mid}$', fontsize=20)
+cbar.set_label(r'$\eta$', fontsize=24)
+cbar.ax.tick_params(labelsize=15)
+plt.xlabel(r'$\mathcal{M}_z [M_{\odot}]$', fontsize=24)
+plt.ylabel(r'$d_\mathrm{mid}$', fontsize=24)
+plt.yticks(fontsize=15)
+plt.xticks(fontsize=15)
 name = path + '/dmid_vs_mchirp_eta.pdf'
 plt.savefig(name, format='pdf', dpi=150, bbox_inches="tight")
 name = path + '/dmid_vs_mchirp_eta.png'
@@ -500,9 +540,16 @@ plt.figure(figsize=(8,4.8))
 #im = plt.scatter(data.chi_eff, data.Mc_det, s=1, c=chieff_corr, norm=MidPointLogNorm(vmin=chieff_corr.min(), vmax=chieff_corr.max(), midpoint=1), cmap = 'Spectral')
 im = plt.scatter(data.chi_eff, data.Mtot_det, s=1, c=chieff_corr, norm=LogNorm(vmin=0.4, vmax=2.6), cmap = 'Spectral', rasterized=True)
 cbar = plt.colorbar(im)
-cbar.set_label(r'$\exp (f_{AS})$', fontsize=20)
-plt.xlabel(r'$\chi_{eff}$', fontsize=20)
-plt.ylabel(r'$M_{z}$', fontsize=20)
+#cbar.ax.tick_params(axis='both', which='major', labelsize=15)
+cbar.set_label(r'$\exp (f_{AS})$', fontsize=24)
+plt.xlabel(r'$\chi_\mathrm{eff}$', fontsize=24)
+plt.ylabel(r'$M_{z}$', fontsize=24)
+plt.yticks(fontsize=15)
+plt.xticks(fontsize=15)
+cbar.ax.yaxis.set_major_formatter(ticker.LogFormatterSciNotation())
+cbar.ax.tick_params(axis='y', which='both', labelsize=15)
+#cbar.ax.yaxis.set_major_formatter(ticker.ScalarFormatter())
+#cbar.ax.tick_params(labelsize=15)
 name = path + '/chieff_corr_mtot.png'
 plt.savefig(name, format='png', dpi=150, bbox_inches="tight")
 name = path + '/chieff_corr_mtot.pdf'
@@ -520,9 +567,12 @@ plt.savefig(name, format='pdf', dpi=150, bbox_inches="tight")
 plt.figure(figsize=(7,6))
 im = plt.scatter(data.Mc_det, dmid_values, c=data.chi_eff, s=1, rasterized=True)
 cbar = plt.colorbar(im)
-cbar.set_label(r'$\chi_{eff}$', fontsize=20)
-plt.xlabel(r'$\mathcal{M}_z [M_{\odot}]$', fontsize=20)
-plt.ylabel(r'$d_\mathrm{mid}$', fontsize=20)
+cbar.set_label(r'$\chi_\mathrm{eff}$', fontsize=24)
+cbar.ax.tick_params(labelsize=15)
+plt.xlabel(r'$\mathcal{M}_z [M_{\odot}]$', fontsize=24)
+plt.ylabel(r'$d_\mathrm{mid}$', fontsize=24)
+plt.yticks(fontsize=15)
+plt.xticks(fontsize=15)
 name = path + '/dmid_vs_mchirp_chieff.pdf'
 plt.savefig(name, format='pdf', dpi=150, bbox_inches="tight")
 name = path + '/dmid_vs_mchirp_chieff.png'
@@ -578,10 +628,12 @@ emax = np.array([data.emax(m1det, m2det, emax_params[i]) for i in range(len(emax
 plt.figure()
 for i in range(len(emax)):
     
-    plt.plot(mtot, emax[i], '-', alpha = 0.4)
+    plt.plot(mtot, emax[i], '-', alpha = 0.5)
 plt.ylim(0, 1.2)
-plt.xlabel(r'$M_z [M_{\odot}]$', fontsize=20)
-plt.ylabel(r'$\varepsilon_{max}$', fontsize=20)
+plt.xlabel(r'$M_z [M_{\odot}]$', fontsize=24)
+plt.ylabel(r'$\varepsilon_\mathrm{max}$', fontsize=24)
+plt.yticks(fontsize=15)
+plt.xticks(fontsize=15)
 name = path + f'/{nboots}_boots_emax.pdf'
 plt.savefig(name, format='pdf', dpi=150, bbox_inches="tight")
 
@@ -691,9 +743,13 @@ for M, color, label in zip(M_values, colors, labels):
         else:
             plt.semilogy(eta, dmid[i], color=color, alpha=0.2, rasterized=True)
    
-plt.legend()
-plt.xlabel(r'$\eta$', fontsize = 15)
-plt.ylabel(r'$d_\mathrm{mid}$', fontsize = 15)
+leg = plt.legend(fontsize = 18)
+for lh in leg.legend_handles:
+    lh.set_alpha(1)
+plt.xlabel(r'$\eta$', fontsize = 24)
+plt.ylabel(r'$d_\mathrm{mid}$', fontsize = 24)
+plt.yticks(fontsize=15)
+plt.xticks(fontsize=15)
 plt.title('chieff = 0.75')
 name = path + f'/{nboots}_boots_dmid_variousMz.pdf'
 plt.savefig(name, format='pdf', dpi=150, bbox_inches="tight")
@@ -717,14 +773,18 @@ for eta, color, label in zip(eta_values, colors, labels):
     
     for i in range(len(cte)):
         if i == 0:
-            plt.loglog(M, dmid[i], color=color, alpha=0.2, rasterized=True, label=label)
+            plt.loglog(M, dmid[i], color=color, alpha=0.3, rasterized=True, label=label)
         else:
-            plt.loglog(M, dmid[i], color=color, alpha=0.2, rasterized=True)
+            plt.loglog(M, dmid[i], color=color, alpha=0.3, rasterized=True)
    
-plt.legend(fontsize = 15)
-plt.xlabel(r'$M_z [M_{\odot}]$', fontsize = 18)
-plt.ylabel(r'$d_\mathrm{mid} \, / \, \mathcal{M}^{5/6}$', fontsize = 18)
-plt.title(r'$\chi_\mathrm{eff} = 0.75$', fontsize = 18)
+leg = plt.legend(fontsize = 18)
+for lh in leg.legend_handles:
+    lh.set_alpha(1)
+plt.xlabel(r'$M_z [M_{\odot}]$', fontsize = 24)
+plt.ylabel(r'$d_\mathrm{mid} \, / \, \mathcal{M}^{5/6}$', fontsize = 24)
+plt.yticks(fontsize=15)
+plt.xticks(fontsize=15)
+plt.title(r'$\chi_\mathrm{eff} = 0.75$', fontsize = 20)
 name = path + f'/{nboots}_boots_dmid_variouseta.pdf'
 plt.savefig(name, format='pdf', dpi=150, bbox_inches="tight")
 
@@ -751,10 +811,15 @@ for M, color, label in zip(M_values, colors, labels):
         else:
             plt.semilogy(chieff, dmid[i], color=color, alpha=0.2, rasterized=True)
    
-plt.legend(fontsize = 13)
-plt.xlabel(r'$\chi_\mathrm{eff}$', fontsize = 18)
-plt.ylabel(r'$d_\mathrm{mid}$', fontsize = 18)
-plt.title(r'$\eta$ =  0.175', fontsize = 18)
+leg = plt.legend(fontsize = 14)
+for lh in leg.legend_handles:
+    lh.set_alpha(1)
+plt.xlabel(r'$\chi_\mathrm{eff}$', fontsize = 24)
+plt.ylabel(r'$d_\mathrm{mid}$', fontsize = 24)
+plt.yticks(fontsize=15)
+plt.xticks(fontsize=15)
+plt.title(r'$\eta =  0.175$', fontsize = 20)
+
 name = path + f'/{nboots}_boots_dmid_vs_chieff_variousMz.pdf'
 plt.savefig(name, format='pdf', dpi=150, bbox_inches="tight")
 
@@ -805,5 +870,179 @@ name = path + 'eta_vs_dL'
 plt.savefig(name, format='pdf', dpi=150, bbox_inches="tight")
 
 
+#%%
+
+#emax plt for both chieff and not chieff comparison
+dmid_fun = 'Dmid_mchirp_fdmid_fspin'
+
+data = Found_injections(dmid_fun, emax_fun, alpha_vary)
+data.load_inj_set(run_dataset)
+data.get_opt_params(run_fit)
+data.set_shape_params()
+
+m1_det = data.m1 * (1 + data.z)
+m2_det = data.m2 * (1 + data.z)
+
+m1det = np.linspace(min(m1_det), max(m1_det), 200)
+m2det = np.linspace(min(m2_det), max(m2_det), 200)
+mtot = m1det + m2det
+emax = data.emax(m1det, m2det, data.emax_params)
+
+plt.figure(figsize=(7,4.8))
+plt.plot(mtot, emax, '-', label = r'fit including $\chi_\mathrm{eff}$ ')
+
+
+#no chieff
+dmid_fun = 'Dmid_mchirp_fdmid'
+
+data = Found_injections(dmid_fun, emax_fun, alpha_vary)
+data.load_inj_set(run_dataset)
+data.get_opt_params(run_fit)
+data.set_shape_params()
+
+emax_nochieff = data.emax(m1det, m2det, data.emax_params)
+plt.plot(mtot, emax_nochieff, linestyle = 'dashed', label = r'fit without $\chi_\mathrm{eff}$ ')
+
+
+plt.ylim(0, 1.2)
+plt.xlabel(r'$M_z [M_{\odot}]$', fontsize=24)
+plt.ylabel(r'$\varepsilon_\mathrm{max}$', fontsize=24)
+plt.yticks(fontsize=15)
+plt.xticks(fontsize=15)
+plt.legend(fontsize=18)
+name = path + '/emax_comparison.pdf'
+plt.savefig(name, format='pdf', dpi=300, bbox_inches="tight")
+
+#%%
+data.get_opt_params('o3')
+
+m1_det = data.m1 * (1 + data.z)
+m2_det = data.m2 * (1 + data.z)
+
+mtot_det = data.Mtot_det
+
+dmid_values = data.dmid(m1_det, m2_det, data.chi_eff, data.dmid_params)
+data.apply_dmid_mtotal_max(dmid_values, mtot_det)
+
+data.set_shape_params()
+
+pdet = data.sigmoid(data.dL,dmid_values, data.emax(m1_det, m2_det, data.emax_params), data.gamma, data.delta)
+
+import h5py
+file = h5py.File('endo3_bbhpop-LIGO-T2100113-v12.hdf5', 'r')
+snr = file["injections/optimal_snr_net"][:]
+
+plt.figure()
+plt.scatter(snr, pdet, s = 0.2, c = mtot_det)
+plt.loglog()
+plt.colorbar()
+
+#%%
+
+far_pful = data.far_pbbh[data.found_any]
+snr = data.snr[data.found_any]
+mtot = mtot_det[data.found_any]
+plt.figure()
+plt.scatter(snr, far_pful, s = 0.2, c = mtot)
+plt.loglog()
+plt.colorbar()
+plt.ylim(1e-5, 100)
+
+#%%
+
+snr = data.snr
+
+#cumulative distribution over snr
+indexo = np.argsort(snr)
+varo = snr[indexo]
+dLo = data.dL[indexo]
+m1o = data.m1[indexo]
+m2o = data.m2[indexo]
+zo = data.z[indexo]
+chieffo = data.chi_eff[indexo]
+m1o_det = m1o * (1 + zo) 
+m2o_det = m2o * (1 + zo)
+mtoto_det = m1o_det + m2o_det
+
+data.get_opt_params('o3')
+dmid_values = data.dmid(m1o_det, m2o_det, chieffo, data.dmid_params)
+data.apply_dmid_mtotal_max(dmid_values, mtot_det)
+data.set_shape_params()
+emax = data.emax(m1o_det, m2o_det, data.emax_params)
+
+cmd = np.cumsum(data.sigmoid(dLo, dmid_values, emax, data.gamma, data.delta))
+
+#found injections
+var_found = snr[data.found_any]
+indexo_found = np.argsort(var_found)
+var_foundo = var_found[indexo_found]
+real_found_inj = np.arange(len(var_foundo))+1
+
+plt.figure()
+plt.scatter(varo, cmd, s=1, label='model', rasterized=True)
+plt.scatter(var_foundo, real_found_inj, s=1, label='found injections', rasterized=True)
+plt.semilogx()
+plt.xlabel('optimal SNR net', fontsize = 20)
+plt.ylabel('Cumulative found injections', fontsize = 20)
+plt.legend(loc='best', fontsize = 20)
+name = path + '/SNR_cumulative.png'
+plt.savefig(name, format='png', bbox_inches="tight")
+name = path + '/SNR_cumulative.pdf'
+plt.savefig(name, format='pdf', dpi=150, bbox_inches="tight")
+
+#%%
+#KS test
+from scipy.stats import kstest
+
+m1_det = data.m1 * (1 + data.z) 
+m2_det = data.m2 * (1 + data.z)
+mtot_det = m1_det + m2_det
+
+dmid_values = data.dmid(m1_det, m2_det, data.chi_eff, data.dmid_params)
+data.apply_dmid_mtotal_max(dmid_values, mtot_det)
+data.set_shape_params()
+emax = data.emax(m1_det, m2_det, data.emax_params)
+
+       
+pdet = data.sigmoid(data.dL, dmid_values, emax, data.gamma, data.delta)
+
+def cdf(x):
+    values = [np.sum(pdet[snr<value])/np.sum(pdet) for value in x]
+    return np.array(values)
+    
+stat, pvalue = kstest(var_foundo, lambda x: cdf(x) )
+print('optimal SNR net KStest : statistic = %s , pvalue = %s' %(stat, pvalue))
+
+
+#%%
+from astropy.cosmology import FlatLambdaCDM
+dL = data.dL
+z = data.z
+pdL = data.dL_pdf
+
+A = np.sqrt(data.omega_m * (1 + z)**3 + 1 - data.omega_m)
+dL_dif = (data.c * (1 +z) / data.H0) * (1/A)
+
+dC = np.array(data.cosmo.comoving_distance(data.z))
+
+plt.figure()
+plt.plot(z, dL, '.', label='dL')
+plt.plot(z, dL_dif, '.', label = 'd(dL)')
+plt.plot(z, dL_dif + dL/(1+z), '.', label = 'd(dL) + dL/(1+z)')
+plt.plot(z, dC+dL_dif, '.', label='new d(dL)')
+plt.xlabel('z')
+plt.legend()
+plt.savefig('plots/dL_derivative.png', format='png', dpi=300, bbox_inches="tight")
+
+
+
+
+#%%
+
+os.chdir(original_working_directory)
+
+
+
+#%%
 
 os.chdir(original_working_directory)
