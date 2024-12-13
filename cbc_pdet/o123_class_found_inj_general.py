@@ -459,7 +459,7 @@ class Found_injections:
         return m1**alpha * m2**beta * m1_norm * m2_norm * np.heaviside(m1-m2, 1)
     
     def apply_dmid_mtotal_max(self, dmid_values, Mtot_det, max_mtot = None):
-        max_mtot = max_mtot if max_mtot != None else self.Mtot_max
+        max_mtot = max_mtot if max_mtot != None else Mtot_max
         #return np.putmask(dmid_values, Mtot_det > max_mtot, 0.001)
         # If dmid_values is a single float, handle it differently
         if isinstance(dmid_values, (int, float)):
