@@ -7,6 +7,7 @@ Created on Thu Sep 28 12:58:56 2023
 """
 
 import numpy as np
+import astropy.constants as const
 
 def Dmid_mchirp(m1_det, m2_det, cte):
     """
@@ -283,6 +284,7 @@ def Dmid_mchirp_fdmid_fspin(m1_det, m2_det, chi_eff, params):
     
     return  Mc**(5/6) * D0 * np.exp(f_dmid) * np.exp(f_as)
 
+
 def Dmid_mchirp_fdmid_fspin_c21(m1_det, m2_det, chi_eff, params):
     """
     Dmid values (distance where Pdet = 0.5) as a function of the masses 
@@ -313,3 +315,12 @@ def Dmid_mchirp_fdmid_fspin_c21(m1_det, m2_det, chi_eff, params):
     return  Mc**(5/6) * D0 * np.exp(f_dmid) * np.exp(f_as)
 
 
+def dL_derivative(z, dL, cosmo):
+    #denominator in comoving distance integral 
+    A = np.sqrt(cosmo.Om0 * (1 + z)**3 + 1 - cosmo.Om0)
+    #derivative of comoving distance
+    dC_dif = (const.c.value*1e-3 / cosmo.H0.value) / A
+    #second term is equal to comoving distance 
+    dL_dif = (1 + z) * dC_dif + dL / (1 + z)
+    
+    return dL_dif

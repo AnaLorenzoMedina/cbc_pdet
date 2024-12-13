@@ -35,8 +35,8 @@ run_fit = 'o3'
 run_dataset = 'o3'
 
 # function for dmid and emax we wanna use
-dmid_fun = 'Dmid_mchirp_fdmid'
-#dmid_fun = 'Dmid_mchirp_fdmid_fspin'
+#dmid_fun = 'Dmid_mchirp_fdmid'
+dmid_fun = 'Dmid_mchirp_fdmid_fspin'
 #dmid_fun = 'Dmid_mchirp_expansion_noa30'
 #dmid_fun = 'Dmid_mchirp_expansion_exp'
 #dmid_fun = 'Dmid_mchirp_expansion_a11'
@@ -73,6 +73,7 @@ data.joint_MLE(run_dataset, run_fit)
 
 data.load_inj_set(run_dataset)
 data.get_opt_params(run_fit)
+data.set_shape_params()
 
 #%%
 

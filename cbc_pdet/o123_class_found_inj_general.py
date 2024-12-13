@@ -17,7 +17,8 @@ import os
 import errno
 from scipy.optimize import fsolve
 from astropy.cosmology import FlatLambdaCDM
-import cbc_pdet.fitting_functions as functions #python module from cbc package which contains the dmid and emax functions
+#import cbc_pdet.fitting_functions as functions #python module from cbc package which contains the dmid and emax functions
+import fitting_functions as functions #module with dmid, emax and dL_derivative functions
 
 rc('text', usetex=True)
 rc('font', **{'family': 'serif', 'serif': ['Comput er Modern']})
@@ -252,11 +253,8 @@ class Found_injections:
     def load_inj_set(self, run_dataset):
         self.read_o3_set() if run_dataset == 'o3' else self.read_o1o2_set(run_dataset)
         
-        A = np.sqrt(self.omega_m * (1 + self.z)**3 + 1 - self.omega_m)
-        dL_dif = (self.c * (1 + self.z) / self.H0) * (1/A)
-        
         #Luminosity distance sampling pdf values, p(dL), computed for a flat Lambda-Cold Dark Matter cosmology from the z_pdf values
-        self.dL_pdf = self.z_pdf / dL_dif
+        self.dL_pdf = self.z_pdf / functions.dL_derivative(self.z, self.dL, self.cosmo)
         
         #total mass (m1+m2)
         self.Mtot = self.m1 + self.m2

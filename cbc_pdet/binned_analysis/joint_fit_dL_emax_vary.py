@@ -12,8 +12,9 @@ from scipy import interpolate
 import scipy.optimize as opt
 from scipy import integrate
 from matplotlib import rc
-from mpl_toolkits.axes_grid.inset_locator import (inset_axes, InsetPosition,mark_inset)
-from tqdm import tqdm
+#from mpl_toolkits.axes_grid.inset_locator import (inset_axes, InsetPosition,mark_inset)
+#from tqdm import tqdm
+import sys
 import os
 import errno
 
@@ -147,7 +148,7 @@ plt.close('all')
 rc('text', usetex=True)
 np.random.seed(42)
 
-f = h5py.File('endo3_bbhpop-LIGO-T2100113-v12.hdf5', 'r')
+f = h5py.File('../endo3_bbhpop-LIGO-T2100113-v12.hdf5', 'r')
 
 NTOT = f.attrs['total_generated']
 z_origin = f["injections/redshift"][:]
@@ -165,8 +166,19 @@ far_pfull = f["injections/far_pycbc_hyperbank"][:]
 mean_mass_pdf = np.loadtxt('mean_mpdf.dat')
 
 ###################################### for the dL_pdf interpolation 
-import cbc_pdet.fitting_functions as functions
+# Save the current working directory
+original_working_directory = os.getcwd()
+
+# Change the current working directory to the parent directory
+os.chdir(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+sys.path.append('../')
+
+import fitting_functions as functions
+
+os.chdir(original_working_directory)
+
 from astropy.cosmology import FlatLambdaCDM
+import astropy.constants as const
 
 H0 = 67.9 #km/sMpc
 omega_m = 0.3065
@@ -212,117 +224,117 @@ found_pfull = far_pfull <= thr
 found_any = found_pbbh | found_gstlal | found_mbta | found_pfull
 
 
-# ## descoment for a new optimization
+## descoment for a new optimization
 
-# zmid_inter = np.loadtxt('maximization_results/zmid_2.dat')
-# #zmid_old is the zmid value from the old fit to the FC data
-# # -> This was a zmid value for one specific mass bin? 
-# zmid_old = 0.327
+zmid_inter = np.loadtxt('maximization_results/zmid_2.dat')
+#zmid_old is the zmid value from the old fit to the FC data
+# -> This was a zmid value for one specific mass bin? 
+zmid_old = 0.327
 
-# H0 = 67.9 #km/sMpc
-# omega_m = 0.3065
-# c = 3e5 #km/s
+H0 = 67.9 #km/sMpc
+omega_m = 0.3065
+c = const.c.value*1e-3 #km/s
 
-# #A_inter = np.sqrt(omega_m*(1+zmid_inter)**3+1-omega_m)
+#A_inter = np.sqrt(omega_m*(1+zmid_inter)**3+1-omega_m)
 
-# def fun_A(t):
-#     return np.sqrt(omega_m*(1+t)**3+1-omega_m)
+def fun_A(t):
+    return np.sqrt(omega_m*(1+t)**3+1-omega_m)
 
-# quad_fun_A = lambda t: 1/fun_A(t)
+quad_fun_A = lambda t: 1/fun_A(t)
 
-# dLmid_inter = np.array([[(c*(1+zmid_inter[i,j])/H0)*integrate.quad(quad_fun_A, 0, zmid_inter[i,j])[0] for j in range(nbin2)] for i in range(nbin1)])
+dLmid_inter = np.array([[(c*(1+zmid_inter[i,j])/H0)*integrate.quad(quad_fun_A, 0, zmid_inter[i,j])[0] for j in range(nbin2)] for i in range(nbin1)])
 
-# emax_inter = np.zeros([nbin1,nbin2])
+emax_inter = np.zeros([nbin1,nbin2])
 
-# for i in range(nbin1):
-#     for j in range(nbin2):
-#         if dLmid_inter[i,j]!=0 : 
-#             emax_inter[i,j] = 0.967
+for i in range(nbin1):
+    for j in range(nbin2):
+        if dLmid_inter[i,j]!=0 : 
+            emax_inter[i,j] = 0.967
             
-# # I'm not seeing why the reason to use this one value of zmid to scale some initial
-# # values of gamma / delta ... it should be better to pick one mass bin where the
-# # previous fit with gamma, delta works well and then scale the fitted gamma / delta
-# # values with that bin's zmid.  However if this works anyway maybe it doesn't matter
+# I'm not seeing why the reason to use this one value of zmid to scale some initial
+# values of gamma / delta ... it should be better to pick one mass bin where the
+# previous fit with gamma, delta works well and then scale the fitted gamma / delta
+# values with that bin's zmid.  However if this works anyway maybe it doesn't matter
 
-# dLmid_old = (c*(1+zmid_old)/H0)*integrate.quad(quad_fun_A, 0, zmid_old)[0]
-# delta_new = 0.1146989
-# gamma_new = -0.18395
+dLmid_old = (c*(1+zmid_old)/H0)*integrate.quad(quad_fun_A, 0, zmid_old)[0]
+delta_new = 0.1146989
+gamma_new = -0.18395
 
-# total_lnL = np.zeros([1])
-# dif_lnL = np.zeros([1])
-# all_delta = np.array([delta_new])
-# all_gamma = np.array([gamma_new])
+total_lnL = np.zeros([1])
+dif_lnL = np.zeros([1])
+all_delta = np.array([delta_new])
+all_gamma = np.array([gamma_new])
 
-# for k in range(0,10000):
-#     print('\n\n')
-#     print(k)
+for k in range(0,10000):
+    print('\n\n')
+    print(k)
     
-#     gamma_new, delta_new, maxL_global = MLE_2_global(nbin1, nbin2, dLmid_inter, emax_inter, gamma_new, delta_new)
+    gamma_new, delta_new, maxL_global = MLE_2_global(nbin1, nbin2, dLmid_inter, emax_inter, gamma_new, delta_new)
     
-#     all_delta = np.append(all_delta, delta_new) 
-#     all_gamma = np.append(all_gamma, gamma_new)
+    all_delta = np.append(all_delta, delta_new) 
+    all_gamma = np.append(all_gamma, gamma_new)
 
-#     maxL_inter = np.zeros([nbin1, nbin2])
+    maxL_inter = np.zeros([nbin1, nbin2])
 
-#     for i in range(0, nbin1):
-#         for j in range(0, nbin2):
+    for i in range(0, nbin1):
+        for j in range(0, nbin2):
             
-#             if j > i:
-#                 continue
+            if j > i:
+                continue
                 
-#             print('\n\n')
-#             print(i, j)
+            print('\n\n')
+            print(i, j)
             
-#             m1inbin = (m1 >= m1_bin[i]) & (m1 < m1_bin[i+1])
-#             m2inbin = (m2 >= m2_bin[j]) & (m2 < m2_bin[j+1])
-#             mbin = m1inbin & m2inbin & found_any
+            m1inbin = (m1 >= m1_bin[i]) & (m1 < m1_bin[i+1])
+            m2inbin = (m2 >= m2_bin[j]) & (m2 < m2_bin[j+1])
+            mbin = m1inbin & m2inbin & found_any
             
-#             data = dL_origin[mbin]
-#             data_pdf = dL_pdf_origin[mbin]
+            data = dL_origin[mbin]
+            data_pdf = dL_pdf_origin[mbin]
             
-#             if len(data) < 1:
-#                 continue
+            if len(data) < 1:
+                continue
             
-#             index3 = np.argsort(data)
-#             dL = data[index3]
-#             pdL = data_pdf[index3]
+            index3 = np.argsort(data)
+            dL = data[index3]
+            pdL = data_pdf[index3]
             
-#             if dLmid_inter[i,j] < 0.1 * min(dL):
-#                 dLmid_inter[i,j] = min(dL)
+            if dLmid_inter[i,j] < 0.1 * min(dL):
+                dLmid_inter[i,j] = min(dL)
                 
-#             Total_expected = NTOT * mean_mass_pdf[i,j]
-#             dLmid_new, emax_new, maxL = MLE_2(dL, pdL, dLmid_inter[i,j], emax_inter[i,j], Total_expected, gamma_new, delta_new)
+            Total_expected = NTOT * mean_mass_pdf[i,j]
+            dLmid_new, emax_new, maxL = MLE_2(dL, pdL, dLmid_inter[i,j], emax_inter[i,j], Total_expected, gamma_new, delta_new)
             
-#             if maxL == -np.inf:
-#                 #just in case, but in principle this does not happen
-#                 print("epsilon gives a zero value in ", i, j, " bin")
-#                 maxL = 0
+            if maxL == -np.inf:
+                #just in case, but in principle this does not happen
+                print("epsilon gives a zero value in ", i, j, " bin")
+                maxL = 0
             
-#             dLmid_inter[i, j] = dLmid_new
-#             emax_inter[i, j] = emax_new
-#             maxL_inter[i, j] = maxL
+            dLmid_inter[i, j] = dLmid_new
+            emax_inter[i, j] = emax_new
+            maxL_inter[i, j] = maxL
     
-#     name = f"dL_joint_fit_results_emax_vary/dLmid/dLmid_{k}.dat"
-#     np.savetxt(name, dLmid_inter, fmt='%10.3f')
+    name = f"dL_joint_fit_results_emax_vary/dLmid/dLmid_{k}.dat"
+    np.savetxt(name, dLmid_inter, fmt='%10.3f')
     
-#     name = f"dL_joint_fit_results_emax_vary/emax/emax_{k}.dat"
-#     np.savetxt(name, emax_inter, fmt='%10.3f')
+    name = f"dL_joint_fit_results_emax_vary/emax/emax_{k}.dat"
+    np.savetxt(name, emax_inter, fmt='%10.3f')
     
-#     name = f"dL_joint_fit_results_emax_vary/maxL/maxL_{k}.dat"
-#     np.savetxt(name, maxL_inter, fmt='%10.3f')
+    name = f"dL_joint_fit_results_emax_vary/maxL/maxL_{k}.dat"
+    np.savetxt(name, maxL_inter, fmt='%10.3f')
     
-#     total_lnL = np.append(total_lnL, maxL_inter.sum())
-#     dif_lnL = np.append(dif_lnL, total_lnL[k + 1] - total_lnL[k])
-#     print(maxL_inter.sum())
-#     print(dif_lnL)
+    total_lnL = np.append(total_lnL, maxL_inter.sum())
+    dif_lnL = np.append(dif_lnL, total_lnL[k + 1] - total_lnL[k])
+    print(maxL_inter.sum())
+    print(dif_lnL)
     
-#     if np.abs( total_lnL[k + 1] - total_lnL[k] ) <= 1e-2:
-#         break
-# print(k)
+    if np.abs( total_lnL[k + 1] - total_lnL[k] ) <= 1e-2:
+        break
+print(k)
 
-# np.savetxt('dL_joint_fit_results_emax_vary/all_delta.dat', np.delete(all_delta, 0), fmt='%10.5f')
-# np.savetxt('dL_joint_fit_results_emax_vary/all_gamma.dat', np.delete(all_gamma, 0), fmt='%10.5f')
-# np.savetxt('dL_joint_fit_results_emax_vary/total_lnL.dat', np.delete(total_lnL, 0), fmt='%10.3f')
+np.savetxt('dL_joint_fit_results_emax_vary/all_delta.dat', np.delete(all_delta, 0), fmt='%10.5f')
+np.savetxt('dL_joint_fit_results_emax_vary/all_gamma.dat', np.delete(all_gamma, 0), fmt='%10.5f')
+np.savetxt('dL_joint_fit_results_emax_vary/total_lnL.dat', np.delete(total_lnL, 0), fmt='%10.3f')
 
 #%%
 #compare_1 plots

@@ -32,8 +32,8 @@ run_fit = 'o3'
 run_dataset = 'o3'
 
 
-dmid_fun = 'Dmid_mchirp_fdmid'
-#dmid_fun = 'Dmid_mchirp_fdmid_fspin'
+#dmid_fun = 'Dmid_mchirp_fdmid'
+dmid_fun = 'Dmid_mchirp_fdmid_fspin'
 emax_fun = 'emax_exp'
 alpha_vary = None
 
@@ -64,8 +64,8 @@ mu = np.array ([[(mid_1[i] * mid_2[j]) / (mid_1[i] + mid_2[j]) for j in range(le
 #%% 
 #DMID PLOTS
 
-k = 42
-dmid = np.loadtxt(f'dL_joint_fit_results_emax/dLmid/dLmid_{k}.dat')
+k = 145
+dmid = np.loadtxt(f'binned_analysis/dL_joint_fit_results_emax_vary/dLmid/dLmid_{k}.dat')
 toplot = np.nonzero(dmid)
 
 
@@ -86,9 +86,9 @@ plt.colorbar(label=r'$\eta$')
 plt.xlabel(r'$M_z$')
 plt.ylabel(r'$d_\mathrm{mid} \, / \, \mathcal{M}^{5/6}$')
 plt.grid(True, which='both')
-name="dL_joint_fit_results_emax/Mtot.png"
+name="binned_analysis/dL_joint_fit_results_emax_vary/Mtot.png"
 plt.savefig(name, format='png', dpi=300)
-name="dL_joint_fit_results_emax/Mtot.pdf"
+name="binned_analysis/dL_joint_fit_results_emax_vary/Mtot.pdf"
 plt.savefig(name, format='pdf', dpi=300, bbox_inches="tight")
 
 
@@ -101,9 +101,9 @@ plt.loglog(q_plot, dmid_plot/(Mc_plot)**(5/6), '.')
 plt.xlabel(r'$q = m2_ / m_1$')
 plt.ylabel(r'$d_\mathrm{mid} \, / \, M_\mathrm{c} ^{5/6}$')
 plt.grid(True, which='both')
-name="dL_joint_fit_results_emax/q.png"
+name="binned_analysis/dL_joint_fit_results_emax_vary/q.png"
 plt.savefig(name, format='png', dpi=300)
-name="dL_joint_fit_results_emax/q.pdf"
+name="binned_analysis/dL_joint_fit_results_emax_vary/q.pdf"
 plt.savefig(name, format='pdf', dpi=300, bbox_inches="tight")
 
 plt.figure()
@@ -112,9 +112,9 @@ plt.colorbar(label=r'$M_z$')
 plt.xlabel(r'$\eta$')
 plt.ylabel(r'$d_\mathrm{mid} \, / \, M_\mathrm{c} ^{5/6}$')
 plt.grid(True, which='both')
-name="dL_joint_fit_results_emax/eta.png"
+name="binned_analysis/dL_joint_fit_results_emax_vary/eta.png"
 plt.savefig(name, format='png', dpi=300)
-name="dL_joint_fit_results_emax/eta.pdf"
+name="binned_analysis/dL_joint_fit_results_emax_vary/eta.pdf"
 plt.savefig(name, format='pdf', dpi=300, bbox_inches="tight")
 
 #%%
@@ -124,9 +124,9 @@ ax.set_xlabel(r'$M_z$', fontsize = 15)
 ax.set_ylabel(r'$\eta$', fontsize = 15)
 ax.set_zlabel(r'$d_\mathrm{mid} \, / \, \mathcal{M}^{5/6}$', fontsize = 15)
 fig.subplots_adjust(right=1.6, top=0.9, bottom=0.1, left=-0.6)
-name="dL_joint_fit_results_emax/3D_plot.png"
+name="binned_analysis/dL_joint_fit_results_emax_vary/3D_plot.png"
 plt.savefig(name, format='png', dpi=300)
-name="dL_joint_fit_results_emax/3D_plot.pdf"
+name="binned_analysis/dL_joint_fit_results_emax_vary/3D_plot.pdf"
 plt.savefig(name, format='pdf', dpi=300)
 #%%
 fig = plt.figure()
@@ -135,13 +135,13 @@ ax.plot_trisurf(Mtot_plot, eta_plot, dmid_plot/(Mc_plot)**(5/6), cmap='viridis')
 ax.set_xlabel('Mtotal ')
 ax.set_ylabel(r'$\eta$')
 ax.set_zlabel(r'$d_\mathrm{mid} \, / \, M_\mathrm{c} ^{5/6}$')
-name="dL_joint_fit_results_emax/3D_surface_plot.png"
+name="binned_analysis/dL_joint_fit_results_emax_vary/3D_surface_plot.png"
 plt.savefig(name, format='png', dpi=300)
 
 #%%
 #EMAX PLOTS 
 
-k = 10
+k = 145
 emax = np.loadtxt(f'binned_analysis/dL_joint_fit_results_emax_vary/emax/emax_{k}.dat')
 morethan10 = np.zeros([nbin1,nbin2])
 
@@ -619,6 +619,8 @@ dmid_values = np.array([data.dmid(m1_det, m2_det, data.chi_eff, dmid_params[i]) 
 [data.apply_dmid_mtotal_max(dmid_values[i], mtot_det) for i in range(len(dmid_params[:,0]))]
 
 data.set_shape_params()
+
+#%%
 
 m1det = np.linspace(min(m1_det), max(m1_det), 200)
 m2det = np.linspace(min(m2_det), max(m2_det), 200)
