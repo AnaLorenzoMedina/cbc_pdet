@@ -18,6 +18,8 @@ from scipy.optimize import fsolve
 from astropy.cosmology import FlatLambdaCDM
 import cbc_pdet.fitting_functions as functions #python module which contains the dmid and emax functions
 
+Mtot_max = 510.25378
+
 class Found_injections:
     """
     Class for an algorithm of GW detected found injections from signal templates 
@@ -246,11 +248,8 @@ class Found_injections:
     def load_inj_set(self, run_dataset):
         self.read_o3_set() if run_dataset == 'o3' else self.read_o1o2_set(run_dataset)
         
-        A = np.sqrt(self.omega_m * (1 + self.z)**3 + 1 - self.omega_m)
-        dL_dif = (self.c * (1 + self.z) / self.H0) * (1/A)
-        
         #Luminosity distance sampling pdf values, p(dL), computed for a flat Lambda-Cold Dark Matter cosmology from the z_pdf values
-        self.dL_pdf = self.z_pdf / dL_dif
+        self.dL_pdf = self.z_pdf / functions.dL_derivative(self.z, self.dL, self.cosmo)
         
         #total mass (m1+m2)
         self.Mtot = self.m1 + self.m2
@@ -455,7 +454,7 @@ class Found_injections:
         return m1**alpha * m2**beta * m1_norm * m2_norm * np.heaviside(m1-m2, 1)
     
     def apply_dmid_mtotal_max(self, dmid_values, Mtot_det, max_mtot = None):
-        max_mtot = max_mtot if max_mtot != None else self.Mtot_max
+        max_mtot = max_mtot if max_mtot != None else Mtot_max
         #return np.putmask(dmid_values, Mtot_det > max_mtot, 0.001)
         # If dmid_values is a single float, handle it differently
         if isinstance(dmid_values, (int, float)):
