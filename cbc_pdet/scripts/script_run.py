@@ -33,6 +33,7 @@ plt.close('all')
 
 run_fit = 'o3'
 run_dataset = 'o3'
+source = 'bbh'
 
 # function for dmid and emax we wanna use
 #dmid_fun = 'Dmid_mchirp_fdmid'
@@ -58,11 +59,11 @@ rc('text', usetex=True)
 #ini_files = [[82.018, -7.915e-06, -0.529, -1.673e-06, 0.0008857, -0.00157, 0.167, 0.001997, 1e-6], [-0.96959, 0.3238, -5.8534, 0.02368, -2.79575e-05]]
 #ini_files = [[82.018934, -7.91546e-06, -0.529322, -1.673239e-06, 0.000885705916, -0.001573180, 0,0], [-0.9695, 0.32388, -5.8534, 0.02368, -2.7957e-05]]
 data = Found_injections(dmid_fun, emax_fun, alpha_vary)
-path = f'{run_dataset}/' + data.path
+path = f'{source}/{run_dataset}/' + data.path
 
-data.make_folders(run_fit)
+data.make_folders(run_fit, source)
 
-data.load_inj_set(run_dataset)
+data.load_inj_set(run_dataset, source)
 #data.get_opt_params(run_fit)
 #81.7746046336622 -8.091776490302833e-06 -0.4444955581608646 9.016393698238174e-06 0.0009175736469746053 -0.003975600149591415 0.16487147248641948 0.0020706799396616876 -2.994036429373754e-07 -340801.1469014259
 #-0.9695926056697535 0.3238884595756078 -5.8534140256510625 0.023685941008609972 -2.7957506633390077e-05 -340802.9348490275ye

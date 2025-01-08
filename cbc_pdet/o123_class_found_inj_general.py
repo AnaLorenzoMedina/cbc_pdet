@@ -120,24 +120,30 @@ class Found_injections:
         self.cosmo = FlatLambdaCDM(self.H0, self.omega_m)
         
         
-    def make_folders(self, run):
+    def make_folders(self, run, source):
         
         try:
-            os.mkdir(f'{run}')
+            os.mkdir(f'{source}')
+        except OSError as e:
+            if e.errno != errno.EEXIST:
+                raise
+        
+        try:
+            os.mkdir(f'{source}/{run}')
         except OSError as e:
             if e.errno != errno.EEXIST:
                 raise
                 
         if self.alpha_vary is not None:
             
-            path = f'{run}/alpha_vary'
+            path = f'{source}/{run}/alpha_vary'
             try:
-                os.mkdir(f'{run}/alpha_vary')
+                os.mkdir(f'{source}/{run}/alpha_vary')
             except OSError as e:
                 if e.errno != errno.EEXIST:
                     raise
         else:
-            path = f'{run}'
+            path = f'{source}/{run}'
                 
         try:
             os.mkdir(path + f'/{self.dmid_fun}')
@@ -200,9 +206,12 @@ class Found_injections:
         
         return
        
-    def read_o3_set(self):
+    def read_o3_set(self, source):
         
-        file = h5py.File(f'{os.path.dirname(__file__)}/endo3_bbhpop-LIGO-T2100113-v12.hdf5', 'r')
+        assert source =='bbh' or source == 'bns' or source == 'nsbh' or source == 'imbh',\
+        "Argument (source) must be 'bbh' or 'bns' or 'nsbh' or 'imbh'. "
+        
+        file = h5py.File(f'{os.path.dirname(__file__)}/endo3_{source}pop-LIGO-T2100113-v12.hdf5', 'r')
         
         #Total number of generated injections
         self.Ntotal = file.attrs['total_generated'] 
@@ -246,12 +255,12 @@ class Found_injections:
 
         #indexes of the found injections
         self.found_any = found_pbbh | found_gstlal | found_mbta | found_pfull
-        print('Found inj in o3 set: ', self.found_any.sum())  
+        #print('Found inj in o3 set: ', self.found_any.sum())  
         
         return
         
-    def load_inj_set(self, run_dataset):
-        self.read_o3_set() if run_dataset == 'o3' else self.read_o1o2_set(run_dataset)
+    def load_inj_set(self, run_dataset, source):
+        self.read_o3_set(source) if run_dataset == 'o3' else self.read_o1o2_set(run_dataset)
         
         #Luminosity distance sampling pdf values, p(dL), computed for a flat Lambda-Cold Dark Matter cosmology from the z_pdf values
         self.dL_pdf = self.z_pdf / functions.dL_derivative(self.z, self.dL, self.cosmo)
@@ -315,7 +324,7 @@ class Found_injections:
         
         return
     
-    def get_opt_params(self, run_fit, rescale_o3 = True):
+    def get_opt_params(self, run_fit, source, rescale_o3 = True):
         '''
         Sets self.dmid_params and self.shape_params as a class attribute (optimal values from some previous fit).
 
@@ -332,6 +341,9 @@ class Found_injections:
         assert run_fit =='o1' or run_fit == 'o2' or run_fit == 'o3',\
         "Argument (run_fit) must be 'o1' or 'o2' or 'o3'. "
         
+        assert source =='bbh' or source == 'bns' or source == 'nsbh' or source == 'imbh',\
+        "Argument (source) must be 'bbh' or 'bns' or 'nsbh' or 'imbh'. "
+        
         if not rescale_o3: #get separate independent fit files
              run_fit_touse = run_fit
             
@@ -340,7 +352,7 @@ class Found_injections:
             
         try:
             
-            path = f'{os.path.dirname(__file__)}/{run_fit_touse}/' + self.path
+            path = f'{os.path.dirname(__file__)}/{source}/{run_fit_touse}/' + self.path
             self.dmid_params = np.loadtxt( path + '/joint_fit_dmid.dat')[-1, :-1]
             self.shape_params = np.loadtxt( path + '/joint_fit_shape.dat')[-1, :-1]
         
@@ -353,7 +365,7 @@ class Found_injections:
             
         return
     
-    def get_ini_values(self):
+    def get_ini_values(self, source = 'bbh'):
         '''
         Gets the dmid and shape initial params for a new optimization
 
@@ -363,11 +375,14 @@ class Found_injections:
         shape_ini_values : 1D array. Initial values for the shape optiization
         
         '''
+        assert source =='bbh' or source == 'bns' or source == 'nsbh' or source == 'imbh',\
+        "Argument (source) must be 'bbh' or 'bns' or 'nsbh' or 'imbh'. "
+        
         if self.alpha_vary is None:
-            path = f'{os.path.dirname(__file__)}/ini_values/{self.dmid_fun}' if self.emax_fun is None else f'{os.path.dirname(__file__)}/ini_values/{self.dmid_fun}_{self.emax_fun}'
+            path = f'{os.path.dirname(__file__)}/ini_values/{source}/{self.dmid_fun}' if self.emax_fun is None else f'{os.path.dirname(__file__)}/ini_values/{source}/{self.dmid_fun}_{self.emax_fun}'
             
         else: 
-            path = f'{os.path.dirname(__file__)}/ini_values/alpha_vary_{self.dmid_fun}' if self.emax_fun is None else f'{os.path.dirname(__file__)}/ini_values/alpha_vary_{self.dmid_fun}_{self.emax_fun}'
+            path = f'{os.path.dirname(__file__)}/ini_values/{source}/alpha_vary_{self.dmid_fun}' if self.emax_fun is None else f'{os.path.dirname(__file__)}/ini_values/{source}/alpha_vary_{self.dmid_fun}_{self.emax_fun}'
             
         
         try:
@@ -621,6 +636,7 @@ class Found_injections:
         float 
 
         """
+        #self.load_inj_set('o3', 'bbh')
         lnL = -self.Nexp(dmid_params, shape_params) + np.sum(np.log(self.lamda(dmid_params, shape_params)))
         return lnL
     
@@ -638,6 +654,7 @@ class Found_injections:
         float 
 
         """
+        #self.load_inj_set('o3', 'bbh')
         shape_params[1] = np.exp(shape_params[1])
          
         lnL = -self.Nexp(dmid_params, shape_params) + np.sum(np.log(self.lamda(dmid_params, shape_params)))
@@ -746,7 +763,7 @@ class Found_injections:
 
         '''
         
-        self.make_folders(run_dataset)
+        self.make_folders(run_dataset, 'bbh')
         
         total_lnL = np.zeros([1])
         all_gamma = []
