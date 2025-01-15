@@ -1037,6 +1037,48 @@ plt.legend()
 plt.savefig('plots/dL_derivative.png', format='png', dpi=300, bbox_inches="tight")
 
 
+#%%
+
+run_dataset = 'o3'   
+data.load_inj_set(run_dataset)
+data.set_shape_params()
+
+m1_det = data.m1 * (1 + data.z)
+m2_det = data.m1 * (1 + data.z)
+mtot_det = m1_det + m2_det 
+
+#take into account that the default is chieff = 0 , if some other value is wanted, specify it
+pdet = data.run_pdet(data.dL, m1_det, m2_det, 'o3')
+
+plt.figure()
+im = plt.scatter(data.m1, data.dL, c = pdet, rasterized = True)
+plt.loglog()
+plt.xlabel('m1 source')
+plt.ylabel('dL')
+cbar = plt.colorbar(im)
+cbar.set_label('Pdet')
+name = path + '/dL_m1_pdet.pdf'
+plt.savefig(name, format='pdf', dpi=150, bbox_inches="tight")
+
+#%%
+m1 = np.linspace(np.min(data.m1), 150, 1000)
+dL = np.linspace(100, 9e3, 1000)
+xgrid, ygrid = np.meshgrid(m1, dL)
+z = data.interp_z(ygrid)
+#take into account that the default is chieff = 0 , if some other value is wanted, specify it
+pdet = data.run_pdet(ygrid, xgrid*(1+z), xgrid*(1+z), 'o3')
+
+plt.figure()
+im = plt.contourf(xgrid, ygrid, pdet, [0, 0.1, 0.2, 0.4, 0.5, 0.7, 0.8, 0.9, 1], cmap = 'viridis', rasterized = True)
+plt.contour(xgrid, ygrid, pdet, [0, 0.1, 0.2, 0.4, 0.5, 0.7, 0.8, 0.9, 1], colors = 'white', linestyles = 'dashed', linewidths = 0.8)
+plt.loglog()
+plt.xlabel('m1 source')
+plt.ylabel('dL')
+cbar = plt.colorbar(im)
+cbar.set_label('Pdet')
+name = path + '/dL_m1_pdet_contour.pdf'
+plt.savefig(name, format='pdf', dpi=150, bbox_inches="tight")
+
 
 
 #%%
@@ -1044,7 +1086,3 @@ plt.savefig('plots/dL_derivative.png', format='png', dpi=300, bbox_inches="tight
 os.chdir(original_working_directory)
 
 
-
-#%%
-
-os.chdir(original_working_directory)

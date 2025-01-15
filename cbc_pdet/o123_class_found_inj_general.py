@@ -259,7 +259,6 @@ class Found_injections:
         #total mass (m1+m2)
         self.Mtot = self.m1 + self.m2
         self.Mtot_det = self.m1 * (1+self.z) + self.m2 * (1+self.z)
-        self.Mtot_max = Mtot_max
         
         #mass chirp
         self.Mc = (self.m1 * self.m2)**(3/5) / (self.Mtot)**(1/5) 
