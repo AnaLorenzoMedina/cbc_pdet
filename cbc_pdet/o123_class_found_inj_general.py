@@ -119,31 +119,38 @@ class Found_injections:
         
         self.cosmo = FlatLambdaCDM(self.H0, self.omega_m)
         
+        self.sets = {}
         
-    def make_folders(self, run, source):
+        
+    def make_folders(self, run, sources):
+        
+        if isinstance(sources, str):
+            each_source = [source.strip() for source in sources.split(',')] 
+            
+        sources_folder = "_".join(sorted(each_source)) 
         
         try:
-            os.mkdir(f'{source}')
+            os.mkdir(f'{run}')
         except OSError as e:
             if e.errno != errno.EEXIST:
                 raise
         
         try:
-            os.mkdir(f'{source}/{run}')
+            os.mkdir(f'{run}/{sources_folder}')
         except OSError as e:
             if e.errno != errno.EEXIST:
                 raise
                 
         if self.alpha_vary is not None:
             
-            path = f'{source}/{run}/alpha_vary'
+            path = f'{run}/{sources_folder}/alpha_vary'
             try:
-                os.mkdir(f'{source}/{run}/alpha_vary')
+                os.mkdir(f'{run}/{sources_folder}/alpha_vary')
             except OSError as e:
                 if e.errno != errno.EEXIST:
                     raise
         else:
-            path = f'{source}/{run}'
+            path = f'{run}/{sources_folder}'
                 
         try:
             os.mkdir(path + f'/{self.dmid_fun}')
@@ -213,7 +220,7 @@ class Found_injections:
         
         file = h5py.File(f'{os.path.dirname(__file__)}/endo3_{source}pop-LIGO-T2100113-v12.hdf5', 'r')
         
-        self.sets = {}
+        self.sets[f'{source}'] = {}
         
         #Total number of generated injections
         self.sets[f'{source}']['Ntotal'] = file.attrs['total_generated'] 
@@ -250,14 +257,14 @@ class Found_injections:
         self.sets[f'{source}']['far_pfull'] = file["injections/far_pycbc_hyperbank"][:]
         self.sets[f'{source}']['snr'] = file['injections/optimal_snr_net'][:]
         
-        found_pbbh = sets[f'{source}']['self.far_pbbh'] <= self.thr_far
+        found_pbbh = self.sets[f'{source}']['far_pbbh'] <= self.thr_far
         found_gstlal = self.sets[f'{source}']['far_gstlal'] <= self.thr_far
         found_mbta = self.sets[f'{source}']['far_mbta'] <= self.thr_far
         found_pfull = self.sets[f'{source}']['far_pfull'] <= self.thr_far
 
         #indexes of the found injections
         self.sets[f'{source}']['found_any'] = found_pbbh | found_gstlal | found_mbta | found_pfull
-        #print('Found inj in o3 set: ', self.found_any.sum())  
+        print(f'Found inj in o3 set and {source} sources: ', self.sets[f'{source}']['found_any'] .sum())  
         
         return
         
@@ -268,10 +275,10 @@ class Found_injections:
         
         self.read_o3_set(source) if run_dataset == 'o3' else self.read_o1o2_set(run_dataset)
         
-        source_data = self.sets[f'{source}']
+        source_data = self.sets[f'{source}'].copy()
         
         #Luminosity distance sampling pdf values, p(dL), computed for a flat Lambda-Cold Dark Matter cosmology from the z_pdf values
-        self.sets[f'{source}']['dL_pdf'] = source_data['z_pdf ']/ functions.dL_derivative(source_data['z'], source_data['dL'], self.cosmo)
+        self.sets[f'{source}']['dL_pdf'] = source_data['z_pdf']/ functions.dL_derivative(source_data['z'], source_data['dL'], self.cosmo)
         
         #total mass (m1+m2)
         Mtot_source = source_data['m1'] + source_data['m2']
@@ -315,7 +322,7 @@ class Found_injections:
             index = np.insert(index, -1, max_index)
             
         try_dL = source_data['dL'][index]
-        try_dLpdf = source_data['dL_pdf'][index]
+        try_dLpdf = self.sets[f'{source}']['dL_pdf'][index]
     
         #we add 0 value
         inter_dL = np.insert(try_dL, 0, 0, axis=0)
@@ -361,7 +368,7 @@ class Found_injections:
         
         return
     
-    def get_opt_params(self, run_fit, source, rescale_o3 = True):
+    def get_opt_params(self, run_fit, sources, rescale_o3 = True):
         '''
         Sets self.dmid_params and self.shape_params as a class attribute (optimal values from some previous fit).
 
@@ -378,8 +385,10 @@ class Found_injections:
         assert run_fit =='o1' or run_fit == 'o2' or run_fit == 'o3',\
         "Argument (run_fit) must be 'o1' or 'o2' or 'o3'. "
         
-        assert source =='bbh' or source == 'bns' or source == 'nsbh' or source == 'imbh',\
-        "Argument (source) must be 'bbh' or 'bns' or 'nsbh' or 'imbh'. "
+        if isinstance(sources, str):
+            each_source = [source.strip() for source in sources.split(',')] 
+            
+        sources_folder = "_".join(sorted(each_source)) 
         
         if not rescale_o3: #get separate independent fit files
              run_fit_touse = run_fit
@@ -389,7 +398,7 @@ class Found_injections:
             
         try:
             
-            path = f'{os.path.dirname(__file__)}/{source}/{run_fit_touse}/' + self.path
+            path = f'{os.path.dirname(__file__)}/{run_fit_touse}/{sources_folder}/' + self.path
             self.dmid_params = np.loadtxt( path + '/joint_fit_dmid.dat')[-1, :-1]
             self.shape_params = np.loadtxt( path + '/joint_fit_shape.dat')[-1, :-1]
         
@@ -402,7 +411,7 @@ class Found_injections:
             
         return
     
-    def get_ini_values(self, source = 'bbh'):
+    def get_ini_values(self, sources = 'bbh'):
         '''
         Gets the dmid and shape initial params for a new optimization
 
@@ -412,14 +421,16 @@ class Found_injections:
         shape_ini_values : 1D array. Initial values for the shape optiization
         
         '''
-        assert source =='bbh' or source == 'bns' or source == 'nsbh' or source == 'imbh',\
-        "Argument (source) must be 'bbh' or 'bns' or 'nsbh' or 'imbh'. "
+        if isinstance(sources, str):
+            each_source = [source.strip() for source in sources.split(',')] 
+            
+        sources_folder = "_".join(sorted(each_source)) 
         
         if self.alpha_vary is None:
-            path = f'{os.path.dirname(__file__)}/ini_values/{source}/{self.dmid_fun}' if self.emax_fun is None else f'{os.path.dirname(__file__)}/ini_values/{source}/{self.dmid_fun}_{self.emax_fun}'
+            path = f'{os.path.dirname(__file__)}/ini_values/{sources_folder}/{self.dmid_fun}' if self.emax_fun is None else f'{os.path.dirname(__file__)}/ini_values/{sources_folder}/{self.dmid_fun}_{self.emax_fun}'
             
         else: 
-            path = f'{os.path.dirname(__file__)}/ini_values/{source}/alpha_vary_{self.dmid_fun}' if self.emax_fun is None else f'{os.path.dirname(__file__)}/ini_values/{source}/alpha_vary_{self.dmid_fun}_{self.emax_fun}'
+            path = f'{os.path.dirname(__file__)}/ini_values/{sources_folder}/alpha_vary_{self.dmid_fun}' if self.emax_fun is None else f'{os.path.dirname(__file__)}/ini_values/{sources_folder}/alpha_vary_{self.dmid_fun}_{self.emax_fun}'
             
         
         try:
@@ -540,13 +551,13 @@ class Found_injections:
         float
 
         """
-        source_data = self.sets[f'{source}']
+        source_data = self.sets[f'{source}'].copy()
         
         m1_det = source_data['m1'] * (1 + source_data['z']) 
         m2_det = source_data['m2'] * (1 + source_data['z'])
         mtot_det = m1_det + m2_det
         dL = source_data['dL']
-        chi_eff = source_data['chieff']
+        chi_eff = source_data['chi_eff']
         
         if self.dmid_fun in self.spin_functions:
             dmid_values = self.dmid(m1_det, m2_det, chi_eff, dmid_params)
@@ -605,7 +616,7 @@ class Found_injections:
 
         """
         
-        source_data = self.sets[f'{source}']
+        source_data = self.sets[f'{source}'].copy()
         
         dL = source_data['dL'][source_data['found_any']]
         dL_pdf = source_data['dL_pdf'][source_data['found_any']]
@@ -680,8 +691,8 @@ class Found_injections:
         float 
 
         """
-        #self.load_inj_set('o3', 'bbh')
         lnL = -self.Nexp(dmid_params, shape_params, source) + np.sum(np.log(self.lamda(dmid_params, shape_params, source)))
+        #print(f'{source} :', lnL)
         return lnL
     
     def logL_shape(self, dmid_params, shape_params, source):
@@ -698,36 +709,41 @@ class Found_injections:
         float 
 
         """
-        #self.load_inj_set('o3', 'bbh')
-        shape_params[1] = np.exp(shape_params[1])
          
         lnL = -self.Nexp(dmid_params, shape_params, source) + np.sum(np.log(self.lamda(dmid_params, shape_params, source)))
+        #print(f'{source} :', lnL)
         return lnL
     
     def total_lnL_dmid(self, dmid_params, shape_params, sources):
         
         if isinstance(sources, str):
-            sources = [source.strip() for source in sources.split(',')]
+            each_source = [source.strip() for source in sources.split(',')]
             
         try: 
-            return sum(self.logL_dmid(dmid_params, shape_params, source) for source in sources)
+            tot_lnL = sum(self.logL_dmid(dmid_params, shape_params, source) for source in each_source)
+            #print(tot_lnL)
+            return tot_lnL
         
         except KeyError as e:
             raise ValueError(f'Unknown source type: {e.args[0]}')
             
     def total_lnL_shape(self, dmid_params, shape_params, sources):
         
+        shape_params[1] = np.exp(shape_params[1])
+        
         if isinstance(sources, str):
-            sources = [source.strip() for source in sources.split(',')]
+            each_source = [source.strip() for source in sources.split(',')]
             
         try: 
-            return sum(self.logL_shape(dmid_params, shape_params, source) for source in sources)
+            tot_lnL = sum(self.logL_shape(dmid_params, shape_params, source) for source in each_source)
+            #print(tot_lnL)
+            return tot_lnL
         
         except KeyError as e:
             raise ValueError(f'Unknown source type: {e.args[0]}')
             
     
-    def MLE_dmid(self, methods, source):
+    def MLE_dmid(self, methods, sources):
         """
         minimization of -logL on dmid
 
@@ -743,7 +759,7 @@ class Found_injections:
         """
         dmid_params_guess = np.copy(self.dmid_params)
         
-        res = opt.minimize(fun=lambda in_param: -self.logL_dmid(in_param, self.shape_params), 
+        res = opt.minimize(fun=lambda in_param: -self.total_lnL_dmid(in_param, self.shape_params, sources), 
                            x0=np.array(dmid_params_guess), 
                            args=(), 
                            method=methods)
@@ -753,7 +769,7 @@ class Found_injections:
           
         return opt_params, -min_likelihood
     
-    def MLE_shape(self, methods):
+    def MLE_shape(self, methods, sources):
         """
         minimization of -logL on shape params (with emax as a cte)
 
@@ -771,7 +787,7 @@ class Found_injections:
         shape_params_guess = np.copy(self.shape_params)
         shape_params_guess[1] = np.log(shape_params_guess[1])
         
-        res = opt.minimize(fun=lambda in_param: -self.logL_shape(self.dmid_params, in_param), 
+        res = opt.minimize(fun=lambda in_param: -self.total_lnL_shape(self.dmid_params, in_param, sources), 
                            x0=np.array(shape_params_guess), 
                            args=(), 
                            method=methods)
@@ -783,36 +799,9 @@ class Found_injections:
         
         return opt_params, -min_likelihood
     
-    def MLE_emax(self, methods):
-        """
-        minimization of -logL on shape params (with emax as a function of masses)
 
-        Parameters
-        ----------
-        methods : scipy method used to minimize -logL
-
-        Returns
-        -------
-        opt_params: optimized values for [gamma, delta, emax_params], 1D array
-        -min_likelihood : maximum log likelihood, float
-
-        """
-        shape_params_guess = np.copy(self.shape_params)
-        shape_params_guess[1] = np.log(shape_params_guess[1])
-        
-        res = opt.minimize(fun=lambda in_param: -self.logL_shape(self.dmid_params, in_param), 
-                           x0=np.array(shape_params_guess), 
-                           args=(), 
-                           method=methods)
-        
-        opt_params = res.x
-        opt_params[1] = np.exp(opt_params[1])
-        min_likelihood = res.fun  
-        self.shape_params = opt_params
-
-        return opt_params, -min_likelihood
     
-    def joint_MLE(self, run_dataset, run_fit, methods = 'Nelder-Mead', precision = 1e-2, bootstrap = False):
+    def joint_MLE(self, run_dataset, run_fit, sources = 'bbh', methods = 'Nelder-Mead', precision = 1e-2, bootstrap = False):
         '''
         joint optimization of log likelihood, alternating between optimizing dmid params and shape params
         until the difference in the log L is <= precision . Saves the results of each iteration in txt files.
@@ -829,7 +818,14 @@ class Found_injections:
 
         '''
         
-        self.make_folders(run_dataset, 'bbh')
+        if isinstance(sources, str):
+            each_source = [source.strip() for source in sources.split(',')] 
+            
+        sources_folder = "_".join(sorted(each_source)) 
+        
+        self.make_folders(run_dataset, sources_folder)
+        
+        [self.load_inj_set(run_dataset, source) for source in each_source]
         
         total_lnL = np.zeros([1])
         all_gamma = []
@@ -838,7 +834,7 @@ class Found_injections:
         all_alpha = []
         all_dmid_params = np.zeros([1,len(np.atleast_1d(self.dmid_params))])
         
-        path = f'{run_dataset}/' + self.path
+        path = f'{run_dataset}/{sources_folder}/' + self.path
         
         if self.alpha_vary is None:
             all_emax_params = np.zeros([1,len(np.atleast_1d(self.shape_params[2:]))])
@@ -849,12 +845,104 @@ class Found_injections:
             params_emax = None if self.emax_fun is None else np.copy(self.shape_params[3:])
         
         for i in range(0, 10000):
+            '''
+            variables = ['dL', 'z', 'Mc', 'Mtot', 'eta', 'Mc_det', 'Mtot_det', 'chi_eff']
+            names_plotting = {'dL': '$d_L$', 'z': '$z$', 'Mc': '$\mathcal{M}$', 'Mtot': '$M$', 'eta': '$\eta$', 'Mc_det': '$\mathcal{M}_z$', 'Mtot_det': '$M_z$', 'chi_eff': '$\chi_\mathrm{eff}$'}
             
-            dmid_params, maxL_1 = self.MLE_dmid(methods)
+            try:
+                os.mkdir( path + '/diagnostic')
+            except OSError as e:
+                if e.errno != errno.EEXIST:
+                    raise
+                    
+                    
+            for j in variables:
+                
+                try:
+                    os.mkdir( path + f'/diagnostic/{j}_cumulative')
+                except OSError as e:
+                    if e.errno != errno.EEXIST:
+                        raise
+                
+                var_bbh = self.sets['bbh'][f'{j}']
+                var_bns = self.sets['bns'][f'{j}']
+                var = np.concatenate([var_bbh, var_bns])
+                indexo = np.argsort([var])
+                varo = var[indexo]
+                
+                #bbh
+                dL_bbh = self.sets['bbh']['dL']
+                m1_bbh = self.sets['bbh']['m1']
+                m2_bbh = self.sets['bbh']['m2']
+                z_bbh = self.sets['bbh']['z']
+                chieff_bbh = self.sets['bbh']['chi_eff']
+                
+                #bns
+                dL_bns = self.sets['bns']['dL']
+                m1_bns = self.sets['bns']['m1']
+                m2_bns = self.sets['bns']['m2']
+                z_bns = self.sets['bns']['z']
+                chieff_bns = self.sets['bns']['chi_eff']
+                
+                #together
+                dLo = np.concatenate([dL_bbh, dL_bns])[indexo]
+                m1o = np.concatenate([m1_bbh, m1_bns])[indexo]
+                m2o = np.concatenate([m2_bbh, m2_bns])[indexo]
+                zo = np.concatenate([z_bbh, z_bns])[indexo]
+                chieffo = np.concatenate([chieff_bbh, chieff_bns])[indexo]
+                
+                m1o_det = m1o * (1 + zo) 
+                m2o_det = m2o * (1 + zo)
+                mtoto_det = m1o_det + m2o_det
+                
+                if self.dmid_fun in self.spin_functions:
+                    dmid_values = self.dmid(m1o_det, m2o_det, chieffo, self.dmid_params)
+                else: 
+                    dmid_values = self.dmid(m1o_det, m2o_det, self.dmid_params)
+                
+                self.apply_dmid_mtotal_max(dmid_values, mtoto_det)
+                
+                emax_params, gamma, delta, alpha = self.get_shape_params()
+                
+                if self.emax_fun is not None:
+                    emax = self.emax(m1o_det, m2o_det, emax_params)
+                    
+                else:
+                    emax = np.copy(emax_params)
+                
+                cmd = np.cumsum(self.sigmoid(dLo, dmid_values, emax, gamma, delta, alpha))
+                
+                #found injections
+                var_found_bbh = var_bbh[self.sets['bbh']['found_any']]
+                var_found_bns = var_bns[self.sets['bns']['found_any']]
+                var_found = np.concatenate([var_found_bbh, var_found_bns])
+                indexo_found = np.argsort(var_found)
+                var_foundo = var_found[indexo_found]
+                real_found_inj = np.arange(len(var_foundo))+1
+            
+                plt.figure()
+                plt.scatter(varo, cmd, s=1, label='model', rasterized=True)
+                plt.scatter(var_foundo, real_found_inj, s=1, label='found injections', rasterized=True)
+                plt.xlabel(names_plotting[j], fontsize = 24)
+                plt.ylabel('Cumulative found injections', fontsize = 24)
+                plt.legend(loc='best', fontsize = 20, markerscale=3.)
+                plt.yticks(fontsize=15)
+                plt.xticks(fontsize=15)
+                name = path + f'/diagnostic/{j}_cumulative/{j}_{i}th.png'
+                plt.savefig(name, format='png', bbox_inches="tight")
+                name = path + f'/{j}_cumulative.pdf'
+                #plt.savefig(name, format='pdf', dpi=150, bbox_inches="tight")
+                plt.close()
+            '''
+                            
+            #print('\n dmid optimization          :')
+            dmid_params, maxL_1 = self.MLE_dmid(methods, sources)
             all_dmid_params = np.vstack([all_dmid_params, dmid_params])
             
+            #print('\n shape optimization         :')
+            shape_params, maxL_2 = self.MLE_shape(methods, sources)
+            
             if self.emax_fun is None:
-                shape_params, maxL_2 = self.MLE_shape(methods)
                 gamma_opt, delta_opt, emax_opt = shape_params[:2]
                 all_gamma.append(gamma_opt); all_delta.append(delta_opt)
                 all_emax.append(emax_opt); total_lnL = np.append(total_lnL, maxL_2)
@@ -865,7 +953,6 @@ class Found_injections:
                 
             
             elif self.emax_fun is not None:
-                shape_params, maxL_2 = self.MLE_emax(methods)
                 gamma_opt, delta_opt = shape_params[:2]
                 
                 if self.alpha_vary is not None:
@@ -880,9 +967,12 @@ class Found_injections:
                 all_gamma.append(gamma_opt); all_delta.append(delta_opt)
                 all_emax_params = np.vstack([all_emax_params, params_emax])
                 total_lnL = np.append(total_lnL, maxL_2)
+
             
             print('\n', maxL_2)
             print(np.abs( total_lnL[i+1] - total_lnL[i] ))
+            print('dmid params:', dmid_params)
+            print('shape params:', shape_params)
             
             if np.abs( total_lnL[i+1] - total_lnL[i] ) <= precision : break
         
@@ -915,7 +1005,7 @@ class Found_injections:
         return shape_results[-1, :-1], dmid_results[-1, :-1]
 
 
-    def cumulative_dist(self, run_dataset, run_fit, var):
+    def cumulative_dist(self, run_dataset, run_fit, sources, var):
         '''
         Saves cumulative distributions plots and prints KS tests for the specified variables  
 
@@ -938,14 +1028,19 @@ class Found_injections:
 
         '''
         
-        self.get_opt_params(run_fit)
+        if isinstance(sources, str):
+            each_source = [source.strip() for source in sources.split(',')] 
+            
+        sources_folder = "_".join(sorted(each_source)) 
         
-        self.make_folders(run_fit)
+        self.get_opt_params(run_fit, sources)
+        
+        self.make_folders(run_fit, sources_folder)
         
         emax_dic = {None: 'cmds', 'emax_exp' : 'emax_exp_cmds', 'emax_sigmoid' : 'emax_sigmoid_cmds'}
         
-        dic = {'dL': self.dL, 'Mc': self.Mc, 'Mtot': self.Mtot, 'eta': self.eta, 'Mc_det': self.Mc_det, 'Mtot_det': self.Mtot_det, 'chi_eff': self.chi_eff}
-        path = f'{run_fit}/{self.dmid_fun}' if self.alpha_vary is None else f'{run_fit}/alpha_vary/{self.dmid_fun}'
+        #dic = {'dL': self.dL, 'Mc': self.Mc, 'Mtot': self.Mtot, 'eta': self.eta, 'Mc_det': self.Mc_det, 'Mtot_det': self.Mtot_det, 'chi_eff': self.chi_eff}
+        path = f'{run_fit}/{sources_folder}/{self.dmid_fun}' if self.alpha_vary is None else f'{run_fit}/{sources_folder}/alpha_vary/{self.dmid_fun}'
         names_plotting = {'dL': '$d_L$', 'Mc': '$\mathcal{M}$', 'Mtot': '$M$', 'eta': '$\eta$', 'Mc_det': '$\mathcal{M}_z$', 'Mtot_det': '$M_z$', 'chi_eff': '$\chi_\mathrm{eff}$'}
         
         try:
@@ -953,6 +1048,82 @@ class Found_injections:
         except OSError as e:
             if e.errno != errno.EEXIST:
                 raise
+                
+         
+        #variables = ['dL', 'z', 'Mc', 'Mtot', 'eta', 'Mc_det', 'Mtot_det', 'chi_eff']
+        names_plotting = {'dL': '$d_L$', 'z': '$z$', 'Mc': '$\mathcal{M}$', 'Mtot': '$M$', 'eta': '$\eta$', 'Mc_det': '$\mathcal{M}_z$', 'Mtot_det': '$M_z$', 'chi_eff': '$\chi_\mathrm{eff}$'}
+                
+            
+        var_bbh = self.sets['bbh'][f'{var}']
+        var_bns = self.sets['bns'][f'{var}']
+        var_tot = np.concatenate([var_bbh, var_bns])
+        indexo = np.argsort([var_tot])
+        varo = var_tot[indexo]
+        
+        #bbh
+        dL_bbh = self.sets['bbh']['dL']
+        m1_bbh = self.sets['bbh']['m1']
+        m2_bbh = self.sets['bbh']['m2']
+        z_bbh = self.sets['bbh']['z']
+        chieff_bbh = self.sets['bbh']['chi_eff']
+        
+        #bns
+        dL_bns = self.sets['bns']['dL']
+        m1_bns = self.sets['bns']['m1']
+        m2_bns = self.sets['bns']['m2']
+        z_bns = self.sets['bns']['z']
+        chieff_bns = self.sets['bns']['chi_eff']
+        
+        #together
+        dLo = np.concatenate([dL_bbh, dL_bns])[indexo]
+        m1o = np.concatenate([m1_bbh, m1_bns])[indexo]
+        m2o = np.concatenate([m2_bbh, m2_bns])[indexo]
+        zo = np.concatenate([z_bbh, z_bns])[indexo]
+        chieffo = np.concatenate([chieff_bbh, chieff_bns])[indexo]
+        
+        m1o_det = m1o * (1 + zo) 
+        m2o_det = m2o * (1 + zo)
+        mtoto_det = m1o_det + m2o_det
+        
+        if self.dmid_fun in self.spin_functions:
+            dmid_values = self.dmid(m1o_det, m2o_det, chieffo, self.dmid_params)
+        else: 
+            dmid_values = self.dmid(m1o_det, m2o_det, self.dmid_params)
+        
+        self.apply_dmid_mtotal_max(dmid_values, mtoto_det)
+        
+        emax_params, gamma, delta, alpha = self.get_shape_params()
+        
+        if self.emax_fun is not None:
+            emax = self.emax(m1o_det, m2o_det, emax_params)
+            
+        else:
+            emax = np.copy(emax_params)
+        
+        cmd = np.cumsum(self.sigmoid(dLo, dmid_values, emax, gamma, delta, alpha))
+        
+        #found injections
+        var_found_bbh = var_bbh[self.sets['bbh']['found_any']]
+        var_found_bns = var_bns[self.sets['bns']['found_any']]
+        var_found = np.concatenate([var_found_bbh, var_found_bns])
+        indexo_found = np.argsort(var_found)
+        var_foundo = var_found[indexo_found]
+        real_found_inj = np.arange(len(var_foundo))+1
+    
+        plt.figure()
+        plt.scatter(varo, cmd, s=1, label='model', rasterized=True)
+        plt.scatter(var_foundo, real_found_inj, s=1, label='found injections', rasterized=True)
+        plt.xlabel(names_plotting[var], fontsize = 24)
+        plt.ylabel('Cumulative found injections', fontsize = 24)
+        plt.legend(loc='best', fontsize = 20, markerscale=3.)
+        plt.yticks(fontsize=15)
+        plt.xticks(fontsize=15)
+        #name = path + f'/{emax_dic[self.emax_fun]}/{var}_cumulative.png'
+        #plt.savefig(name, format='png', bbox_inches="tight")
+        name = path + f'/{emax_dic[self.emax_fun]}/{var}_cumulative.pdf'
+        plt.savefig(name, format='pdf', dpi=150, bbox_inches="tight")
+        
+        '''
            
         #cumulative distribution over the desired variable
         indexo = np.argsort(dic[var])
@@ -1028,7 +1199,7 @@ class Found_injections:
         print(f'{var} KStest : statistic = %s , pvalue = %s' %(stat, pvalue))
         
         #return stat, pvalue
-        
+        '''
         return
 
     
