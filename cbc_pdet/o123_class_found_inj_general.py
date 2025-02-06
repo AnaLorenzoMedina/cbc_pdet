@@ -1154,7 +1154,7 @@ class Found_injections:
             np.savetxt(name_mid, mid_values, header = '0, 1, 2, 3, 4', fmt='%s')
         return
     
-    def sensitive_volume(self, run_fit, m1, m2):
+    def sensitive_volume(self, run_fit, m1, m2, chieff = 0., rescale_o3 = True):
         '''
         Sensitive volume for a merger with given masses (m1 and m2), computed from the fit to whichever observed run we want.
         Integrated within the total range of redshift available in the injection's dataset.
@@ -1165,6 +1165,9 @@ class Found_injections:
         run_fit : str. Observing run from which we want to use its fit. Must be 'o1', 'o2' or 'o3'.
         m1 : float. Mass 1 
         m2 : float. Mass 2
+        chieff : float. Effective spin. The default is 0, If you use a fit that includes a dependence on chieff in the dmid function 
+                (it has to be on the list of spin functions), it will use chieff. if not, it won't be used for anything.
+        rescale_o3 : True or False, optional. The default is True. If True, we use the rescaled fit for o1 and o2. If False, the direct fit.
 
         Returns
         -------
@@ -1174,9 +1177,13 @@ class Found_injections:
         assert hasattr(self, 'interp_z'),\
         "You need to load an injection set (i.e., use self.load_inj_set() before using this method"
         
-        self.get_opt_params(run_fit)
+        self.get_opt_params(run_fit, rescale_o3) 
         
-        dmid = lambda dL_int : self.dmid(m1*(1 + self.interp_z(dL_int)), m2*(1 + self.interp_z(dL_int)), self.dmid_params)
+        if self.dmid_fun in self.spin_functions:
+            dmid = lambda dL_int : self.dmid(m1*(1 + self.interp_z(dL_int)), m2*(1 + self.interp_z(dL_int)), chieff, self.dmid_params)
+        else: 
+            dmid = lambda dL_int : self.dmid(m1*(1 + self.interp_z(dL_int)), m2*(1 + self.interp_z(dL_int)), self.dmid_params)
+        
         mtot = lambda dL_int :m1*(1 + self.interp_z(dL_int)) + m2*(1 + self.interp_z(dL_int))
         
         emax_params, gamma, delta, alpha = self.get_shape_params()
@@ -1197,7 +1204,7 @@ class Found_injections:
         return pdet * Vtot
     
     
-    def total_sensitive_volume(self, m1, m2):
+    def total_sensitive_volume(self, m1, m2, chieff = 0., rescale_o3 = True):
         '''
         total sensitive volume computed with the fractions of o1, o2 and o3 observing times and the o1, o2 rescaled fit
         Vtot = V1 * t1_frac + V2 * t2_frac + V3 * t3_frac
@@ -1206,6 +1213,10 @@ class Found_injections:
         ----------
         m1 : float. Mass 1 
         m2 : float. Mass 2
+        chieff : float. Effective spin. The default is 0, If you use a fit that includes a dependence on chieff in the dmid function 
+                (it has to be on the list of spin functions), it will use chieff. if not, it won't be used for anything.
+        rescale_o3 : True or False, optional. The default is True. If True, we use the rescaled fit for o1 and o2. If False, the direct fit.
+
 
         Returns
         -------
@@ -1217,8 +1228,8 @@ class Found_injections:
         
         for run, in zip(self.runs):
             
-            Vi = self.sensitive_volume(run, m1, m2)
-                
+            Vi = self.sensitive_volume(run, m1, m2, chieff, rescale_o3)
+            
             Vi *= self.obs_time[run]
             
             Vtot += Vi
@@ -1350,7 +1361,7 @@ class Found_injections:
         
         return pred_nev
     
-    def run_pdet(self, dL, m1_det, m2_det, run, chieff = 0, rescale_o3 = True):
+    def run_pdet(self, dL, m1_det, m2_det, run, chieff = 0., rescale_o3 = True):
         """
         probability of detection for some given masses and distance
 
@@ -1360,7 +1371,7 @@ class Found_injections:
         m1_det : float. Mass 1 in the detector's frame masses
         m2_det : float. Mass 2 in the detector's frame masses
         run : str. observing run from which we want the fit. Must be 'o1', 'o2' or 'o3'
-        rescale_o3 : True or False, optional. The default is True. If True, we iuse the rescaled fit for o1 and o2. If False, the direct fit.
+        rescale_o3 : True or False, optional. The default is True. If True, we use the rescaled fit for o1 and o2. If False, the direct fit.
 
         Returns
         -------
@@ -1392,7 +1403,7 @@ class Found_injections:
         return pdet_i
     
     
-    def total_pdet(self, dL, m1_det, m2_det, chieff = 0, rescale_o3 = True):
+    def total_pdet(self, dL, m1_det, m2_det, chieff = 0., rescale_o3 = True):
         '''
         total prob of detection, a combination of the prob of detection with o1, o2 and o3 proportions
 

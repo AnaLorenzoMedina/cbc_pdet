@@ -35,8 +35,8 @@ run_fit = 'o3'
 run_dataset = 'o3'
 
 # function for dmid and emax we wanna use
-dmid_fun = 'Dmid_mchirp_fdmid'
-#dmid_fun = 'Dmid_mchirp_fdmid_fspin'
+#dmid_fun = 'Dmid_mchirp_fdmid'
+dmid_fun = 'Dmid_mchirp_fdmid_fspin'
 #dmid_fun = 'Dmid_mchirp_expansion_noa30'
 #dmid_fun = 'Dmid_mchirp_expansion_exp'
 #dmid_fun = 'Dmid_mchirp_expansion_a11'
@@ -71,25 +71,29 @@ data.load_inj_set(run_dataset)
 
 data.joint_MLE(run_dataset, run_fit)
 
+#%%
+
 data.load_inj_set(run_dataset)
 data.get_opt_params(run_fit)
 data.set_shape_params()
 
 #%%
 
-# npoints = 10000
-# index = np.random.choice(np.arange(len(data.dL)), npoints, replace=False)
-# m1 = data.m1[index]
-# m2=data.m2[index]
+npoints = 100
+index = np.random.choice(np.arange(len(data.dL)), npoints, replace=False)
+m1 = data.m1[index]
+m2=data.m2[index]
 
-# vsensitive = np.array([data.sensitive_volume(run_dataset, run_fit, m1[i], m2[i]) for i in range(len(m1))])
+vsensitive = np.array([data.sensitive_volume(run_fit, m1[i], m2[i]) for i in range(len(m1))])
 
-# plt.figure()
-# plt.scatter(m1, m2, s=1, c=vsensitive/1e9, norm=LogNorm())
-# plt.xlabel('m1')
-# plt.ylabel('m2')
-# plt.colorbar(label=r'Sensitive volume [Gpc$^3$]')
-# plt.savefig( path + f'/Vsensitive_{npoints}.png')
+plt.figure()
+plt.scatter(m1, m2, s=1, c=vsensitive/1e9, norm=LogNorm())
+plt.xlabel('m1')
+plt.ylabel('m2')
+plt.colorbar(label=r'Sensitive volume [Gpc$^3$]')
+plt.savefig( path + f'/Vsensitive_{npoints}.png')
+
+#%%
 
 m1_det = data.m1*(1+data.z)
 m2_det = data.m2*(1+data.z)
@@ -140,21 +144,24 @@ data.binned_cumulative_dist(run_dataset, run_fit, nbins,'chi_eff', 'eta')
 
 #%%
 
-# npoints = 10000
-# index = np.random.choice(np.arange(len(data.dL)), npoints, replace=False)
-# m1 = data.m1[index]
-# m2=data.m2[index]
 
-# tot_vsensitive = np.array([data.total_sensitive_volume(run_fit, m1[i], m2[i]) for i in range(len(m1))])
+npoints = 100
+index = np.random.choice(np.arange(len(data.dL)), npoints, replace=False)
+m1 = data.m1[index]
+m2=data.m2[index]
 
-# plt.figure()
-# plt.scatter(m1, m2, s=1, c=tot_vsensitive/1e9, norm=LogNorm())
-# plt.xlabel('m1')
-# plt.ylabel('m2')
-# plt.colorbar(label=r'Total sensitive volume [Gpc$^3$]')
-# plt.savefig( path + f'/total_Vsensitive_{npoints}.png')
-# name = path + f'/total_Vsensitive_{npoints}.pdf'
-# plt.savefig(name, format='pdf', dpi=1000, bbox_inches="tight")
+tot_vsensitive = np.array([data.total_sensitive_volume(m1[i], m2[i]) for i in range(len(m1))])
+
+plt.figure()
+plt.scatter(m1, m2, s=1, c=tot_vsensitive/1e9, norm=LogNorm())
+plt.xlabel('m1')
+plt.ylabel('m2')
+plt.colorbar(label=r'Total sensitive volume [Gpc$^3$]')
+plt.savefig( path + f'/total_Vsensitive_{npoints}.png')
+name = path + f'/total_Vsensitive_{npoints}.pdf'
+plt.savefig(name, format='pdf', dpi=1000, bbox_inches="tight")
+
+#%%
 
 # cmds_bins = ['dL' , 'Mtot', 'Mc', 'Mtot_det', 'Mc_det', 'eta']
 # chi_eff_opt_params = {}
