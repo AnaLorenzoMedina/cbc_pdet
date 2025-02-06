@@ -33,11 +33,13 @@ plt.close('all')
 
 run_fit = 'o3'
 run_dataset = 'o3'
-sources = 'bbh, bns, nsbh, imbh'
+#sources = 'bbh, bns, nsbh, imbh'
+#sources = 'imbh'
+sources = 'bbh'
 
 # function for dmid and emax we wanna use
-#dmid_fun = 'Dmid_mchirp_fdmid'
-dmid_fun = 'Dmid_mchirp_fdmid_fspin'
+dmid_fun = 'Dmid_mchirp_fdmid'
+#dmid_fun = 'Dmid_mchirp_fdmid_fspin'
 #dmid_fun = 'Dmid_mchirp_expansion_noa30'
 #dmid_fun = 'Dmid_mchirp_expansion_exp'
 #dmid_fun = 'Dmid_mchirp_expansion_a11'
@@ -62,11 +64,21 @@ ini_files_bbh_bns = [[ 8.46541813e+01, -3.65634417e-06, -2.64650682e-01, -2.4350
         2.68401892e-04, -5.37960156e-03,  9.28916039e-02,  1.72064631e-03], [-1.02623620e+00,  3.36482981e-01, -4.91342679e+00,  2.27222889e-02,
                -3.61757871e-05]]
                                                                              
-ini_files_4_sources = [[8.71047422e+01, -7.24775437e-06, -3.94322637e-01,  4.73292056e-05,
+ini_files_3_sources = [[8.71047422e+01, -7.24775437e-06, -3.94322637e-01,  4.73292056e-05,
         3.62306966e-04, -1.15754512e-02,  2.04977352e-01,  1.90820585e-03 ], [-8.18965437e-01,  2.77526065e-01, -4.51593709e+00,  1.28444148e-02,
                -8.55554484e-06]]
+                                                                              
+ini_files_4_sources = [[ 1.15341023e+02, -1.11041171e-05, -1.45113888e+00,  1.11057545e-05,
+        3.28819168e-04, -4.27337660e-03,  3.39429723e-02,  5.61212292e-03], [ 5.45981998e-01,  1.44198708e-21, -2.26423282e+00,  7.75663512e-03,
+               -6.75911668e-06]]
 
-data = Found_injections(dmid_fun, emax_fun, alpha_vary, ini_files = ini_files_bbh_bns)
+ini_files_imbh = [[8.71047422e+01, -7.24775437e-06, -3.94322637e-01,  4.73292056e-05,
+        3.62306966e-04, -1.15754512e-02,  2.04977352e-01,  1.90820585e-03 ], [-8.18965437e-01,  2.77526065e-01, -4.51593709e+00,  1e-02,
+               -8.55554484e-06]]
+
+
+#ini_files = ini_files_4_sources
+data = Found_injections(dmid_fun, emax_fun, alpha_vary, ini_files = ini_files_4_sources)
 
 if isinstance(sources, str):
     each_source = [source.strip() for source in sources.split(',')] 
@@ -82,7 +94,7 @@ data.make_folders(run_fit, sources)
 #81.7746046336622 -8.091776490302833e-06 -0.4444955581608646 9.016393698238174e-06 0.0009175736469746053 -0.003975600149591415 0.16487147248641948 0.0020706799396616876 -2.994036429373754e-07 -340801.1469014259
 #-0.9695926056697535 0.3238884595756078 -5.8534140256510625 0.023685941008609972 -2.7957506633390077e-05 -340802.9348490275ye
 
-#%%
+#%% 
 
 data.joint_MLE(run_dataset, run_fit, sources)
 
@@ -94,19 +106,21 @@ data.set_shape_params()
 
 #%%
 
-# npoints = 10000
-# index = np.random.choice(np.arange(len(data.dL)), npoints, replace=False)
-# m1 = data.m1[index]
-# m2=data.m2[index]
+npoints = 10000
+index = np.random.choice(np.arange(len(data.sets['bbh']['dL'])), npoints, replace=False)
+m1 = data.sets['bbh']['m1'][index]
+m2=data.sets['bbh']['m2'][index]
 
-# vsensitive = np.array([data.sensitive_volume(run_dataset, run_fit, m1[i], m2[i]) for i in range(len(m1))])
+vsensitive = np.array([data.sensitive_volume(run_fit, m1[i], m2[i]) for i in range(len(m1))])
 
-# plt.figure()
-# plt.scatter(m1, m2, s=1, c=vsensitive/1e9, norm=LogNorm())
-# plt.xlabel('m1')
-# plt.ylabel('m2')
-# plt.colorbar(label=r'Sensitive volume [Gpc$^3$]')
-# plt.savefig( path + f'/Vsensitive_{npoints}.png')
+plt.figure()
+plt.scatter(m1, m2, s=1, c=vsensitive/1e9, norm=LogNorm())
+plt.xlabel('m1')
+plt.ylabel('m2')
+plt.colorbar(label=r'Sensitive volume [Gpc$^3$]')
+plt.savefig( path + f'/Vsensitive_{npoints}.png')
+
+#%%
 
 m1_det = data.m1*(1+data.z)
 m2_det = data.m2*(1+data.z)
@@ -245,13 +259,25 @@ dL_bns = data.sets['bns']['dL']
 
 #%%
 
-m1_det_all = np.concatenate([m1_det_bbh, m1_det_bns, m1_det_nsbh])
-m2_det_all = np.concatenate([m2_det_bbh, m2_det_bns, m2_det_nsbh])
+#%%
 
-mtot_det_all = np.concatenate([mtot_det_bbh, mtot_det_bns, mtot_det_nsbh])
+m1_det_imbh = data.sets['imbh']['m1'] * (1 + data.sets['imbh']['z'])
+m2_det_imbh = data.sets['imbh']['m2'] * (1 + data.sets['imbh']['z'])
 
-chi_eff_all = np.concatenate([chi_eff_bbh, chi_eff_bns, chi_eff_nsbh])
-dL_all = np.concatenate([dL_bbh, dL_bns, dL_nsbh])
+mtot_det_imbh = data.sets['imbh']['Mtot_det']
+
+chi_eff_imbh = data.sets['imbh']['chi_eff']
+dL_imbh = data.sets['imbh']['dL']
+
+#%%
+
+m1_det_all = np.concatenate([m1_det_bbh, m1_det_bns, m1_det_nsbh, m1_det_imbh])
+m2_det_all = np.concatenate([m2_det_bbh, m2_det_bns, m2_det_nsbh, m1_det_imbh])
+
+mtot_det_all = np.concatenate([mtot_det_bbh, mtot_det_bns, mtot_det_nsbh, mtot_det_imbh])
+
+chi_eff_all = np.concatenate([chi_eff_bbh, chi_eff_bns, chi_eff_nsbh, chi_eff_imbh])
+dL_all = np.concatenate([dL_bbh, dL_bns, dL_nsbh, dL_imbh])
 
 #%%
 
@@ -261,6 +287,10 @@ data.set_shape_params()
 #%%
 
 dmid_values_bns = data.dmid(m1_det_bns, m2_det_bns, chi_eff_bns, data.dmid_params)
+data.set_shape_params()
+
+#%%
+dmid_values_imbh = data.dmid(m1_det_imbh, m2_det_imbh, chi_eff_imbh, data.dmid_params)
 data.set_shape_params()
 
 #%%
@@ -293,6 +323,24 @@ plt.savefig(name, format='pdf', dpi=300, bbox_inches="tight")
 
 plt.figure(figsize=(8,4.8))
 im = plt.scatter(dL_all/dmid_values_all, data.sigmoid(dL_all,dmid_values_all, data.emax(m1_det_all, m2_det_all, data.emax_params), data.gamma, data.delta), s=1, c=data.emax(m1_det_all, m2_det_all, data.emax_params), rasterized=True)
+plt.semilogx()
+plt.xlabel(r'$d_L / d_\mathrm{mid}$', fontsize = 24)
+plt.ylabel(r'$P_\mathrm{det}$', fontsize = 24)
+plt.yticks(fontsize=15)
+plt.xticks(fontsize=15)
+cbar = plt.colorbar(im)
+cbar.ax.tick_params(labelsize=15)
+cbar.set_label(r'$\varepsilon_\mathrm{max}$', fontsize=24)
+plt.show()
+plt.savefig( path + '/pdet_o3_emax_logscale.png')
+name = path + '/pdet_o3_emax_logscale.pdf'
+plt.savefig(name, format='pdf', dpi=300, bbox_inches="tight")
+
+#%%
+
+plt.figure(figsize=(8,4.8))
+im = plt.scatter(dL_all/dmid_values_all, data.sigmoid(dL_all,dmid_values_all, data.emax(m1_det_all, m2_det_all, data.emax_params), data.gamma, data.delta), s=1, c=data.emax(m1_det_all, m2_det_all, data.emax_params), rasterized=True)
+plt.xlim(0, 6)
 plt.xlabel(r'$d_L / d_\mathrm{mid}$', fontsize = 24)
 plt.ylabel(r'$P_\mathrm{det}$', fontsize = 24)
 plt.yticks(fontsize=15)
@@ -313,7 +361,7 @@ m2_det_ordered = m2_det_all[order]
 
 
 plt.figure(figsize=(7,6))
-im = plt.scatter(m1_det_ordered, m2_det_ordered, s=1, c=dmid_values_ordered, norm=LogNorm(), rasterized=True)
+im = plt.scatter(m1_det_ordered, m2_det_ordered, s=1, c=dmid_values_ordered, rasterized=True)
 plt.loglog()
 plt.xlabel(r'$m_{1z} [M_{\odot}]$', fontsize=24)
 plt.ylabel('$m_{2z} [M_{\odot}]$', fontsize=24)
@@ -358,6 +406,161 @@ plt.loglog(m1_det_all, m2_det_all, 'r*', alpha =0.1, rasterized = True)
 plt.loglog(m1_det_bbh, m2_det_bbh, 'g.', alpha =0.1, rasterized = True)
 plt.loglog(m1_det_bns, m2_det_bns, 'b.', alpha =0.1, rasterized = True)
 
+
+#%%
+#dmid_params = [45, -2e-06, -3.94e-01,  -1.6e-05,
+#        -8.2e-05, -1.15754512e-02,  2.04977352e-01,  1.90820585e-03 ]
+
+#shape_params = [0.4,  2.77526065e-04, -1,  0.8e-03,
+#      -5.8e-06]
+
+dmid_params = [ 43, -7.993179639e-06, -4e-01, -3.10825257e-06,
+        8.89180835e-04, -1.57344205e-03,  1.67257226e-01,  2.00068413e-03]
+
+shape_params =[-9.85e-01,  3.25e-01, -6.5e+00,  2.368e-02,
+       -2.9e-05]
+
+#%%
+
+emax_params = data.emax_params
+gamma = data.gamma
+delta = data.delta
+
+variables = ['dL', 'z', 'Mc', 'Mtot', 'eta', 'Mc_det', 'Mtot_det', 'chi_eff']
+names_plotting = {'dL': '$d_L$', 'z': '$z$', 'Mc': '$\mathcal{M}$', 'Mtot': '$M$', 'eta': '$\eta$', 'Mc_det': '$\mathcal{M}_z$', 'Mtot_det': '$M_z$', 'chi_eff': '$\chi_\mathrm{eff}$'}
+emax_dic = {None: 'cmds', 'emax_exp' : 'emax_exp_cmds', 'emax_sigmoid' : 'emax_sigmoid_cmds'}
+
+
+for j in variables:
+    
+    #var_bbh = self.sets['bbh'][f'{j}']
+    #var_bns = self.sets['bns'][f'{j}']
+    var = data.sets['imbh'][f'{j}']
+    #var = np.concatenate([var_bbh, var_bns])
+    indexo = np.argsort([var])
+    varo = var[indexo]
+    '''
+    #bbh
+    dL_bbh = self.sets['bbh']['dL']
+    m1_bbh = self.sets['bbh']['m1']
+    m2_bbh = self.sets['bbh']['m2']
+    z_bbh = self.sets['bbh']['z']
+    chieff_bbh = self.sets['bbh']['chi_eff']
+    
+    #bns
+    dL_bns = self.sets['bns']['dL']
+    m1_bns = self.sets['bns']['m1']
+    m2_bns = self.sets['bns']['m2']
+    z_bns = self.sets['bns']['z']
+    chieff_bns = self.sets['bns']['chi_eff']
+    '''
+    #imbh
+    dLo = data.sets['imbh']['dL'][indexo]
+    m1o = data.sets['imbh']['m1'][indexo]
+    m2o = data.sets['imbh']['m2'][indexo]
+    zo = data.sets['imbh']['z'][indexo]
+    chieffo = data.sets['imbh']['chi_eff'][indexo]
+    '''
+    #together
+    dLo = np.concatenate([dL_bbh, dL_bns])[indexo]
+    m1o = np.concatenate([m1_bbh, m1_bns])[indexo]
+    m2o = np.concatenate([m2_bbh, m2_bns])[indexo]
+    zo = np.concatenate([z_bbh, z_bns])[indexo]
+    chieffo = np.concatenate([chieff_bbh, chieff_bns])[indexo]
+    '''
+    m1o_det = m1o * (1 + zo) 
+    m2o_det = m2o * (1 + zo)
+    mtoto_det = m1o_det + m2o_det
+    
+    dmid_values = data.dmid(m1o_det, m2o_det, chieffo, data.dmid_params)
+    
+    emax = data.emax(m1o_det, m2o_det, emax_params)
+    
+    cmd = np.cumsum(data.sigmoid(dLo, dmid_values, emax, gamma, delta))
+    
+    #found injections
+    #var_found_bbh = var_bbh[self.sets['bbh']['found_any']]
+    #var_found_bns = var_bns[self.sets['bns']['found_any']]
+    #var_found = np.concatenate([var_found_bbh, var_found_bns])
+    var_found = var[data.sets['imbh']['found_any']]
+    indexo_found = np.argsort(var_found)
+    var_foundo = var_found[indexo_found]
+    real_found_inj = np.arange(len(var_foundo))+1
+
+    plt.figure()
+    plt.scatter(varo, cmd, s=1, label='model', rasterized=True)
+    plt.scatter(var_foundo, real_found_inj, s=1, label='found injections', rasterized=True)
+    plt.xlabel(names_plotting[j], fontsize = 24)
+    plt.ylabel('Cumulative found injections', fontsize = 24)
+    plt.legend(loc='best', fontsize = 20, markerscale=3.)
+    plt.yticks(fontsize=15)
+    plt.xticks(fontsize=15)
+    name = f'o3/imbh/Dmid_mchirp_fdmid_fspin/{emax_dic[data.emax_fun]}/{j}_cumulative.pdf'
+    plt.savefig(name, format='pdf', dpi=150, bbox_inches="tight")
+    #plt.savefig(name, format='pdf', dpi=150, bbox_inches="tight")
+    plt.close()
+
+#%%
+var = mtot_det_imbh
+#var = np.concatenate([var_bbh, var_bns])
+indexo = np.argsort([var])
+varo = var[indexo]
+
+dLo = dL_imbh[indexo]
+m1o = m1_det_imbh[indexo]
+m2o = m2_det_imbh[indexo]
+chieffo = chi_eff_imbh[indexo]
+
+dmid_values = data.dmid(m1o, m2o, chieffo, dmid_params)
+emax_values = data.emax(m1o, m2o, emax_params)
+
+cmd = np.cumsum(data.sigmoid(dLo, dmid_values, emax_values, gamma, delta))
+
+var_found = var[data.sets['imbh']['found_any']]
+indexo_found = np.argsort(var_found)
+var_foundo = var_found[indexo_found]
+real_found_inj = np.arange(len(var_foundo))+1
+
+plt.figure()
+plt.scatter(varo, cmd, s=1, label='model', rasterized=True)
+plt.scatter(var_foundo, real_found_inj, s=1, label='found injections', rasterized=True)
+plt.xlabel('mtot_det', fontsize = 24)
+plt.ylabel('Cumulative found injections', fontsize = 24)
+plt.legend(loc='best', fontsize = 20, markerscale=3.)
+plt.yticks(fontsize=15)
+plt.xticks(fontsize=15)
+name ='o3/imbh/mtot_det.png'
+plt.savefig(name, format='png', bbox_inches="tight")
+
+#%%
+
+m1_imbh = data.sets['imbh']['m1']
+pdet = data.sigmoid(dL_imbh,dmid_values_imbh, data.emax(m1_det_imbh, m2_det_imbh, data.emax_params), data.gamma, data.delta)
+
+plt.figure()
+im = plt.scatter(m1_det_imbh, pdet, c = dL_imbh)
+plt.xlabel('m1_det')
+plt.ylabel('pdet')
+cbar = plt.colorbar(im)
+cbar.set_label('dL')
+name ='o3/imbh/pdet_vs_m1det_dL.png'
+plt.savefig(name, format='png', bbox_inches="tight")
+
+#%%
+m1det = np.linspace(min(m1_det_imbh), max(m1_det_imbh), 200)
+m2det = np.linspace(min(m2_det_imbh), max(m2_det_imbh), 200)
+mtot = m1det + m2det
+emax = data.emax(m1det, m2det, data.emax_params)
+emax = data.emax(m1_det_imbh, m2_det_imbh, data.emax_params)
+
+
+
+plt.figure()
+plt.plot(mtot_det_imbh, emax, '.')
+plt.xlabel('mtot_det')
+plt.ylabel('emax')
+name ='o3/imbh/emax.png'
+plt.savefig(name, format='png', bbox_inches="tight")
 
 #%%
 
