@@ -64,7 +64,7 @@ class Found_injections:
         self.c = 3e5 #km/s
         self.omega_m = 0.3065
 
-        self.Vtot = None  # Slot for total comoving time-volume up to max z
+        self.Vtot = None  # Slot for total comoving volume up to max z
         
         self.dmid_ini_values, self.shape_ini_values = ini_files if ini_files is not None else self.get_ini_values()
         
@@ -1189,6 +1189,7 @@ class Found_injections:
         pdet = integrate.quad(quad_fun, 0, self.dLmax)[0]
 
         if self.Vtot is None:
+            # NB the factor of 1/(1+z) for time dilation in the signal rate 
             vquad = lambda z_int : 4 * np.pi * self.cosmo.differential_comoving_volume(z_int).value / (1 + z_int)
             self.Vtot = integrate.quad(vquad, 0, self.zmax)[0]
         
