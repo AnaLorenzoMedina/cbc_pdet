@@ -63,7 +63,8 @@ class Found_injections:
         self.H0 = 67.9 #km/sMpc
         self.c = 3e5 #km/s
         self.omega_m = 0.3065
-        
+
+        self.Vtot = None  # Slot for total comoving time-volume up to max z
         
         self.dmid_ini_values, self.shape_ini_values = ini_files if ini_files is not None else self.get_ini_values()
         
@@ -278,7 +279,6 @@ class Found_injections:
         # a2v = np.array([self.s1x , self.s1y , self.s1z])
         
         self.chi_eff = (self.s1z * self.m1 + self.s2z* self.m2) / (self.Mtot)
-        
         
         self.max_index = np.argmax(self.dL)
         self.dLmax = self.dL[self.max_index]
@@ -1146,7 +1146,7 @@ class Found_injections:
             np.savetxt(name_mid, mid_values, header = '0, 1, 2, 3, 4', fmt='%s')
         return
     
-    def sensitive_volume(self, run_fit, m1, m2, chieff = 0., rescale_o3 = True):
+    def sensitive_volume(self, run_fit, m1, m2, chieff=0., rescale_o3=True):
         '''
         Sensitive volume for a merger with given masses (m1 and m2), computed from the fit to whichever observed run we want.
         Integrated within the total range of redshift available in the injection's dataset.
@@ -1164,10 +1164,8 @@ class Found_injections:
         Returns
         -------
         pdet * Vtot : float. Sensitive volume
-
         '''
-        assert hasattr(self, 'interp_z'),\
-        "You need to load an injection set (i.e., use self.load_inj_set() before using this method"
+        assert hasattr(self, 'interp_z'), "You need to load an injection set, i.e. use self.load_inj_set(), before using this method"
         
         self.get_opt_params(run_fit, rescale_o3) 
         
@@ -1176,7 +1174,7 @@ class Found_injections:
         else: 
             dmid = lambda dL_int : self.dmid(m1*(1 + self.interp_z(dL_int)), m2*(1 + self.interp_z(dL_int)), self.dmid_params)
         
-        mtot = lambda dL_int :m1*(1 + self.interp_z(dL_int)) + m2*(1 + self.interp_z(dL_int))
+        mtot = lambda dL_int: m1*(1 + self.interp_z(dL_int)) + m2*(1 + self.interp_z(dL_int))
         
         emax_params, gamma, delta, alpha = self.get_shape_params()
         
@@ -1188,12 +1186,13 @@ class Found_injections:
             emax = np.copy(emax_params)
             quad_fun = lambda dL_int : self.sigmoid(dL_int, self.apply_dmid_mtotal_max(dmid(dL_int), mtot(dL_int)), emax , gamma , delta, alpha) * self.interp_dL_pdf(dL_int)
             
-        pdet =  integrate.quad(quad_fun, 0, self.dLmax)[0]
+        pdet = integrate.quad(quad_fun, 0, self.dLmax)[0]
+
+        if self.Vtot is None:
+            vquad = lambda z_int : 4 * np.pi * self.cosmo.differential_comoving_volume(z_int).value / (1 + z_int)
+            self.Vtot = integrate.quad(vquad, 0, self.zmax)[0]
         
-        vquad = lambda z_int : 4 * np.pi * self.cosmo.differential_comoving_volume(z_int).value / (1 + z_int)
-        Vtot = integrate.quad(vquad, 0, self.zmax)[0]
-        
-        return pdet * Vtot
+        return pdet * self.Vtot
     
     
     def total_sensitive_volume(self, m1, m2, chieff = 0., rescale_o3 = True):
@@ -1208,7 +1207,6 @@ class Found_injections:
         chieff : float. Effective spin. The default is 0, If you use a fit that includes a dependence on chieff in the dmid function 
                 (it has to be on the list of spin functions), it will use chieff. if not, it won't be used for anything.
         rescale_o3 : True or False, optional. The default is True. If True, we use the rescaled fit for o1 and o2. If False, the direct fit.
-
 
         Returns
         -------
