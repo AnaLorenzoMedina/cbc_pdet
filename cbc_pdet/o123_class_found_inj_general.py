@@ -872,7 +872,7 @@ class Found_injections:
         #return stat, pvalue
         return
 
-def binned_cumulative_dist(self, run_dataset, run_fit, nbins, var_cmd, var_binned):
+    def binned_cumulative_dist(self, run_dataset, run_fit, nbins, var_cmd, var_binned):
         '''
         Saves binned cumulative distributions and prints binned KS tests for the specified variables 
 
@@ -1211,7 +1211,6 @@ def binned_cumulative_dist(self, run_dataset, run_fit, nbins, var_cmd, var_binne
         float. predicted found events
         '''
         self.load_inj_set(run_dataset)
-        Nfound = self.found_any.sum()
         
         self.get_opt_params(run_fit)
         
@@ -1361,4 +1360,6 @@ def binned_cumulative_dist(self, run_dataset, run_fit, nbins, var_cmd, var_binne
         path = f'{run_dataset}/' + self.path
         name_file = path + f'/{n_boots}_boots_opt_params.dat'
         np.savetxt(name_file, all_params, header=header, fmt='%s')
+        
+        return
 
