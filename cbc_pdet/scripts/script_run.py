@@ -33,13 +33,14 @@ plt.close('all')
 
 run_fit = 'o3'
 run_dataset = 'o3'
-#sources = 'bbh, bns, nsbh, imbh'
+sources = 'bbh, bns, nsbh, imbh'
 #sources = 'imbh'
-sources = 'bbh'
+#sources = 'bbh'
 
 # function for dmid and emax we wanna use
-dmid_fun = 'Dmid_mchirp_fdmid'
+#dmid_fun = 'Dmid_mchirp_fdmid'
 #dmid_fun = 'Dmid_mchirp_fdmid_fspin'
+dmid_fun = 'Dmid_mchirp_fdmid_fspin_cubic'
 #dmid_fun = 'Dmid_mchirp_expansion_noa30'
 #dmid_fun = 'Dmid_mchirp_expansion_exp'
 #dmid_fun = 'Dmid_mchirp_expansion_a11'
@@ -47,8 +48,10 @@ dmid_fun = 'Dmid_mchirp_fdmid'
 #dmid_fun = 'Dmid_mchirp_expansion'
 #dmid_fun = 'Dmid_mchirp'
 #dmid_fun = 'Dmid_mchirp_fdmid_fspin_c21'
-emax_fun = 'emax_exp'
+#emax_fun = 'emax_exp'
+#emax_fun = 'emax_mix'
 #emax_fun = 'emax_sigmoid'
+emax_fun = 'emax_sigmoid_nolog'
 
 alpha_vary = None
 
@@ -65,16 +68,16 @@ ini_files_bbh_bns = [[ 8.46541813e+01, -3.65634417e-06, -2.64650682e-01, -2.4350
                -3.61757871e-05]]
                                                                              
 ini_files_3_sources = [[8.71047422e+01, -7.24775437e-06, -3.94322637e-01,  4.73292056e-05,
-        3.62306966e-04, -1.15754512e-02,  2.04977352e-01,  1.90820585e-03 ], [-8.18965437e-01,  2.77526065e-01, -4.51593709e+00,  1.28444148e-02,
-               -8.55554484e-06]]
+                        3.62306966e-04, -1.15754512e-02,  2.04977352e-01,  1.90820585e-03 ], 
+                       [-8.18965437e-01,  2.77526065e-01, -4.51593709e+00,  1.28444148e-02, -8.55554484e-06]]
                                                                               
 ini_files_4_sources = [[ 1.15341023e+02, -1.11041171e-05, -1.45113888e+00,  1.11057545e-05,
-        3.28819168e-04, -4.27337660e-03,  3.39429723e-02,  5.61212292e-03], [ 5.45981998e-01,  1.44198708e-21, -2.26423282e+00,  7.75663512e-03,
-               -6.75911668e-06]]
+                         3.28819168e-04, -4.27337660e-03, 0., 0.,  3.39429723e-02,  5.61212292e-03], 
+                       [ 5.45981998e-01,  1.44198708e-21, -2.26423282e+00,  7.75663512e-03, -6.75911668e-06]]
 
 ini_files_imbh = [[8.71047422e+01, -7.24775437e-06, -3.94322637e-01,  4.73292056e-05,
-        3.62306966e-04, -1.15754512e-02,  2.04977352e-01,  1.90820585e-03 ], [-8.18965437e-01,  2.77526065e-01, -4.51593709e+00,  1e-02,
-               -8.55554484e-06]]
+                   3.62306966e-04, -1.15754512e-02,  2.04977352e-01,  1.90820585e-03 ], 
+                  [-8.18965437e-01,  2.77526065e-01, -4.51593709e+00,  1, 2e-02]]
 
 
 #ini_files = ini_files_4_sources
@@ -150,13 +153,13 @@ plt.savefig(name, format='pdf', dpi=1000, bbox_inches="tight")
 '''
 
 #%%
-data.cumulative_dist(run_dataset, run_fit, sources, 'dL')
-data.cumulative_dist(run_dataset, run_fit, sources, 'Mtot')
-data.cumulative_dist(run_dataset, run_fit, sources, 'Mc')
-data.cumulative_dist(run_dataset, run_fit, sources, 'Mtot_det')
-data.cumulative_dist(run_dataset, run_fit, sources, 'Mc_det')
-data.cumulative_dist(run_dataset, run_fit, sources, 'eta')
-data.cumulative_dist(run_dataset, run_fit, sources, 'chi_eff')
+data.cumulative_dist(run_dataset, run_fit, 'imbh', 'dL')
+data.cumulative_dist(run_dataset, run_fit, 'imbh', 'Mtot')
+data.cumulative_dist(run_dataset, run_fit, 'imbh', 'Mc')
+data.cumulative_dist(run_dataset, run_fit, 'imbh', 'Mtot_det')
+data.cumulative_dist(run_dataset, run_fit, 'imbh', 'Mc_det')
+data.cumulative_dist(run_dataset, run_fit, 'imbh', 'eta')
+data.cumulative_dist(run_dataset, run_fit, 'imbh', 'chi_eff')
 #%%
 nbins = 5
 
@@ -229,50 +232,58 @@ plt.savefig(name, format='pdf', dpi=1000, bbox_inches="tight")
 #%%
 #### CHIEFF 
 
-m1_det_bbh = data.sets['bbh']['m1'] * (1 + data.sets['bbh']['z'])
-m2_det_bbh = data.sets['bbh']['m2'] * (1 + data.sets['bbh']['z'])
+found = data.sets['bbh']['found_any']
 
-mtot_det_bbh = data.sets['bbh']['Mtot_det']
+m1_det_bbh = data.sets['bbh']['m1'][found] * (1 + data.sets['bbh']['z'][found])
+m2_det_bbh = data.sets['bbh']['m2'][found] * (1 + data.sets['bbh']['z'][found])
 
-chi_eff_bbh = data.sets['bbh']['chi_eff']
-dL_bbh = data.sets['bbh']['dL']
+mtot_det_bbh = data.sets['bbh']['Mtot_det'][found]
 
-#%%
-
-m1_det_nsbh = data.sets['nsbh']['m1'] * (1 + data.sets['nsbh']['z'])
-m2_det_nsbh = data.sets['nsbh']['m2'] * (1 + data.sets['nsbh']['z'])
-
-mtot_det_nsbh = data.sets['nsbh']['Mtot_det']
-
-chi_eff_nsbh = data.sets['nsbh']['chi_eff']
-dL_nsbh = data.sets['nsbh']['dL']
+chi_eff_bbh = data.sets['bbh']['chi_eff'][found]
+dL_bbh = data.sets['bbh']['dL'][found]
 
 #%%
 
-m1_det_bns = data.sets['bns']['m1'] * (1 + data.sets['bns']['z'])
-m2_det_bns = data.sets['bns']['m2'] * (1 + data.sets['bns']['z'])
+found = data.sets['nsbh']['found_any']
 
-mtot_det_bns = data.sets['bns']['Mtot_det']
+m1_det_nsbh = data.sets['nsbh']['m1'][found] * (1 + data.sets['nsbh']['z'][found])
+m2_det_nsbh = data.sets['nsbh']['m2'][found] * (1 + data.sets['nsbh']['z'][found])
 
-chi_eff_bns = data.sets['bns']['chi_eff']
-dL_bns = data.sets['bns']['dL']
+mtot_det_nsbh = data.sets['nsbh']['Mtot_det'][found]
+
+chi_eff_nsbh = data.sets['nsbh']['chi_eff'][found]
+dL_nsbh = data.sets['nsbh']['dL'][found]
+
+#%%
+
+found = data.sets['bns']['found_any']
+
+m1_det_bns = data.sets['bns']['m1'][found] * (1 + data.sets['bns']['z'][found])
+m2_det_bns = data.sets['bns']['m2'][found] * (1 + data.sets['bns']['z'][found])
+
+mtot_det_bns = data.sets['bns']['Mtot_det'][found]
+
+chi_eff_bns = data.sets['bns']['chi_eff'][found]
+dL_bns = data.sets['bns']['dL'][found]
 
 #%%
 
 #%%
 
-m1_det_imbh = data.sets['imbh']['m1'] * (1 + data.sets['imbh']['z'])
-m2_det_imbh = data.sets['imbh']['m2'] * (1 + data.sets['imbh']['z'])
+found = data.sets['imbh']['found_any']
 
-mtot_det_imbh = data.sets['imbh']['Mtot_det']
+m1_det_imbh = data.sets['imbh']['m1'][found] * (1 + data.sets['imbh']['z'][found])
+m2_det_imbh = data.sets['imbh']['m2'][found] * (1 + data.sets['imbh']['z'][found])
 
-chi_eff_imbh = data.sets['imbh']['chi_eff']
-dL_imbh = data.sets['imbh']['dL']
+mtot_det_imbh = data.sets['imbh']['Mtot_det'][found]
+
+chi_eff_imbh = data.sets['imbh']['chi_eff'][found]
+dL_imbh = data.sets['imbh']['dL'][found]
 
 #%%
 
 m1_det_all = np.concatenate([m1_det_bbh, m1_det_bns, m1_det_nsbh, m1_det_imbh])
-m2_det_all = np.concatenate([m2_det_bbh, m2_det_bns, m2_det_nsbh, m1_det_imbh])
+m2_det_all = np.concatenate([m2_det_bbh, m2_det_bns, m2_det_nsbh, m2_det_imbh])
 
 mtot_det_all = np.concatenate([mtot_det_bbh, mtot_det_bns, mtot_det_nsbh, mtot_det_imbh])
 
@@ -286,7 +297,7 @@ dmid_values_all = data.dmid(m1_det_all, m2_det_all, chi_eff_all, data.dmid_param
 data.set_shape_params()
 #%%
 
-dmid_values_bns = data.dmid(m1_det_bns, m2_det_bns, chi_eff_bns, data.dmid_params)
+dmid_values_bbh = data.dmid(m1_det_bbh, m2_det_bbh, chi_eff_bbh, data.dmid_params)
 data.set_shape_params()
 
 #%%
@@ -324,6 +335,7 @@ plt.savefig(name, format='pdf', dpi=300, bbox_inches="tight")
 plt.figure(figsize=(8,4.8))
 im = plt.scatter(dL_all/dmid_values_all, data.sigmoid(dL_all,dmid_values_all, data.emax(m1_det_all, m2_det_all, data.emax_params), data.gamma, data.delta), s=1, c=data.emax(m1_det_all, m2_det_all, data.emax_params), rasterized=True)
 plt.semilogx()
+plt.yticks([0, 0.2, 0.4, 0.6, 0.8, 1])
 plt.xlabel(r'$d_L / d_\mathrm{mid}$', fontsize = 24)
 plt.ylabel(r'$P_\mathrm{det}$', fontsize = 24)
 plt.yticks(fontsize=15)
@@ -340,7 +352,7 @@ plt.savefig(name, format='pdf', dpi=300, bbox_inches="tight")
 
 plt.figure(figsize=(8,4.8))
 im = plt.scatter(dL_all/dmid_values_all, data.sigmoid(dL_all,dmid_values_all, data.emax(m1_det_all, m2_det_all, data.emax_params), data.gamma, data.delta), s=1, c=data.emax(m1_det_all, m2_det_all, data.emax_params), rasterized=True)
-plt.xlim(0, 6)
+plt.xlim(-0.05, 6)
 plt.xlabel(r'$d_L / d_\mathrm{mid}$', fontsize = 24)
 plt.ylabel(r'$P_\mathrm{det}$', fontsize = 24)
 plt.yticks(fontsize=15)
@@ -361,7 +373,7 @@ m2_det_ordered = m2_det_all[order]
 
 
 plt.figure(figsize=(7,6))
-im = plt.scatter(m1_det_ordered, m2_det_ordered, s=1, c=dmid_values_ordered, rasterized=True)
+im = plt.scatter(m1_det_ordered, m2_det_ordered, s=1, c=dmid_values_ordered, norm = LogNorm(), rasterized=True)
 plt.loglog()
 plt.xlabel(r'$m_{1z} [M_{\odot}]$', fontsize=24)
 plt.ylabel('$m_{2z} [M_{\odot}]$', fontsize=24)
@@ -370,8 +382,8 @@ plt.xticks(fontsize=15)
 cbar = plt.colorbar(im)
 cbar.ax.tick_params(labelsize=15)
 cbar.set_label(r'$d_\mathrm{mid}$', fontsize=24)
-plt.savefig( path + '/m1m2det_dmid.png')
-name = path + '/m1m2det_dmid.pdf'
+plt.savefig( path + '/m1m2det_dmid_found.png')
+name = path + '/m1m2det_dmid_found.pdf'
 plt.savefig(name, format='pdf', dpi=300, bbox_inches="tight")
 
 #%%

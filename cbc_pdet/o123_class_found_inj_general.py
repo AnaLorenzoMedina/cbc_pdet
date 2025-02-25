@@ -100,9 +100,10 @@ class Found_injections:
                                   'Dmid_mchirp_power': ['cte', 'a20', 'a01', 'a21', 'a30', 'power_param'], 
                                   'Dmid_mchirp_fdmid': ['cte', 'a20', 'a01', 'a21', 'a10','a11'], 
                                   'Dmid_mchirp_fdmid_fspin': ['cte', 'a20', 'a01', 'a21', 'a10','a11', 'c1', 'c11'],
-                                  'Dmid_mchirp_fdmid_fspin_c21': ['cte', 'a20', 'a01', 'a21', 'a10','a11', 'c1', 'c11', 'c21']}
+                                  'Dmid_mchirp_fdmid_fspin_c21': ['cte', 'a20', 'a01', 'a21', 'a10','a11', 'c1', 'c11', 'c21'],
+                                  'Dmid_mchirp_fdmid_fspin_cubic': ['cte', 'a20', 'a01', 'a21', 'a10','a11', 'a30', 'a31', 'c1', 'c11']}
         
-        self.spin_functions = ['Dmid_mchirp_fdmid_fspin','Dmid_mchirp_fdmid_fspin_c21']
+        self.spin_functions = ['Dmid_mchirp_fdmid_fspin','Dmid_mchirp_fdmid_fspin_c21', 'Dmid_mchirp_fdmid_fspin_cubic']
         
         sigmoid_names = ['gamma', 'delta']
         
@@ -113,7 +114,8 @@ class Found_injections:
             sigmoid_names.append('alpha')
         
         self.shape_params_names = {'emax_exp' :  sigmoid_names + ['b_0, b_1, b_2'],
-                                  'emax_sigmoid' : sigmoid_names + ['b_0, k, M_0'],
+                                  'emax_sigmoid' : sigmoid_names + ['b_0, b_1, b_2'],
+                                  'emax_sigmoid_nolog' : sigmoid_names + ['b_0, b_1, b_2'],
                                    None : sigmoid_names,
                                   }
         
@@ -843,15 +845,9 @@ class Found_injections:
             params_emax = None if self.emax_fun is None else np.copy(self.shape_params[3:])
         
         for i in range(0, 10000):
-            
+            '''
             variables = ['dL', 'z', 'Mc', 'Mtot', 'eta', 'Mc_det', 'Mtot_det', 'chi_eff']
             names_plotting = {'dL': '$d_L$', 'z': '$z$', 'Mc': '$\mathcal{M}$', 'Mtot': '$M$', 'eta': '$\eta$', 'Mc_det': '$\mathcal{M}_z$', 'Mtot_det': '$M_z$', 'chi_eff': '$\chi_\mathrm{eff}$'}
-            
-            try:
-                os.mkdir( path + '/diagnostic')
-            except OSError as e:
-                if e.errno != errno.EEXIST:
-                    raise
                     
                     
             for j in variables:
@@ -868,7 +864,7 @@ class Found_injections:
                 #var = np.concatenate([var_bbh, var_bns])
                 indexo = np.argsort([var])
                 varo = var[indexo]
-                '''
+            
                 #bbh
                 dL_bbh = self.sets['bbh']['dL']
                 m1_bbh = self.sets['bbh']['m1']
@@ -882,21 +878,21 @@ class Found_injections:
                 m2_bns = self.sets['bns']['m2']
                 z_bns = self.sets['bns']['z']
                 chieff_bns = self.sets['bns']['chi_eff']
-                '''
+                
                 #imbh
                 dLo = self.sets['imbh']['dL'][indexo]
                 m1o = self.sets['imbh']['m1'][indexo]
                 m2o = self.sets['imbh']['m2'][indexo]
                 zo = self.sets['imbh']['z'][indexo]
                 chieffo = self.sets['imbh']['chi_eff'][indexo]
-                '''
+                
                 #together
                 dLo = np.concatenate([dL_bbh, dL_bns])[indexo]
                 m1o = np.concatenate([m1_bbh, m1_bns])[indexo]
                 m2o = np.concatenate([m2_bbh, m2_bns])[indexo]
                 zo = np.concatenate([z_bbh, z_bns])[indexo]
                 chieffo = np.concatenate([chieff_bbh, chieff_bns])[indexo]
-                '''
+                
                 m1o_det = m1o * (1 + zo) 
                 m2o_det = m2o * (1 + zo)
                 mtoto_det = m1o_det + m2o_det
@@ -940,7 +936,7 @@ class Found_injections:
                 name = path + f'/{j}_cumulative.pdf'
                 #plt.savefig(name, format='pdf', dpi=150, bbox_inches="tight")
                 plt.close()
-            
+            '''
                             
             #print('\n dmid optimization          :')
             dmid_params, maxL_1 = self.MLE_dmid(methods, sources)
@@ -1037,16 +1033,15 @@ class Found_injections:
         
         if isinstance(sources, str):
             each_source = [source.strip() for source in sources.split(',')] 
-            
+        
         sources_folder = "_".join(sorted(each_source)) 
         
-        self.get_opt_params(run_fit, sources)
+        self.get_opt_params(run_fit, 'bbh, bns, nsbh, imbh')
         
         self.make_folders(run_fit, sources_folder)
         
-        emax_dic = {None: 'cmds', 'emax_exp' : 'emax_exp_cmds', 'emax_sigmoid' : 'emax_sigmoid_cmds'}
+        emax_dic = {None: 'cmds', 'emax_exp' : 'emax_exp_cmds', 'emax_sigmoid' : 'emax_sigmoid_cmds', 'emax_sigmoid_nolog' : 'emax_sigmoid_nolog_cmds'}
         
-        #dic = {'dL': self.dL, 'Mc': self.Mc, 'Mtot': self.Mtot, 'eta': self.eta, 'Mc_det': self.Mc_det, 'Mtot_det': self.Mtot_det, 'chi_eff': self.chi_eff}
         path = f'{run_fit}/{sources_folder}/{self.dmid_fun}' if self.alpha_vary is None else f'{run_fit}/{sources_folder}/alpha_vary/{self.dmid_fun}'
         names_plotting = {'dL': '$d_L$', 'Mc': '$\mathcal{M}$', 'Mtot': '$M$', 'eta': '$\eta$', 'Mc_det': '$\mathcal{M}_z$', 'Mtot_det': '$M_z$', 'chi_eff': '$\chi_\mathrm{eff}$'}
         
@@ -1056,37 +1051,31 @@ class Found_injections:
             if e.errno != errno.EEXIST:
                 raise
                 
-         
-        #variables = ['dL', 'z', 'Mc', 'Mtot', 'eta', 'Mc_det', 'Mtot_det', 'chi_eff']
         names_plotting = {'dL': '$d_L$', 'z': '$z$', 'Mc': '$\mathcal{M}$', 'Mtot': '$M$', 'eta': '$\eta$', 'Mc_det': '$\mathcal{M}_z$', 'Mtot_det': '$M_z$', 'chi_eff': '$\chi_\mathrm{eff}$'}
-                
+        self.cdf_data = {}
+        
+        for source in each_source:
             
-        var_bbh = self.sets['bbh'][f'{var}']
-        var_bns = self.sets['bns'][f'{var}']
-        var_tot = np.concatenate([var_bbh, var_bns])
+            self.cdf_data[f'{source}'] = {}
+            
+            self.cdf_data[f'{source}']['var'] = self.sets[f'{source}'][f'{var}']
+            
+            self.cdf_data[f'{source}']['dL'] = self.sets[f'{source}']['dL']
+            self.cdf_data[f'{source}']['m1'] = self.sets[f'{source}']['m1']
+            self.cdf_data[f'{source}']['m2'] = self.sets[f'{source}']['m2']
+            self.cdf_data[f'{source}']['z'] = self.sets[f'{source}']['z']
+            self.cdf_data[f'{source}']['chi_eff'] = self.sets[f'{source}']['chi_eff']
+            
+        var_tot = np.concatenate([self.cdf_data[f'{source}']['var'] for source in each_source])
         indexo = np.argsort([var_tot])
         varo = var_tot[indexo]
         
-        #bbh
-        dL_bbh = self.sets['bbh']['dL']
-        m1_bbh = self.sets['bbh']['m1']
-        m2_bbh = self.sets['bbh']['m2']
-        z_bbh = self.sets['bbh']['z']
-        chieff_bbh = self.sets['bbh']['chi_eff']
-        
-        #bns
-        dL_bns = self.sets['bns']['dL']
-        m1_bns = self.sets['bns']['m1']
-        m2_bns = self.sets['bns']['m2']
-        z_bns = self.sets['bns']['z']
-        chieff_bns = self.sets['bns']['chi_eff']
-        
         #together
-        dLo = np.concatenate([dL_bbh, dL_bns])[indexo]
-        m1o = np.concatenate([m1_bbh, m1_bns])[indexo]
-        m2o = np.concatenate([m2_bbh, m2_bns])[indexo]
-        zo = np.concatenate([z_bbh, z_bns])[indexo]
-        chieffo = np.concatenate([chieff_bbh, chieff_bns])[indexo]
+        dLo = np.concatenate([self.cdf_data[f'{source}']['dL'] for source in each_source])[indexo]
+        m1o = np.concatenate([self.cdf_data[f'{source}']['m1'] for source in each_source])[indexo]
+        m2o = np.concatenate([self.cdf_data[f'{source}']['m2'] for source in each_source])[indexo]
+        zo = np.concatenate([self.cdf_data[f'{source}']['z'] for source in each_source])[indexo]
+        chieffo = np.concatenate([self.cdf_data[f'{source}']['chi_eff'] for source in each_source])[indexo]
         
         m1o_det = m1o * (1 + zo) 
         m2o_det = m2o * (1 + zo)
@@ -1109,10 +1098,13 @@ class Found_injections:
         
         cmd = np.cumsum(self.sigmoid(dLo, dmid_values, emax, gamma, delta, alpha))
         
+        print(cmd[-1])
+        
         #found injections
-        var_found_bbh = var_bbh[self.sets['bbh']['found_any']]
-        var_found_bns = var_bns[self.sets['bns']['found_any']]
-        var_found = np.concatenate([var_found_bbh, var_found_bns])
+        for source in each_source:
+            self.cdf_data[f'{source}']['var_found'] = self.cdf_data[f'{source}']['var'][self.sets[f'{source}']['found_any']]
+        
+        var_found = np.concatenate([self.cdf_data[f'{source}']['var_found'] for source in each_source])
         indexo_found = np.argsort(var_found)
         var_foundo = var_found[indexo_found]
         real_found_inj = np.arange(len(var_foundo))+1
@@ -1122,6 +1114,7 @@ class Found_injections:
         plt.scatter(var_foundo, real_found_inj, s=1, label='found injections', rasterized=True)
         plt.xlabel(names_plotting[var], fontsize = 24)
         plt.ylabel('Cumulative found injections', fontsize = 24)
+        plt.title(f'{sources}')
         plt.legend(loc='best', fontsize = 20, markerscale=3.)
         plt.yticks(fontsize=15)
         plt.xticks(fontsize=15)
@@ -1416,29 +1409,36 @@ class Found_injections:
             np.savetxt(name_mid, mid_values, header = '0, 1, 2, 3, 4', fmt='%s')
         return
     
-    def sensitive_volume(self, run_fit, m1, m2):
+    def sensitive_volume(self, run_fit, m1, m2, chieff = 0., rescale_o3 = True):
         '''
         Sensitive volume for a merger with given masses (m1 and m2), computed from the fit to whichever observed run we want.
         Integrated within the total range of redshift available in the injection's dataset.
         In order to use this method on its own, you need to have a injection set loaded.
-
+    
         Parameters
         ----------
         run_fit : str. Observing run from which we want to use its fit. Must be 'o1', 'o2' or 'o3'.
         m1 : float. Mass 1 
         m2 : float. Mass 2
-
+        chieff : float. Effective spin. The default is 0, If you use a fit that includes a dependence on chieff in the dmid function 
+                (it has to be on the list of spin functions), it will use chieff. if not, it won't be used for anything.
+        rescale_o3 : True or False, optional. The default is True. If True, we use the rescaled fit for o1 and o2. If False, the direct fit.
+    
         Returns
         -------
         pdet * Vtot : float. Sensitive volume
-
+    
         '''
         assert hasattr(self, 'interp_z'),\
         "You need to load an injection set (i.e., use self.load_inj_set() before using this method"
         
-        self.get_opt_params(run_fit)
+        self.get_opt_params(run_fit, rescale_o3) 
         
-        dmid = lambda dL_int : self.dmid(m1*(1 + self.interp_z(dL_int)), m2*(1 + self.interp_z(dL_int)), self.dmid_params)
+        if self.dmid_fun in self.spin_functions:
+            dmid = lambda dL_int : self.dmid(m1*(1 + self.interp_z(dL_int)), m2*(1 + self.interp_z(dL_int)), chieff, self.dmid_params)
+        else: 
+            dmid = lambda dL_int : self.dmid(m1*(1 + self.interp_z(dL_int)), m2*(1 + self.interp_z(dL_int)), self.dmid_params)
+        
         mtot = lambda dL_int :m1*(1 + self.interp_z(dL_int)) + m2*(1 + self.interp_z(dL_int))
         
         emax_params, gamma, delta, alpha = self.get_shape_params()
@@ -1457,30 +1457,34 @@ class Found_injections:
         Vtot = integrate.quad(vquad, 0, self.zmax)[0]
         
         return pdet * Vtot
-    
-    
-    def total_sensitive_volume(self, m1, m2):
+
+
+    def total_sensitive_volume(self, m1, m2, chieff = 0., rescale_o3 = True):
         '''
         total sensitive volume computed with the fractions of o1, o2 and o3 observing times and the o1, o2 rescaled fit
         Vtot = V1 * t1_frac + V2 * t2_frac + V3 * t3_frac
-
+    
         Parameters
         ----------
         m1 : float. Mass 1 
         m2 : float. Mass 2
-
+        chieff : float. Effective spin. The default is 0, If you use a fit that includes a dependence on chieff in the dmid function 
+                (it has to be on the list of spin functions), it will use chieff. if not, it won't be used for anything.
+        rescale_o3 : True or False, optional. The default is True. If True, we use the rescaled fit for o1 and o2. If False, the direct fit.
+    
+    
         Returns
         -------
         Vtot : float. Total sensitive volume
-
+    
         '''
         
         Vtot = 0
         
         for run, in zip(self.runs):
             
-            Vi = self.sensitive_volume(run, m1, m2)
-                
+            Vi = self.sensitive_volume(run, m1, m2, chieff, rescale_o3)
+            
             Vi *= self.obs_time[run]
             
             Vtot += Vi
