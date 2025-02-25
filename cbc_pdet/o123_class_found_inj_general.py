@@ -59,7 +59,9 @@ class Found_injections:
         self.H0 = 67.9 #km/sMpc
         self.c = 3e5 #km/s
         self.omega_m = 0.3065
-                
+
+        self.Vtot = None  # Slot for total comoving volume up to max z
+        
         self.dmid_ini_values, self.shape_ini_values = ini_files if ini_files is not None else self.get_ini_values()
         self.dmid_params = self.dmid_ini_values
         self.shape_params = self.shape_ini_values
@@ -267,7 +269,7 @@ class Found_injections:
         
         # a1v = np.array([self.s1x , self.s1y , self.s1z])
         # a2v = np.array([self.s1x , self.s1y , self.s1z])
-        
+
         self.chi_eff = (self.s1z * self.m1 + self.s2z * self.m2) / (self.Mtot)
         
         self.max_index = np.argmax(self.dL)
@@ -1083,8 +1085,7 @@ def binned_cumulative_dist(self, run_dataset, run_fit, nbins, var_cmd, var_binne
         -------
         pdet * Vtot : float. Sensitive volume
         '''
-        assert hasattr(self, 'interp_z'),\
-        "You need to load an injection set (i.e., use self.load_inj_set() before using this method"
+        assert hasattr(self, 'interp_z'), "You need to load an injection set, i.e. use self.load_inj_set(), before using this method"
         
         self.get_opt_params(run_fit, rescale_o3) 
 
@@ -1108,13 +1109,16 @@ def binned_cumulative_dist(self, run_dataset, run_fit, nbins, var_cmd, var_binne
                        * self.interp_dL_pdf(dL_int)
             
         pdet = integrate.quad(quad_fun, 0, self.dLmax)[0]
-        
-        vquad = lambda z_int : 4 * np.pi * self.cosmo.differential_comoving_volume(z_int).value / (1 + z_int)
-        Vtot = integrate.quad(vquad, 0, self.zmax)[0]
-        
-        return pdet * Vtot
 
+        if self.Vtot is None:
+            # NB the factor of 1/(1+z) for time dilation in the signal rate 
+            vquad = lambda z_int : 4 * np.pi * self.cosmo.differential_comoving_volume(z_int).value / (1 + z_int)
+            self.Vtot = integrate.quad(vquad, 0, self.zmax)[0]
+        
+        return pdet * self.Vtot
+    
     def total_sensitive_volume(self, m1, m2, chieff=0., rescale_o3=True):
+
         '''
         total sensitive volume computed with the fractions of o1, o2 and o3 observing times and the o1, o2 rescaled fit
         Vtot = V1 * t1_frac + V2 * t2_frac + V3 * t3_frac
@@ -1357,3 +1361,4 @@ def binned_cumulative_dist(self, run_dataset, run_fit, nbins, var_cmd, var_binne
         path = f'{run_dataset}/' + self.path
         name_file = path + f'/{n_boots}_boots_opt_params.dat'
         np.savetxt(name_file, all_params, header=header, fmt='%s')
+
