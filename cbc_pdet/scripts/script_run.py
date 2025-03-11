@@ -40,7 +40,8 @@ sources = 'bbh, bns, nsbh, imbh'
 # function for dmid and emax we wanna use
 #dmid_fun = 'Dmid_mchirp_fdmid'
 #dmid_fun = 'Dmid_mchirp_fdmid_fspin'
-dmid_fun = 'Dmid_mchirp_fdmid_fspin_cubic'
+#dmid_fun = 'Dmid_mchirp_fdmid_fspin_cubic'
+dmid_fun = 'Dmid_mchirp_fdmid_fspin_4'
 #dmid_fun = 'Dmid_mchirp_expansion_noa30'
 #dmid_fun = 'Dmid_mchirp_expansion_exp'
 #dmid_fun = 'Dmid_mchirp_expansion_a11'
@@ -50,8 +51,8 @@ dmid_fun = 'Dmid_mchirp_fdmid_fspin_cubic'
 #dmid_fun = 'Dmid_mchirp_fdmid_fspin_c21'
 #emax_fun = 'emax_exp'
 #emax_fun = 'emax_mix'
-#emax_fun = 'emax_sigmoid'
-emax_fun = 'emax_sigmoid_nolog'
+emax_fun = 'emax_sigmoid'
+#emax_fun = 'emax_sigmoid_nolog'
 
 alpha_vary = None
 
@@ -74,6 +75,11 @@ ini_files_3_sources = [[8.71047422e+01, -7.24775437e-06, -3.94322637e-01,  4.732
 ini_files_4_sources = [[ 1.15341023e+02, -1.11041171e-05, -1.45113888e+00,  1.11057545e-05,
                          3.28819168e-04, -4.27337660e-03, 0., 0.,  3.39429723e-02,  5.61212292e-03], 
                        [ 5.45981998e-01,  1.44198708e-21, -2.26423282e+00,  7.75663512e-03, -6.75911668e-06]]
+
+ini_files_4_sources = [[ 1.08806961e+02, -7.27382274e-06, -4.15308800e-01, -3.80434134e-07,
+                        1.04326772e-03, -1.04753609e-02, -8.95047613e-09,  4.83547088e-08, 0.,
+                        1.25960150e-01,  4.41568954e-03],  [5.42613833e-01,  2.71685598e-79, -1.49074349e+00,  1.62358016e-03,
+                                1.47645182e-05] ]
 
 ini_files_imbh = [[8.71047422e+01, -7.24775437e-06, -3.94322637e-01,  4.73292056e-05,
                    3.62306966e-04, -1.15754512e-02,  2.04977352e-01,  1.90820585e-03 ], 
@@ -103,7 +109,7 @@ data.joint_MLE(run_dataset, run_fit, sources)
 
 #%%
 [data.load_inj_set(run_dataset, source) for source in each_source]
-
+#%%
 data.get_opt_params(run_fit, sources)
 data.set_shape_params()
 
@@ -575,6 +581,22 @@ name ='o3/imbh/emax.png'
 plt.savefig(name, format='png', bbox_inches="tight")
 
 #%%
+dmid_p = [ 1.07866964e+02, -1.39820871e-05 ,-5.12221414e-01, -5.96877215e-07,
+  1.50047989e-03, -7.31354550e-03, -3.77804948e-09,  2.54367224e-08,
+  1.83557612e-13,  1.22333457e-01,  4.39761592e-03]
 
+emax_p = [-1.57870863e+00,  1.22469540e-01, -8.75515291e-04]
 
+gamma = 4.24316358e-01
+delta = 0.
+
+dmid = data.dmid(m1_det_all, m2_det_all, chi_eff_all, dmid_p)
+emax = data.emax(m1_det_all, m2_det_all, emax_p)
+
+pdet = data.sigmoid(dL_all, dmid, emax, gamma, delta)
+
+plt.plot(dL_all/dmid, pdet, '.')
+plt.xlim(0, 6)
+
+#%%
 os.chdir(original_working_directory)
