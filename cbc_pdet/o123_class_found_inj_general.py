@@ -16,7 +16,7 @@ import os
 import errno
 from scipy.optimize import fsolve
 from astropy.cosmology import FlatLambdaCDM
-import cbc_pdet.fitting_functions as functions #python module which contains the dmid and emax functions
+from . import fitting_functions as fits #python module which contains the dmid and emax functions
 
 Mtot_max = 510.25378
 
@@ -52,8 +52,8 @@ class Found_injections:
         
         self.dmid_fun = dmid_fun #dmid function name
         self.emax_fun = emax_fun #emax function name
-        self.dmid = getattr(functions, dmid_fun) #class method for dmid
-        self.emax = getattr(functions, emax_fun) #class method for emax
+        self.dmid = getattr(fits, dmid_fun) #class method for dmid
+        self.emax = getattr(fits, emax_fun) #class method for emax
         self.alpha_vary = alpha_vary
         
         self.H0 = 67.9 #km/sMpc
