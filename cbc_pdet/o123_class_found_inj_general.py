@@ -15,7 +15,7 @@ import matplotlib.pyplot as plt
 import os
 import errno
 from scipy.optimize import fsolve
-from astropy.cosmology import FlatLambdaCDM
+import astropy.cosmology
 from . import fitting_functions as fits #python module which contains the dmid and emax functions
 
 Mtot_max = 510.25378
@@ -30,7 +30,7 @@ class Found_injections:
     considering a signal as detected when FAR <= 1.
     """
     
-    def __init__(self, dmid_fun = 'Dmid_mchirp_expansion_noa30', emax_fun = 'emax_exp', alpha_vary = None, ini_files = None, thr_far = 1, thr_snr = 10):
+    def __init__(self, dmid_fun = 'Dmid_mchirp_fdmid_fspin', emax_fun = 'emax_exp', alpha_vary = None, ini_files = None, thr_far = 1, thr_snr = 10,  cosmo_parameters=None):
         '''
         Argument ini_files must be a list or a numpy array with two elements
         The first one contains the dmid initial values and the second one the shape initial values 
@@ -56,9 +56,12 @@ class Found_injections:
         self.emax = getattr(fits, emax_fun) #class method for emax
         self.alpha_vary = alpha_vary
         
-        self.H0 = 67.9 #km/sMpc
-        self.c = 3e5 #km/s
-        self.omega_m = 0.3065
+        if cosmo_parameters is None:
+            cosmo_parameters = {'name': 'FlatLambdaCDM', 'H0': 67.9, 'Om0': 0.3065}
+            
+        cosmology_class = getattr(astropy.cosmology, cosmo_parameters.pop('name'))
+        self.cosmo = cosmology_class(**cosmo_parameters)
+        
 
         self.Vtot = None  # Slot for total comoving volume up to max z
         
@@ -106,8 +109,6 @@ class Found_injections:
                                    'emax_sigmoid' : sigmoid_names + ['b_0, k, M_0'],
                                     None : sigmoid_names,
                                   }
-        
-        self.cosmo = FlatLambdaCDM(self.H0, self.omega_m)
         
         
     def make_folders(self, run):
