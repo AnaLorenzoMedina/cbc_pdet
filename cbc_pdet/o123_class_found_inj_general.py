@@ -243,7 +243,7 @@ class Found_injections:
         self.read_o3_set() if run_dataset == 'o3' else self.read_o1o2_set(run_dataset)
         
         # Luminosity distance sampling pdf values, p(dL), computed for a flat Lambda-Cold Dark Matter cosmology from the z_pdf values
-        self.dL_pdf = self.z_pdf / functions.dL_derivative(self.z, self.dL, self.cosmo)
+        self.dL_pdf = self.z_pdf / fits.dL_derivative(self.z, self.dL, self.cosmo)
         
         # total mass (m1+m2)
         self.Mtot = self.m1 + self.m2
