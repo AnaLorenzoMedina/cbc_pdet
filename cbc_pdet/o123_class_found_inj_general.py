@@ -16,6 +16,7 @@ import os
 import errno
 from scipy.optimize import fsolve
 import astropy.cosmology
+import astropy.constants as const
 from . import fitting_functions as fits #python module which contains the dmid and emax functions
 
 Mtot_max = 510.25378
@@ -64,6 +65,7 @@ class Found_injections:
         
 
         self.Vtot = None  # Slot for total comoving volume up to max z
+        self.zinterp_VT = None # Slot for interpolator of z given dL for comoving volume
         
         self.dmid_ini_values, self.shape_ini_values = ini_files if ini_files is not None else self.get_ini_values()
         self.dmid_params = self.dmid_ini_values
@@ -1090,12 +1092,23 @@ class Found_injections:
         -------
         pdet * Vtot : float. Sensitive volume
         '''
-        assert hasattr(self, 'interp_z'), "You need to load an injection set, i.e. use self.load_inj_set(), before using this method"
+        #assert hasattr(self, 'interp_z'), "You need to load an injection set, i.e. use self.load_inj_set(), before using this method"
         
         self.get_opt_params(run_fit, rescale_o3) 
-
-        m1_det = lambda dL_int : m1 * (1 + self.interp_z(dL_int))
-        m2_det = lambda dL_int : m2 * (1 + self.interp_z(dL_int))
+        
+        #we compute some values of dl for some z to make later an interpolator
+        if self.zinterp_VT is None:
+            fun_A = lambda t : np.sqrt(self.cosmo.Om0 * (1 + t)**3 + 1 - self.cosmo.Om0)
+            quad_fun_A = lambda t: 1/fun_A(t)
+            
+            z = np.linspace(0.002,1.9, 30)
+            z0 = np.insert(z, 0, 0, axis = 0)
+            dL = np.array([(const.c.value*1e-3 / self.cosmo.H0.value) * (1 + i) * integrate.quad(quad_fun_A, 0, i)[0] for i in z0])
+            
+            self.zinterp_VT = interpolate.interp1d(dL, z0)
+        
+        m1_det = lambda dL_int : m1 * (1 + self.zinterp_VT(dL_int))
+        m2_det = lambda dL_int : m2 * (1 + self.zinterp_VT(dL_int))
         
         if self.dmid_fun in self.spin_functions:
             dmid = lambda dL_int : self.dmid(m1_det(dL_int), m2_det(dL_int), chieff, self.dmid_params)
