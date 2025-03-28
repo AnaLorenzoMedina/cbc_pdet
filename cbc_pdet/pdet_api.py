@@ -90,7 +90,7 @@ class PdetEstimation():
                                 {'spin1', 'spin2', 'cos_theta_1', 'cos_theta_2'}]
 
         if all(param in pdict for param in ['spin1z', 'spin2z']):
-            if not (-1 <= np.all(pdict['spin1z']) <= 1) and (-1 <= np.all(parameter_dict['spin2z']) <= 1):
+            if not (-1 <= np.all(pdict['spin1z']) <= 1) and (-1 <= np.all(pdict['spin2z']) <= 1):
                 raise ValueError("Invalid spin parameters: spin1z and spin2z must be between -1 and 1")
 
         if all(p in pdict for p in ['spin1', 'spin2', 'cos_theta_1', 'cos_theta_2']):
@@ -100,14 +100,14 @@ class PdetEstimation():
                 raise ValueError("Invalid spin parameters: |spin1|*cos(theta_1) and |spin2|*cos(theta_2) must be between -1 and 1")
 
         if 'chi_eff' in parameter_dict:
-            if not (-1 <= np.all(parameter_dict['chi_eff']) <= 1):
+            if not (-1 <= np.all(pdict['chi_eff']) <= 1):
                 raise ValueError("Invalid spin parameters: effective spin must be between -1 and 1")
 
         # if 'chi_p' in parameter_dict:
-        #     if not (0 <= parameter_dict['chi_p'] <= 1):
+        #     if not (0 <= pdict['chi_p'] <= 1):
         #         raise ValueError("Invalid spin parameters: precessing spin must be between 0 and 1")
         
-        given_spin_params = set(parameter_dict.keys()) & set(self.allowed_spin_params)
+        given_spin_params = set(pdict.keys()) & set(self.allowed_spin_params)
 
         # We need exactly one spin parameter combination
         if given_spin_params not in allowed_combinations:
