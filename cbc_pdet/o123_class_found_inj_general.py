@@ -148,8 +148,12 @@ class Found_injections:
     def read_o1o2_set(self, run_dataset):
         assert run_dataset =='o1' or run_dataset == 'o2', "Argument (run_dataset) must be 'o1' or 'o2'."
         
-        file = h5py.File(f'{os.path.dirname(__file__)}/{run_dataset}-bbh-IMRPhenomXPHMpseudoFourPN.hdf5', 'r')
-        
+        try:
+            file = h5py.File(f'{os.path.dirname(__file__)}/{run_dataset}-bbh-IMRPhenomXPHMpseudoFourPN.hdf5', 'r')
+        except:
+            raise RuntimeError('File with the injection set not found. Please add it to your installation \
+                                of cbc_pdet, in the folder where o123_class_found_inj_general.py is. \
+                                It can be downloaded from https://dcc.ligo.org/LIGO-T2100280 (currently LVK access)')
         atr = dict(file.attrs.items())
         
         # Total number of generated injections
@@ -193,7 +197,12 @@ class Found_injections:
        
     def read_o3_set(self):
         
-        file = h5py.File(f'{os.path.dirname(__file__)}/endo3_bbhpop-LIGO-T2100113-v12.hdf5', 'r')
+        try:
+            file = h5py.File(f'{os.path.dirname(__file__)}/endo3_bbhpop-LIGO-T2100113-v12.hdf5', 'r')
+        except:
+            raise RuntimeError('File with the injection set not found. Please add it to your installation \
+                                of cbc_pdet, in the folder where o123_class_found_inj_general.py is. \
+                                It can be downloaded from https://zenodo.org/records/7890437')
         
         # Total number of generated injections
         self.Ntotal = file.attrs['total_generated'] 

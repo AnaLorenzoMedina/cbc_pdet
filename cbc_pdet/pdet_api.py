@@ -8,7 +8,6 @@ Created on Tue Mar 11 10:53:26 2025
 
 import numpy as np
 import pandas
-import astropy.cosmology
 import astropy.units as u
 from astropy.cosmology.funcs import z_at_value
 from .o123_class_found_inj_general import Found_injections
@@ -19,20 +18,18 @@ class PdetEstimation():
         
         if method_dict is None:
             method_dict = {'observing_run': 'o3', 'dmid_fun': 'Dmid_mchirp_fdmid_fspin', 'emax_fun': 'emax_exp'}
-            
-        if cosmo_parameters is None:
-            cosmo_parameters = {'name': 'FlatLambdaCDM', 'H0': 67.9, 'Om0': 0.3065}
-
-        #get the name of the cosmoly and remove it from the dict
-        cosmology_class = getattr(astropy.cosmology, cosmo_parameters.pop('name'))
-
-        self.cosmo = cosmology_class(**cosmo_parameters)
 
         #method keys: observing run, name dmid and emax functions
         
         self.run = method_dict.pop('observing_run')
         
-        self.fit = Found_injections(**method_dict)
+        if cosmo_parameters is None:
+            cosmo_parameters = {'name': 'FlatLambdaCDM', 'H0': 67.9, 'Om0': 0.3065}
+
+        
+        self.fit = Found_injections(**method_dict, cosmo_parameters = cosmo_parameters)
+        
+        self.cosmo = self.fit.cosmo
     
 
 
