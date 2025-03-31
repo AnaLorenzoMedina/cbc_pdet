@@ -23,6 +23,9 @@ class PdetEstimation():
             cosmo_parameters = {'name': 'FlatLambdaCDM', 'H0': 67.9, 'Om0': 0.3065}
         
         self.fit = Found_injections(**method_dict, cosmo_parameters=cosmo_parameters)
+        
+        self.fit.get_opt_params(self.run)
+        self.fit.set_shape_params()
 
     def check_parameter_dict(self, pdict):
         # Check that all parameters given are ones that we can use
@@ -51,9 +54,16 @@ class PdetEstimation():
             raise ValueError(f"Invalid parameters: {invalid_params}")
 
     def check_distance(self, pdict):
+        # Find which allowed distance parameters exist
+        found_params = [p for p in self.allowed_distance_params if p in pdict]
+        
         # We need exactly one distance parameter
-        if not any(p in pdict for p in self.allowed_distance_params):
-            raise RuntimeError("Missing distance parameter. Requires one of:", self.allowed_distance_params)
+        if len(found_params) == 0:
+            raise RuntimeError(f"Missing distance parameter. Requires one of: {self.allowed_distance_params}")
+        
+        if len(found_params) > 1:
+            raise RuntimeError(f"Too many distance parameters provided: {found_params}. Requires exactly one.")
+
 
     def check_masses(self, pdict):
         # Currently allow only the source or detector frame masses
@@ -78,11 +88,17 @@ class PdetEstimation():
                                 ]
 
         given_mass_params = set(pdict.keys()) & set(self.allowed_mass_params)
+        
+        # Find all valid combinations given
+        found_combos = [combo for combo in allowed_combinations if combo.issubset(given_mass_params)]
 
         # We need exactly one mass parameter combination
-        if given_mass_params not in allowed_combinations:
-            raise ValueError(f"Invalid mass parameter combination. Requires at least one combination of: {allowed_combinations}")
+        if not found_combos:
+            raise ValueError(f"Invalid mass parameter combination: {given_mass_params}. Requires one of: {allowed_combinations}")
 
+        if len(found_combos) > 1:
+            raise ValueError(f"Too many mass parameter combinations: {found_combos}. Provide only one valid combination of: {allowed_combinations}")
+        
     def check_spins(self, pdict):
         # Currently the fit uses only chieff, thus allow any set of parameters from which it can be calculated
         allowed_combinations = [{'spin1z', 'spin2z'},
@@ -96,7 +112,7 @@ class PdetEstimation():
         if all(p in pdict for p in ['spin1', 'spin2', 'cos_theta_1', 'cos_theta_2']):
             s1z = pdict['spin1'] * pdict['cos_theta_1']
             s2z = pdict['spin2'] * pdict['cos_theta_2']
-            if not (-1 <= np.all(s1z) <= 1) and (-1 <= np.all(s2z) <= 1):
+            if np.any(np.abs(s1z) > 1) or np.any(np.abs(s2z) > 1):
                 raise ValueError("Invalid spin parameters: |spin1|*cos(theta_1) and |spin2|*cos(theta_2) must be between -1 and 1")
 
         if 'chi_eff' in pdict:
@@ -108,11 +124,17 @@ class PdetEstimation():
         #         raise ValueError("Invalid spin parameters: precessing spin must be between 0 and 1")
         
         given_spin_params = set(pdict.keys()) & set(self.allowed_spin_params)
+        
+        # Find all valid combinations given
+        found_combos = [combo for combo in allowed_combinations if combo.issubset(given_spin_params)]
 
         # We need exactly one spin parameter combination
-        if given_spin_params not in allowed_combinations:
-            raise ValueError(f"Invalid mass parameter combination. Requires at least one combination of: {allowed_combinations}")
+        if not found_combos:
+            raise ValueError(f"Invalid spin parameter combination: {given_spin_params}. Requires one of: {allowed_combinations}")
 
+        if len(found_combos) > 1:
+            raise ValueError(f"Too many spin parameter combinations: {found_combos}. Provide only one valid combination of: {allowed_combinations}")
+        
     def check_extrinsics(self, pdict):
         # At present a placeholder as the fit does not use any extrinsic (angular) parameter
         # allowed_extrinsic_params = ['ra',
@@ -176,7 +198,7 @@ class PdetEstimation():
             
             p_dict['d_lum'] = self.fit.cosmo.luminosity_distance(p_dict['redshift']).value
 
-        if 'mass1_det' not in p_dict and 'mass1_det' not in p_dict:
+        if 'mass1_det' not in p_dict and 'mass2_det' not in p_dict:
             if 'redshift' not in p_dict:
                 # Convert luminosity distance to Mpc astropy units
                 dL_Mpc = p_dict['d_lum'] * u.Mpc
@@ -204,9 +226,6 @@ class PdetEstimation():
         self.check_input(p_dict)
         
         p_dict = self.transform_parameters(p_dict)
-        
-        self.fit.get_opt_params(self.run)
-        self.fit.set_shape_params()
         
         m1_det = p_dict['mass1_det']
         m2_det = p_dict['mass2_det']
