@@ -47,7 +47,7 @@ class PdetEstimation():
         
         self.allowed_params = self.allowed_distance_params + self.allowed_mass_params + self.allowed_spin_params
         if not all(p in self.allowed_params for p in pdict):
-            invalid_params = [p for p in parameter_dict if p not in self.allowed_params]
+            invalid_params = [p for p in pdict if p not in self.allowed_params]
             raise ValueError(f"Invalid parameters: {invalid_params}")
 
     def check_distance(self, pdict):
@@ -99,7 +99,7 @@ class PdetEstimation():
             if not (-1 <= np.all(s1z) <= 1) and (-1 <= np.all(s2z) <= 1):
                 raise ValueError("Invalid spin parameters: |spin1|*cos(theta_1) and |spin2|*cos(theta_2) must be between -1 and 1")
 
-        if 'chi_eff' in parameter_dict:
+        if 'chi_eff' in pdict:
             if not (-1 <= np.all(pdict['chi_eff']) <= 1):
                 raise ValueError("Invalid spin parameters: effective spin must be between -1 and 1")
 
@@ -189,8 +189,8 @@ class PdetEstimation():
             m1_det = p_dict['mass1_det']
             m2_det = p_dict['mass2_det']
             if not('spin1z' in p_dict and 'spin2z' in p_dict):
-                pdict['spin1z'] = p_dict['spin1'] * p_dict['cos_theta_1']
-                pdict['spin2z'] = p_dict['spin2'] * p_dict['cos_theta_2']
+                p_dict['spin1z'] = p_dict['spin1'] * p_dict['cos_theta_1']
+                p_dict['spin2z'] = p_dict['spin2'] * p_dict['cos_theta_2']
     
             p_dict['chi_eff'] = (m1_det * p_dict['spin1z'] + m2_det * p_dict['spin2z']) / (m1_det + m2_det)
 
