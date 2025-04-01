@@ -16,7 +16,8 @@ import os
 import errno
 from scipy.optimize import fsolve
 import astropy.cosmology
-import cbc_pdet.fitting_functions as functions #python module which contains the dmid and emax functions
+import astropy.constants as const
+from . import fitting_functions as fits #python module which contains the dmid and emax functions
 
 Mtot_max = 510.25378
 
@@ -29,8 +30,8 @@ class Found_injections:
     the false alarm rate (FAR). The default value is thr = 1, which means we are 
     considering a signal as detected when FAR <= 1.
     """
-    
-    def __init__(self, dmid_fun = 'Dmid_mchirp_fdmid_fspin', emax_fun = 'emax_exp', alpha_vary = None, ini_files = None, thr_far = 1, thr_snr = 10, cosmo_parameters=None):
+
+    def __init__(self, dmid_fun = 'Dmid_mchirp_fdmid_fspin', emax_fun = 'emax_exp', alpha_vary = None, ini_files = None, thr_far = 1, thr_snr = 10, cosmo_parameters = None):
         '''
         Argument ini_files must be a list or a numpy array with two elements
         The first one contains the dmid initial values and the second one the shape initial values 
@@ -52,8 +53,8 @@ class Found_injections:
         
         self.dmid_fun = dmid_fun #dmid function name
         self.emax_fun = emax_fun #emax function name
-        self.dmid = getattr(functions, dmid_fun) #class method for dmid
-        self.emax = getattr(functions, emax_fun) #class method for emax
+        self.dmid = getattr(fits, dmid_fun) #class method for dmid
+        self.emax = getattr(fits, emax_fun) #class method for emax
         self.alpha_vary = alpha_vary
         
         if cosmo_parameters is None:
@@ -63,6 +64,7 @@ class Found_injections:
         self.cosmo = cosmology_class(**cosmo_parameters)
 
         self.Vtot = None  # Slot for total comoving volume up to max z
+        self.zinterp_VT = None # Slot for interpolator of z given dL for comoving volume
         
         self.dmid_ini_values, self.shape_ini_values = ini_files if ini_files is not None else self.get_ini_values()
         self.dmid_params = self.dmid_ini_values
@@ -145,8 +147,12 @@ class Found_injections:
     def read_o1o2_set(self, run_dataset):
         assert run_dataset =='o1' or run_dataset == 'o2', "Argument (run_dataset) must be 'o1' or 'o2'."
         
-        file = h5py.File(f'{os.path.dirname(__file__)}/{run_dataset}-bbh-IMRPhenomXPHMpseudoFourPN.hdf5', 'r')
-        
+        try:
+            file = h5py.File(f'{os.path.dirname(__file__)}/{run_dataset}-bbh-IMRPhenomXPHMpseudoFourPN.hdf5', 'r')
+        except:
+            raise RuntimeError('File with the injection set not found. Please add it to your installation \
+                                of cbc_pdet, in the folder where o123_class_found_inj_general.py is. \
+                                It can be downloaded from https://dcc.ligo.org/LIGO-T2100280 (currently LVK access)')
         atr = dict(file.attrs.items())
         
         # Total number of generated injections
@@ -190,7 +196,12 @@ class Found_injections:
        
     def read_o3_set(self):
         
-        file = h5py.File(f'{os.path.dirname(__file__)}/endo3_bbhpop-LIGO-T2100113-v12.hdf5', 'r')
+        try:
+            file = h5py.File(f'{os.path.dirname(__file__)}/endo3_bbhpop-LIGO-T2100113-v12.hdf5', 'r')
+        except:
+            raise RuntimeError('File with the injection set not found. Please add it to your installation \
+                                of cbc_pdet, in the folder where o123_class_found_inj_general.py is. \
+                                It can be downloaded from https://zenodo.org/records/7890437')
         
         # Total number of generated injections
         self.Ntotal = file.attrs['total_generated'] 
@@ -242,7 +253,7 @@ class Found_injections:
         self.read_o3_set() if run_dataset == 'o3' else self.read_o1o2_set(run_dataset)
         
         # Luminosity distance sampling pdf values, p(dL), computed for a flat Lambda-Cold Dark Matter cosmology from the z_pdf values
-        self.dL_pdf = self.z_pdf / functions.dL_derivative(self.z, self.dL, self.cosmo)
+        self.dL_pdf = self.z_pdf / fits.dL_derivative(self.z, self.dL, self.cosmo)
         
         # total mass (m1+m2)
         self.Mtot = self.m1 + self.m2
@@ -431,6 +442,10 @@ class Found_injections:
         return m1**alpha * m2**beta * m1_norm * m2_norm * np.heaviside(m1 - m2, 1)
     
     def apply_dmid_mtotal_max(self, dmid_values, Mtot_det, max_mtot = None):
+        '''
+        not actually using this at this point, for the recommended functions (i.e the default) it's not necessary
+
+        '''
         max_mtot = max_mtot if max_mtot != None else Mtot_max
         #return np.putmask(dmid_values, Mtot_det > max_mtot, 0.001)
         # If dmid_values is a single float, handle it differently
@@ -461,14 +476,14 @@ class Found_injections:
         """
         m1_det = self.m1 * (1 + self.z) 
         m2_det = self.m2 * (1 + self.z)
-        mtot_det = m1_det + m2_det
+        #mtot_det = m1_det + m2_det
         
         if self.dmid_fun in self.spin_functions:
             dmid_values = self.dmid(m1_det, m2_det, self.chi_eff, dmid_params)
         else: 
             dmid_values = self.dmid(m1_det, m2_det, dmid_params)
             
-        self.apply_dmid_mtotal_max(dmid_values, mtot_det)
+        #self.apply_dmid_mtotal_max(dmid_values, mtot_det)
         
         if self.emax_fun is None and self.alpha_vary is None:
             gamma, delta, emax = shape_params[0], shape_params[1], shape_params[2]
@@ -518,7 +533,7 @@ class Found_injections:
         
         m1_det = m1 * (1 + z) 
         m2_det = m2 * (1 + z)
-        mtot_det = m1_det + m2_det
+        #mtot_det = m1_det + m2_det
         
         if self.dmid_fun in self.spin_functions:
             dmid_values = self.dmid(m1_det, m2_det, chieff, dmid_params)
@@ -527,7 +542,7 @@ class Found_injections:
             dmid_values = self.dmid(m1_det, m2_det, dmid_params)
             pdfs = m_pdf * dL_pdf
             
-        self.apply_dmid_mtotal_max(dmid_values, mtot_det)
+        #self.apply_dmid_mtotal_max(dmid_values, mtot_det)
         
         if self.emax_fun is None and self.alpha_vary is None:
             gamma, delta, emax = shape_params[0], shape_params[1], shape_params[2]
@@ -810,14 +825,14 @@ class Found_injections:
         chieffo = self.chi_eff[indexo]
         m1o_det = m1o * (1 + zo) 
         m2o_det = m2o * (1 + zo)
-        mtoto_det = m1o_det + m2o_det
+        #mtoto_det = m1o_det + m2o_det
         
         if self.dmid_fun in self.spin_functions:
             dmid_values = self.dmid(m1o_det, m2o_det, chieffo, self.dmid_params)
         else: 
             dmid_values = self.dmid(m1o_det, m2o_det, self.dmid_params)
         
-        self.apply_dmid_mtotal_max(dmid_values, mtoto_det)
+        #self.apply_dmid_mtotal_max(dmid_values, mtoto_det)
         
         emax_params, gamma, delta, alpha = self.get_shape_params()
         
@@ -848,14 +863,14 @@ class Found_injections:
         # KS test
         m1_det = self.m1 * (1 + self.z) 
         m2_det = self.m2 * (1 + self.z)
-        mtot_det = m1_det + m2_det
+        #mtot_det = m1_det + m2_det
         
         if self.dmid_fun in self.spin_functions:
             dmid_values = self.dmid(m1_det, m2_det, self.chi_eff, self.dmid_params)
         else: 
            dmid_values = self.dmid(m1_det, m2_det, self.dmid_params)
            
-        self.apply_dmid_mtotal_max(dmid_values, mtot_det)
+        #self.apply_dmid_mtotal_max(dmid_values, mtot_det)
         
         if self.emax_fun is not None:
             emax = self.emax(m1_det, m2_det, emax_params)
@@ -968,7 +983,7 @@ class Found_injections:
             dL = dL_inbin[indexo]
             m1_det = m1_det_inbin[indexo]
             m2_det = m2_det_inbin[indexo]
-            mtot_det = m1_det + m2_det
+            #mtot_det = m1_det + m2_det
             chi_eff = chi_eff_inbin[indexo]
             
             if self.dmid_fun in self.spin_functions:
@@ -976,7 +991,7 @@ class Found_injections:
             else: 
                 dmid_values = self.dmid(m1_det, m2_det, self.dmid_params)
 
-            self.apply_dmid_mtotal_max(dmid_values, mtot_det)
+            #self.apply_dmid_mtotal_max(dmid_values, mtot_det)
             
             emax_params, gamma, delta, alpha = self.get_shape_params()
             
@@ -1041,7 +1056,7 @@ class Found_injections:
             else: 
                 dmid_values = self.dmid(m1_det_inbin, m2_det_inbin, self.dmid_params)
                 
-            self.apply_dmid_mtotal_max(dmid_values, Mtot_det_inbin)
+            #self.apply_dmid_mtotal_max(dmid_values, Mtot_det_inbin)
             
             if self.emax_fun is not None:
                 emax = self.emax(m1_det_inbin, m2_det_inbin, emax_params)
@@ -1085,12 +1100,23 @@ class Found_injections:
         -------
         pdet * Vtot : float. Sensitive volume
         '''
-        assert hasattr(self, 'interp_z'), "You need to load an injection set, i.e. use self.load_inj_set(), before using this method"
+        #assert hasattr(self, 'interp_z'), "You need to load an injection set, i.e. use self.load_inj_set(), before using this method"
         
         self.get_opt_params(run_fit, rescale_o3) 
-
-        m1_det = lambda dL_int : m1 * (1 + self.interp_z(dL_int))
-        m2_det = lambda dL_int : m2 * (1 + self.interp_z(dL_int))
+        
+        #we compute some values of dl for some z to make later an interpolator
+        if self.zinterp_VT is None:
+            fun_A = lambda t : np.sqrt(self.cosmo.Om0 * (1 + t)**3 + 1 - self.cosmo.Om0)
+            quad_fun_A = lambda t: 1/fun_A(t)
+            
+            z = np.linspace(0.002,1.9, 30)
+            z0 = np.insert(z, 0, 0, axis = 0)
+            dL = np.array([(const.c.value*1e-3 / self.cosmo.H0.value) * (1 + i) * integrate.quad(quad_fun_A, 0, i)[0] for i in z0])
+            
+            self.zinterp_VT = interpolate.interp1d(dL, z0)
+        
+        m1_det = lambda dL_int : m1 * (1 + self.zinterp_VT(dL_int))
+        m2_det = lambda dL_int : m2 * (1 + self.zinterp_VT(dL_int))
         
         if self.dmid_fun in self.spin_functions:
             dmid = lambda dL_int : self.dmid(m1_det(dL_int), m2_det(dL_int), chieff, self.dmid_params)
@@ -1101,11 +1127,11 @@ class Found_injections:
         
         if self.emax_fun is not None:
             emax = lambda dL_int : self.emax(m1_det(dL_int), m2_det(dL_int), emax_params)
-            quad_fun = lambda dL_int : self.sigmoid(dL_int, self.apply_dmid_mtotal_max(dmid(dL_int), m1_det(dL_int) + m2_det(dL_int)), emax(dL_int), gamma, delta, alpha) \
+            quad_fun = lambda dL_int : self.sigmoid(dL_int, dmid(dL_int), m1_det(dL_int) + m2_det(dL_int), emax(dL_int), gamma, delta, alpha) \
                        * self.interp_dL_pdf(dL_int)
         else:
             emax = np.copy(emax_params)
-            quad_fun = lambda dL_int : self.sigmoid(dL_int, self.apply_dmid_mtotal_max(dmid(dL_int), m1_det(dL_int) + m2_det(dL_int)), emax, gamma, delta, alpha) \
+            quad_fun = lambda dL_int : self.sigmoid(dL_int, dmid(dL_int), m1_det(dL_int) + m2_det(dL_int), emax, gamma, delta, alpha) \
                        * self.interp_dL_pdf(dL_int)
             
         pdet = integrate.quad(quad_fun, 0, self.dLmax)[0]
@@ -1167,7 +1193,7 @@ class Found_injections:
     
             m1_det = self.m1 * (1 + self.z)
             m2_det = self.m2 * (1 + self.z)
-            mtot_det = m1_det + m2_det
+            #mtot_det = m1_det + m2_det
             
             dmid_values = self.dmid(m1_det, m2_det, dmid_params)
             #self.apply_dmid_mtotal_max(dmid_values, mtot_det)
@@ -1181,7 +1207,7 @@ class Found_injections:
             
             def find_root(x):
                 new_dmid_values = x * dmid_values
-                self.apply_dmid_mtotal_max(new_dmid_values, mtot_det)
+                #self.apply_dmid_mtotal_max(new_dmid_values, mtot_det)
                 
                 frac = self.dL / ( new_dmid_values)
                 denom = 1. + frac ** alpha * \
@@ -1219,10 +1245,10 @@ class Found_injections:
 
         m1_det = self.m1 * (1 + self.z)
         m2_det = self.m2 * (1 + self.z)
-        mtot_det = m1_det + m2_det
+        #mtot_det = m1_det + m2_det
         
         dmid_values = self.dmid(m1_det, m2_det, dmid_params)
-        self.apply_dmid_mtotal_max(dmid_values, mtot_det)
+        #self.apply_dmid_mtotal_max(dmid_values, mtot_det)
         
         emax_params, gamma, delta, alpha = self.get_shape_params()
         
@@ -1271,14 +1297,14 @@ class Found_injections:
         """
         self.get_opt_params(run, rescale_o3) 
         
-        mtot_det = m1_det + m2_det
+        #mtot_det = m1_det + m2_det
         
         if self.dmid_fun in self.spin_functions:
             dmid_values = self.dmid(m1_det, m2_det, chieff, self.dmid_params)
         else: 
             dmid_values = self.dmid(m1_det, m2_det, self.dmid_params)
             
-        self.apply_dmid_mtotal_max(np.array(dmid_values), mtot_det)
+        #self.apply_dmid_mtotal_max(np.array(dmid_values), mtot_det)
         
         emax_params, gamma, delta, alpha = self.get_shape_params()
         
@@ -1362,4 +1388,13 @@ class Found_injections:
         np.savetxt(name_file, all_params, header=header, fmt='%s')
         
         return
+    
+    def evaluate(self, dL, m1_det, m2_det, chi_eff, dmid_params, emax_params, gamma, delta):
+        
+        dmid_values = self.dmid(m1_det, m2_det, chi_eff, dmid_params)
+        emax_values = self.emax(m1_det, m2_det, emax_params)
+        
+        pdet = self.sigmoid(dL, dmid_values, emax_values, gamma, delta)
+        
+        return pdet
 

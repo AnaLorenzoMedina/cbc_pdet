@@ -38,14 +38,9 @@ m1_det = 60 #solar masses in the detector's frame
 m2_det = 45 #solar masses in the detector's frame
 chieff = 0.75
 
-#total mass in the detector's frame
-mtot_det = data.Mtot_det
 
 #dmid values
 dmid_values = data.dmid(m1_det, m2_det, chieff, data.dmid_params)
-
-#apply mask to avoid problems with masses out of the fit range
-data.apply_dmid_mtotal_max(dmid_values, mtot_det)
 
 #get correct shape params
 data.set_shape_params()
