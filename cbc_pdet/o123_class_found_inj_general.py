@@ -30,8 +30,8 @@ class Found_injections:
     the false alarm rate (FAR). The default value is thr = 1, which means we are 
     considering a signal as detected when FAR <= 1.
     """
-    
-    def __init__(self, dmid_fun = 'Dmid_mchirp_fdmid_fspin', emax_fun = 'emax_exp', alpha_vary = None, ini_files = None, thr_far = 1, thr_snr = 10,  cosmo_parameters=None):
+
+    def __init__(self, dmid_fun = 'Dmid_mchirp_fdmid_fspin', emax_fun = 'emax_exp', alpha_vary = None, ini_files = None, thr_far = 1, thr_snr = 10, cosmo_parameters = None):
         '''
         Argument ini_files must be a list or a numpy array with two elements
         The first one contains the dmid initial values and the second one the shape initial values 
@@ -62,7 +62,6 @@ class Found_injections:
             
         cosmology_class = getattr(astropy.cosmology, cosmo_parameters.pop('name'))
         self.cosmo = cosmology_class(**cosmo_parameters)
-        
 
         self.Vtot = None  # Slot for total comoving volume up to max z
         self.zinterp_VT = None # Slot for interpolator of z given dL for comoving volume
