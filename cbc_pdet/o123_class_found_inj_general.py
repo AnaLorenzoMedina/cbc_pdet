@@ -1389,4 +1389,13 @@ class Found_injections:
         np.savetxt(name_file, all_params, header=header, fmt='%s')
         
         return
+    
+    def evaluate(self, dL, m1_det, m2_det, chi_eff, dmid_params, emax_params, gamma, delta):
+        
+        dmid_values = self.dmid(m1_det, m2_det, chi_eff, dmid_params)
+        emax_values = self.emax(m1_det, m2_det, emax_params)
+        
+        pdet = self.sigmoid(dL, dmid_values, emax_values, gamma, delta)
+        
+        return pdet
 

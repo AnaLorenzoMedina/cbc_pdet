@@ -18,10 +18,7 @@ class PdetEstimation():
         if method_dict is None:  # Current defaults use a fit on O3 injections
             method_dict = {'observing_run': 'o3', 'dmid_fun': 'Dmid_mchirp_fdmid_fspin', 'emax_fun': 'emax_exp'}        
         self.run = method_dict.pop('observing_run')
-        
-        if cosmo_parameters is None:
-            cosmo_parameters = {'name': 'FlatLambdaCDM', 'H0': 67.9, 'Om0': 0.3065}
-        
+
         self.fit = Found_injections(**method_dict, cosmo_parameters=cosmo_parameters)
         
         self.fit.get_opt_params(self.run)
@@ -106,7 +103,7 @@ class PdetEstimation():
                                 {'spin1', 'spin2', 'cos_theta_1', 'cos_theta_2'}]
 
         if all(param in pdict for param in ['spin1z', 'spin2z']):
-            if not (-1 <= np.all(pdict['spin1z']) <= 1) and (-1 <= np.all(pdict['spin2z']) <= 1):
+            if np.any(np.abs(pdict['spin1z']) > 1) or np.any(np.abs(pdict['spin2z']) > 1):
                 raise ValueError("Invalid spin parameters: spin1z and spin2z must be between -1 and 1")
 
         if all(p in pdict for p in ['spin1', 'spin2', 'cos_theta_1', 'cos_theta_2']):
@@ -116,7 +113,7 @@ class PdetEstimation():
                 raise ValueError("Invalid spin parameters: |spin1|*cos(theta_1) and |spin2|*cos(theta_2) must be between -1 and 1")
 
         if 'chi_eff' in pdict:
-            if not (-1 <= np.all(pdict['chi_eff']) <= 1):
+            if  np.any(np.abs(pdict['chi_eff']) > 1):
                 raise ValueError("Invalid spin parameters: effective spin must be between -1 and 1")
 
         # if 'chi_p' in parameter_dict:
@@ -232,9 +229,7 @@ class PdetEstimation():
         chi_eff = p_dict['chi_eff']
         d_lum = p_dict['d_lum']
         
-        dmid_values = self.fit.dmid(m1_det, m2_det, chi_eff, self.fit.dmid_params)
-        emax_values = self.fit.emax(m1_det, m2_det, self.fit.emax_params)
-        pdet = self.fit.sigmoid(d_lum, dmid_values, emax_values, self.fit.gamma, self.fit.delta)
+        pdet = self.fit.evaluate(d_lum, m1_det, m2_det, chi_eff, self.fit.dmid_params, self.fit.emax_params, self.fit.gamma, self.fit.delta)
 
         return pdet
     
