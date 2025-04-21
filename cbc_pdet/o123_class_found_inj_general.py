@@ -66,6 +66,8 @@ class Found_injections:
         self.Vtot = None  # Slot for total comoving volume up to max z
         self.zinterp_VT = None # Slot for interpolator of z given dL for comoving volume
         
+        self.dataset = None
+        
         self.dmid_ini_values, self.shape_ini_values = ini_files if ini_files is not None else self.get_ini_values()
         self.dmid_params = self.dmid_ini_values
         self.shape_params = self.shape_ini_values
@@ -75,13 +77,13 @@ class Found_injections:
         else: 
             self.path = f'alpha_vary/{self.dmid_fun}' if self.emax_fun is None else f'alpha_vary/{self.dmid_fun}/{self.emax_fun}'
         
-        self.runs = ['o1', 'o2', 'o3']
+        self.runs = ['o1', 'o2', 'o3', 'o4']
         
-        self.obs_time = {'o1' : 0.1331507, 'o2' : 0.323288, 'o3' : 0.75435365296528} #years
+        self.obs_time = {'o1' : 0.1331507, 'o2' : 0.323288, 'o3' : 0.75435365296528, 'o4' : 0.75564681724846} #years
         self.total_obs_time = np.sum(list(self.obs_time.values()))
         self.prop_obs_time = np.array([self.obs_time[i]/self.total_obs_time for i in self.runs])
         
-        self.obs_nevents = {'o1': 3, 'o2': 7, 'o3': 59}
+        self.obs_nevents = {'o1': 3, 'o2': 7, 'o3': 59, 'o4': 0}
         
         self.det_rates = {i : self.obs_nevents[i] / self.obs_time[i] for i in self.runs}
         
@@ -248,9 +250,85 @@ class Found_injections:
         print('Found inj in o3 set: ', self.found_any.sum())  
         
         return
+    
+    def read_o4_set(self):
+        
+        try:
+            file = h5py.File(f'{os.path.dirname(__file__)}/samples-rpo4a_v2_20250220153231UTC-1366933504-23846400.hdf', 'r')
+        except:
+            raise RuntimeError('File with the injection set not found. Please add it to your installation \
+                                of cbc_pdet, in the folder where o123_class_found_inj_general.py is.')
+        
+        # Total number of generated injections
+        self.Ntotal = file.attrs['total_generated'] 
+        
+        # Mass 1 and mass 2 values in the source frame in solar units
+        self.m1 = file['events'][:]['mass1_source']
+        self.m2 = file['events'][:]['mass2_source']
+        
+        # Redshift and luminosity distance [Mpc] values 
+        self.z = file['events'][:]['z']
+        self.dL = file['events'][:]['luminosity_distance']
+      
+        # Joint mass sampling pdf (probability density function) values, p(m1,m2)
+        self.m1_pdf = np.exp(file["events"][:]["lnpdraw_mass1_source"])
+        self.m2_pdf = np.exp(file["events"][:]["lnpdraw_mass2_source_GIVEN_mass1_source"])
+        self.m_pdf = self.m1_pdf * self.m2_pdf
+        
+        # Redshift sampling pdf values, p(z), corresponding to a redshift defined by a flat Lambda-Cold Dark Matter cosmology
+        self.z_pdf = np.exp(file["events"][:]["lnpdraw_z"])
+        
+        self.s1x = file["events"][:]["spin1x"]
+        self.s1y = file["events"][:]["spin1y"]
+        self.s1z = file["events"][:]["spin1z"]
+        
+        self.s2x = file["events"][:]["spin2x"]
+        self.s2y = file["events"][:]["spin2y"]
+        self.s2z = file["events"][:]["spin2z"]
+        
+        self.a1 = file["events"][:]["spin1_magnitude"]
+        self.a2 = file["events"][:]["spin2_magnitude"]
+        self.theta1 = file['events'][:]['spin1_polar_angle']
+        self.theta2 = file['events'][:]['spin2_polar_angle']
+        
+        self.a1_pdf = np.exp(file["events"][:]["lnpdraw_spin1_magnitude"])
+        self.a2_pdf = np.exp(file["events"][:]["lnpdraw_spin2_magnitude"])
+        self.theta1_pdf = np.exp(file['events'][:]['lnpdraw_spin1_polar_angle'])
+        self.theta2_pdf = np.exp(file['events'][:]['lnpdraw_spin2_polar_angle'])
+        
+        self.chieff_d = file["events"][:]["chi_eff"]
+        
+        #self.max_s1 = file.attrs['max_spin1'] 
+        #self.max_s2 = file.attrs['max_spin2']
+        
+        # False alarm rate statistics from each pipeline
+        self.far_pbbh = file["events"][:]["pycbc_far"]
+        self.far_gstlal = file["events"][:]["gstlal_far"]
+        self.far_mbta = file["events"][:]["mbta_far"]
+        self.far_cwb = file["events"][:]["cwb-bbh_far"]
+        self.snr = file["events"][:]["snr_net"]
+        
+        found_pbbh = self.far_pbbh <= self.thr_far
+        found_gstlal = self.far_gstlal <= self.thr_far
+        found_mbta = self.far_mbta <= self.thr_far
+        found_cwb = self.far_cwb <= self.thr_far
+
+        # indexes of the found injections
+        self.found_any = found_pbbh | found_gstlal | found_mbta | found_cwb
+        print('Found inj in o3 set: ', self.found_any.sum())  
+        
+        return
         
     def load_inj_set(self, run_dataset):
-        self.read_o3_set() if run_dataset == 'o3' else self.read_o1o2_set(run_dataset)
+        
+        if run_dataset == 'o3':
+            self.read_o3_set() 
+        
+        elif run_dataset == 'o4':
+            self.read_o4_set() 
+        
+        else:
+            self.read_o1o2_set(run_dataset)
         
         # Luminosity distance sampling pdf values, p(dL), computed for a flat Lambda-Cold Dark Matter cosmology from the z_pdf values
         self.dL_pdf = self.z_pdf / fits.dL_derivative(self.z, self.dL, self.cosmo)
@@ -268,20 +346,21 @@ class Found_injections:
         self.eta = mu / self.Mtot
         self.q = self.m2 / self.m1
         
-        # spin amplitude
-        self.a1 = np.sqrt(self.s1x**2 + self.s1y**2 + self.s1z**2)
-        self.a2 = np.sqrt(self.s2x**2 + self.s2y**2 + self.s2z**2)
-        
-        self.a1_max = np.max(self.a1)
-        self.a2_max = np.max(self.a2)
-        
-        self.s1z_pdf = np.log(self.a1_max / np.abs(self.s1z)) / (2*self.a1_max)
-        self.s2z_pdf = np.log(self.a2_max / np.abs(self.s2z)) / (2*self.a2_max)
-        
-        # a1v = np.array([self.s1x , self.s1y , self.s1z])
-        # a2v = np.array([self.s1x , self.s1y , self.s1z])
-
-        self.chi_eff = (self.s1z * self.m1 + self.s2z * self.m2) / (self.Mtot)
+        if run_dataset == 'o4':
+            self.chi_eff = (self.a1 * self.theta1 * self.m1 + self.a2 * self.theta2 * self.m2) / self.Mtot
+            
+        else:
+            # spin amplitude
+            self.a1 = np.sqrt(self.s1x**2 + self.s1y**2 + self.s1z**2)
+            self.a2 = np.sqrt(self.s2x**2 + self.s2y**2 + self.s2z**2)
+            
+            self.a1_max = np.max(self.a1)
+            self.a2_max = np.max(self.a2)
+            
+            self.s1z_pdf = np.log(self.a1_max / np.abs(self.s1z)) / (2*self.a1_max)
+            self.s2z_pdf = np.log(self.a2_max / np.abs(self.s2z)) / (2*self.a2_max)
+    
+            self.chi_eff = (self.s1z * self.m1 + self.s2z * self.m2) / (self.Mtot)
         
         self.max_index = np.argmax(self.dL)
         self.dLmax = self.dL[self.max_index]
@@ -528,16 +607,28 @@ class Found_injections:
         m1 = self.m1[self.found_any]
         m2 = self.m2[self.found_any]
         chieff = self.chi_eff[self.found_any]
-        s1z_pdf = self.s1z_pdf[self.found_any]
-        s2z_pdf = self.s2z_pdf[self.found_any]
-        
+
         m1_det = m1 * (1 + z) 
         m2_det = m2 * (1 + z)
         #mtot_det = m1_det + m2_det
         
         if self.dmid_fun in self.spin_functions:
             dmid_values = self.dmid(m1_det, m2_det, chieff, dmid_params)
-            pdfs = m_pdf * dL_pdf * s1z_pdf * s2z_pdf
+            
+            if self.dataset == 'o4':
+                a1_pdf = self.a1_pdf[self.found_any]
+                a2_pdf = self.a2_pdf[self.found_any]
+                theta1_pdf = self.theta1_pdf[self.found_any]
+                theta2_pdf = self.theta2_pdf[self.found_any]
+                
+                pdfs = m_pdf * dL_pdf * a1_pdf * a2_pdf * theta1_pdf * theta2_pdf
+            
+            else:
+                s1z_pdf = self.s1z_pdf[self.found_any]
+                s2z_pdf = self.s2z_pdf[self.found_any]
+                
+                pdfs = m_pdf * dL_pdf * s1z_pdf * s2z_pdf
+            
         else: 
             dmid_values = self.dmid(m1_det, m2_det, dmid_params)
             pdfs = m_pdf * dL_pdf
@@ -641,15 +732,19 @@ class Found_injections:
         -min_likelihood : maximum log likelihood, float
         """
         shape_params_guess = np.copy(self.shape_params)
-        shape_params_guess[1] = np.log(shape_params_guess[1])
+        #shape_params_guess[1] = np.log(shape_params_guess[1])
+        
+        all_bounds = [(None, None)] * len(shape_params_guess)
+        all_bounds[1] = (0, None)
         
         res = opt.minimize(fun=lambda in_param: -self.logL_shape(self.dmid_params, in_param), 
                            x0=np.array(shape_params_guess), 
                            args=(), 
-                           method=methods)
+                           method=methods,
+                           bounds=all_bounds)
         
         opt_params = res.x
-        opt_params[1] = np.exp(opt_params[1])
+        #opt_params[1] = np.exp(opt_params[1])
         min_likelihood = res.fun  
         self.shape_params = opt_params
         
@@ -669,28 +764,32 @@ class Found_injections:
         -min_likelihood : maximum log likelihood, float
         """
         shape_params_guess = np.copy(self.shape_params)
-        shape_params_guess[1] = np.log(shape_params_guess[1])
+        #shape_params_guess[1] = np.log(shape_params_guess[1])
+        
+        all_bounds = [(None, None)] * len(shape_params_guess)
+        all_bounds[1] = (0, None)
         
         res = opt.minimize(fun=lambda in_param: -self.logL_shape(self.dmid_params, in_param), 
                            x0=np.array(shape_params_guess), 
                            args=(), 
-                           method=methods)
+                           method=methods,
+                           bounds=all_bounds)
         
         opt_params = res.x
-        opt_params[1] = np.exp(opt_params[1])
+        #opt_params[1] = np.exp(opt_params[1])
         min_likelihood = res.fun  
         self.shape_params = opt_params
 
         return opt_params, -min_likelihood
     
-    def joint_MLE(self, run_dataset, run_fit, methods = 'Nelder-Mead', precision = 1e-2, bootstrap = False):
+    def joint_MLE(self, run_dataset, methods = 'Nelder-Mead', precision = 1e-2, bootstrap = False):
         '''
         joint optimization of log likelihood, alternating between optimizing dmid params and shape params
         until the difference in the log L is <= precision . Saves the results of each iteration in txt files.
 
         Parameters
         ----------
-        run_dataset : str. Observing run injections that we want to fit. Must be 'o1', 'o2' or 'o3'.
+        run_dataset : str. Observing run injections that we want to fit. Must be 'o1', 'o2', 'o3' or 'o4'.
         methods : str, scipy method used to minimize -logL
         precision : float (positive), optional. Tolerance for termination . The default is 1e-2.
 
@@ -699,6 +798,7 @@ class Found_injections:
         None.
         '''
         self.make_folders(run_dataset)
+        self.dataset = run_dataset
         
         total_lnL = np.zeros([1])
         all_gamma = []
@@ -1127,11 +1227,11 @@ class Found_injections:
         
         if self.emax_fun is not None:
             emax = lambda dL_int : self.emax(m1_det(dL_int), m2_det(dL_int), emax_params)
-            quad_fun = lambda dL_int : self.sigmoid(dL_int, dmid(dL_int), m1_det(dL_int) + m2_det(dL_int), emax(dL_int), gamma, delta, alpha) \
+            quad_fun = lambda dL_int : self.sigmoid(dL_int, dmid(dL_int), emax(dL_int), gamma, delta, alpha) \
                        * self.interp_dL_pdf(dL_int)
         else:
             emax = np.copy(emax_params)
-            quad_fun = lambda dL_int : self.sigmoid(dL_int, dmid(dL_int), m1_det(dL_int) + m2_det(dL_int), emax, gamma, delta, alpha) \
+            quad_fun = lambda dL_int : self.sigmoid(dL_int, dmid(dL_int), emax, gamma, delta, alpha) \
                        * self.interp_dL_pdf(dL_int)
             
         pdet = integrate.quad(quad_fun, 0, self.dLmax)[0]
@@ -1378,7 +1478,7 @@ class Found_injections:
             
             self.found_any = self.found_any[boots]
 
-            opt_params_shape, opt_params_dmid = self.joint_MLE(run_dataset, run_fit, bootstrap=True)
+            opt_params_shape, opt_params_dmid = self.joint_MLE(run_dataset, bootstrap=True)
             print(i, 'n boots', opt_params_shape, opt_params_dmid)
             all_params = np.vstack([all_params, np.hstack((opt_params_shape, opt_params_dmid))])
         
