@@ -1127,11 +1127,11 @@ class Found_injections:
         
         if self.emax_fun is not None:
             emax = lambda dL_int : self.emax(m1_det(dL_int), m2_det(dL_int), emax_params)
-            quad_fun = lambda dL_int : self.sigmoid(dL_int, dmid(dL_int), m1_det(dL_int) + m2_det(dL_int), emax(dL_int), gamma, delta, alpha) \
+            quad_fun = lambda dL_int : self.sigmoid(dL_int, dmid(dL_int), emax(dL_int), gamma, delta, alpha) \
                        * self.interp_dL_pdf(dL_int)
         else:
             emax = np.copy(emax_params)
-            quad_fun = lambda dL_int : self.sigmoid(dL_int, dmid(dL_int), m1_det(dL_int) + m2_det(dL_int), emax, gamma, delta, alpha) \
+            quad_fun = lambda dL_int : self.sigmoid(dL_int, dmid(dL_int), emax, gamma, delta, alpha) \
                        * self.interp_dL_pdf(dL_int)
             
         pdet = integrate.quad(quad_fun, 0, self.dLmax)[0]
