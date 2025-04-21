@@ -36,7 +36,7 @@ class Found_injections:
 
     """
     
-    def __init__(self, dmid_fun = 'Dmid_mchirp_expansion_noa30', emax_fun = 'emax_exp', alpha_vary = None, ini_files = None, thr_far = 1, thr_snr = 10):
+    def __init__(self, dmid_fun = 'Dmid_mchirp_fdmid_fspin', emax_fun = 'emax_exp', alpha_vary = None, ini_files = None, thr_far = 1, thr_snr = 10):
         
         '''
         Argument ini_files must be a list or a numpy array with two elements
@@ -116,11 +116,13 @@ class Found_injections:
         if self.alpha_vary is not None:
             sigmoid_names.append('alpha')
         
-        self.shape_params_names = {'emax_exp' :  sigmoid_names + ['b_0, b_1, b_2'],
+        self.shape_params_names = {'emax_exp' : sigmoid_names + ['b_0, b_1, b_2'],
                                   'emax_sigmoid' : sigmoid_names + ['b_0, b_1, b_2'],
                                   'emax_sigmoid_nolog' : sigmoid_names + ['b_0, b_1, b_2'],
                                    None : sigmoid_names,
                                   }
+        
+        self.n_emax_params = len(self.shape_params_names[self.emax_fun][len(sigmoid_names)-1:])
         
         self.cosmo = FlatLambdaCDM(self.H0, self.omega_m)
         
@@ -745,11 +747,11 @@ class Found_injections:
             
     def total_lnL_shape(self, dmid_params, shape_params, sources):
         
-        print('log delta:', shape_params[1])
+        #print('log delta:', shape_params[1])
         
-        shape_params[1] = np.exp(shape_params[1])
+        #shape_params[1] = np.exp(shape_params[1])
         
-        print('delta:', shape_params[1])
+        #print('delta:', shape_params[1])
         
         if isinstance(sources, str):
             each_source = [source.strip() for source in sources.split(',')]
@@ -777,7 +779,6 @@ class Found_injections:
 
         """
         dmid_params_guess = np.copy(self.dmid_params)
-        
         res = opt.minimize(fun=lambda in_param: -self.total_lnL_dmid(in_param, self.shape_params, sources), 
                            x0=np.array(dmid_params_guess), 
                            args=(), 
@@ -804,18 +805,23 @@ class Found_injections:
         """
     
         shape_params_guess = np.copy(self.shape_params)
-        shape_params_guess[1] = np.log(shape_params_guess[1])
+        #shape_params_guess[1] = np.log(shape_params_guess[1])
+        
+        all_bounds = [(None, None)] * len(shape_params_guess)
+        all_bounds[1] = (0, None)
+                                               
         
         res = opt.minimize(fun=lambda in_param: -self.total_lnL_shape(self.dmid_params, in_param, sources), 
                            x0=np.array(shape_params_guess), 
                            args=(), 
-                           method=methods)
+                           method=methods, 
+                           bounds=all_bounds)
         
         opt_params = res.x
-        opt_params[1] = np.exp(opt_params[1])
+        #opt_params[1] = np.exp(opt_params[1])
         min_likelihood = res.fun  
         self.shape_params = opt_params
-        print(opt_params)
+        #print(opt_params)
         return opt_params, -min_likelihood
     
 

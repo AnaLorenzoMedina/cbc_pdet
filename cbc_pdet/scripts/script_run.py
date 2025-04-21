@@ -240,37 +240,37 @@ plt.savefig(name, format='pdf', dpi=1000, bbox_inches="tight")
 
 found = data.sets['bbh']['found_any']
 
-m1_det_bbh = data.sets['bbh']['m1'][found] * (1 + data.sets['bbh']['z'][found])
-m2_det_bbh = data.sets['bbh']['m2'][found] * (1 + data.sets['bbh']['z'][found])
+m1_det_bbh = data.sets['bbh']['m1'] * (1 + data.sets['bbh']['z'])
+m2_det_bbh = data.sets['bbh']['m2'] * (1 + data.sets['bbh']['z'])
 
-mtot_det_bbh = data.sets['bbh']['Mtot_det'][found]
+mtot_det_bbh = data.sets['bbh']['Mtot_det']
 
-chi_eff_bbh = data.sets['bbh']['chi_eff'][found]
-dL_bbh = data.sets['bbh']['dL'][found]
+chi_eff_bbh = data.sets['bbh']['chi_eff']
+dL_bbh = data.sets['bbh']['dL']
 
 #%%
 
 found = data.sets['nsbh']['found_any']
 
-m1_det_nsbh = data.sets['nsbh']['m1'][found] * (1 + data.sets['nsbh']['z'][found])
-m2_det_nsbh = data.sets['nsbh']['m2'][found] * (1 + data.sets['nsbh']['z'][found])
+m1_det_nsbh = data.sets['nsbh']['m1'] * (1 + data.sets['nsbh']['z'])
+m2_det_nsbh = data.sets['nsbh']['m2'] * (1 + data.sets['nsbh']['z'])
 
-mtot_det_nsbh = data.sets['nsbh']['Mtot_det'][found]
+mtot_det_nsbh = data.sets['nsbh']['Mtot_det']
 
-chi_eff_nsbh = data.sets['nsbh']['chi_eff'][found]
-dL_nsbh = data.sets['nsbh']['dL'][found]
+chi_eff_nsbh = data.sets['nsbh']['chi_eff']
+dL_nsbh = data.sets['nsbh']['dL']
 
 #%%
 
 found = data.sets['bns']['found_any']
 
-m1_det_bns = data.sets['bns']['m1'][found] * (1 + data.sets['bns']['z'][found])
-m2_det_bns = data.sets['bns']['m2'][found] * (1 + data.sets['bns']['z'][found])
+m1_det_bns = data.sets['bns']['m1'] * (1 + data.sets['bns']['z'])
+m2_det_bns = data.sets['bns']['m2']* (1 + data.sets['bns']['z'])
 
-mtot_det_bns = data.sets['bns']['Mtot_det'][found]
+mtot_det_bns = data.sets['bns']['Mtot_det']
 
-chi_eff_bns = data.sets['bns']['chi_eff'][found]
-dL_bns = data.sets['bns']['dL'][found]
+chi_eff_bns = data.sets['bns']['chi_eff']
+dL_bns = data.sets['bns']['dL']
 
 #%%
 
@@ -278,13 +278,13 @@ dL_bns = data.sets['bns']['dL'][found]
 
 found = data.sets['imbh']['found_any']
 
-m1_det_imbh = data.sets['imbh']['m1'][found] * (1 + data.sets['imbh']['z'][found])
-m2_det_imbh = data.sets['imbh']['m2'][found] * (1 + data.sets['imbh']['z'][found])
+m1_det_imbh = data.sets['imbh']['m1'] * (1 + data.sets['imbh']['z'])
+m2_det_imbh = data.sets['imbh']['m2'] * (1 + data.sets['imbh']['z'])
 
-mtot_det_imbh = data.sets['imbh']['Mtot_det'][found]
+mtot_det_imbh = data.sets['imbh']['Mtot_det']
 
-chi_eff_imbh = data.sets['imbh']['chi_eff'][found]
-dL_imbh = data.sets['imbh']['dL'][found]
+chi_eff_imbh = data.sets['imbh']['chi_eff']
+dL_imbh = data.sets['imbh']['dL']
 
 #%%
 
@@ -388,8 +388,8 @@ plt.xticks(fontsize=15)
 cbar = plt.colorbar(im)
 cbar.ax.tick_params(labelsize=15)
 cbar.set_label(r'$d_\mathrm{mid}$', fontsize=24)
-plt.savefig( path + '/m1m2det_dmid_found.png')
-name = path + '/m1m2det_dmid_found.pdf'
+plt.savefig( path + '/m1m2det_dmid.png')
+name = path + '/m1m2det_dmid.pdf'
 plt.savefig(name, format='pdf', dpi=300, bbox_inches="tight")
 
 #%%
