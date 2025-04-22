@@ -153,7 +153,7 @@ class Found_injections:
             file = h5py.File(f'{os.path.dirname(__file__)}/{run_dataset}-bbh-IMRPhenomXPHMpseudoFourPN.hdf5', 'r')
         except:
             raise RuntimeError('File with the injection set not found. Please add it to your installation \
-                                of cbc_pdet, in the folder where o123_class_found_inj_general.py is. \
+                                of cbc_pdet, in the folder where gwtc_found_inj.py is. \
                                 It can be downloaded from https://dcc.ligo.org/LIGO-T2100280 (currently LVK access)')
         atr = dict(file.attrs.items())
         
@@ -202,7 +202,7 @@ class Found_injections:
             file = h5py.File(f'{os.path.dirname(__file__)}/endo3_bbhpop-LIGO-T2100113-v12.hdf5', 'r')
         except:
             raise RuntimeError('File with the injection set not found. Please add it to your installation \
-                                of cbc_pdet, in the folder where o123_class_found_inj_general.py is. \
+                                of cbc_pdet, in the folder where ogwtc_found_inj.py is. \
                                 It can be downloaded from https://zenodo.org/records/7890437')
         
         # Total number of generated injections
@@ -257,7 +257,7 @@ class Found_injections:
             file = h5py.File(f'{os.path.dirname(__file__)}/samples-rpo4a_v2_20250220153231UTC-1366933504-23846400.hdf', 'r')
         except:
             raise RuntimeError('File with the injection set not found. Please add it to your installation \
-                                of cbc_pdet, in the folder where o123_class_found_inj_general.py is.')
+                                of cbc_pdet, in the folder where gwtc_found_inj.py is.')
         
         # Total number of generated injections
         self.Ntotal = file.attrs['total_generated'] 

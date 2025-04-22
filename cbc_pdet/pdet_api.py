@@ -10,7 +10,7 @@ import numpy as np
 import pandas
 import astropy.units as u
 from astropy.cosmology.funcs import z_at_value
-from .o123_class_found_inj_general import Found_injections
+from .gwtc_found_inj import Found_injections
 
 class PdetEstimation():
     def __init__(self, method_dict=None, cosmo_parameters=None):
