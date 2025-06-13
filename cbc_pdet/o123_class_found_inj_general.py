@@ -71,9 +71,16 @@ class Found_injections:
         self.shape_params = self.shape_ini_values
         
         if self.alpha_vary is None:
-            self.path = f'{self.dmid_fun}' if self.emax_fun is None else f'{self.dmid_fun}/{self.emax_fun}'
+            path = f'{self.dmid_fun}' if self.emax_fun is None else f'{self.dmid_fun}/{self.emax_fun}'
         else: 
-            self.path = f'alpha_vary/{self.dmid_fun}' if self.emax_fun is None else f'alpha_vary/{self.dmid_fun}/{self.emax_fun}'
+            path = f'alpha_vary/{self.dmid_fun}' if self.emax_fun is None else f'alpha_vary/{self.dmid_fun}/{self.emax_fun}'
+            
+        if self.thr_far != 1:
+            ifar = int(1 / self.thr_far)
+            self.path = f'ifar_{ifar}/' + path
+            
+        else:
+            self.path = path
         
         self.runs = ['o1', 'o2', 'o3']
         
@@ -129,6 +136,15 @@ class Found_injections:
                     raise
         else:
             path = f'{run}'
+            
+        if self.thr_far != 1:
+            ifar = int(1 / self.thr_far)
+            path = path + f'/ifar_{ifar}/'
+            try:
+                os.mkdir(path)
+            except OSError as e:
+                if e.errno != errno.EEXIST:
+                    raise
                 
         try:
             os.mkdir(path + f'/{self.dmid_fun}')
@@ -683,7 +699,7 @@ class Found_injections:
 
         return opt_params, -min_likelihood
     
-    def joint_MLE(self, run_dataset, run_fit, methods = 'Nelder-Mead', precision = 1e-2, bootstrap = False):
+    def joint_MLE(self, run_dataset, methods = 'Nelder-Mead', precision = 1e-2, bootstrap = False):
         '''
         joint optimization of log likelihood, alternating between optimizing dmid params and shape params
         until the difference in the log L is <= precision . Saves the results of each iteration in txt files.
