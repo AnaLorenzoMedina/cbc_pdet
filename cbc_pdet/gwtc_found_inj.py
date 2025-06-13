@@ -68,17 +68,29 @@ class Found_injections:
         
         self.dataset = None
         
+        self.current_pdet = None #slot for pdet in the optimization
+        
+        self.joint_pdfs = None
+        
         self.dmid_ini_values, self.shape_ini_values = ini_files if ini_files is not None else self.get_ini_values()
         self.dmid_params = self.dmid_ini_values
         self.shape_params = self.shape_ini_values
-        
+            
         if self.alpha_vary is None:
-            self.path = f'{self.dmid_fun}' if self.emax_fun is None else f'{self.dmid_fun}/{self.emax_fun}'
+            path = f'{self.dmid_fun}' if self.emax_fun is None else f'{self.dmid_fun}/{self.emax_fun}'
         else: 
-            self.path = f'alpha_vary/{self.dmid_fun}' if self.emax_fun is None else f'alpha_vary/{self.dmid_fun}/{self.emax_fun}'
+            path = f'alpha_vary/{self.dmid_fun}' if self.emax_fun is None else f'alpha_vary/{self.dmid_fun}/{self.emax_fun}'
+            
+        if self.thr_far != 1:
+            ifar = int(1 / self.thr_far)
+            self.path = f'ifar_{ifar}/' + path
+            
+        else:
+            self.path = path
         
         self.runs = ['o1', 'o2', 'o3', 'o4']
         
+        #the o4 (a as of now) time was taken from the hdf attributes 
         self.obs_time = {'o1' : 0.1331507, 'o2' : 0.323288, 'o3' : 0.75435365296528, 'o4' : 0.75564681724846} #years
         self.total_obs_time = np.sum(list(self.obs_time.values()))
         self.prop_obs_time = np.array([self.obs_time[i]/self.total_obs_time for i in self.runs])
@@ -96,9 +108,12 @@ class Found_injections:
                                   'Dmid_mchirp_power': ['cte', 'a20', 'a01', 'a21', 'a30', 'power_param'], 
                                   'Dmid_mchirp_fdmid': ['cte', 'a20', 'a01', 'a21', 'a10','a11'], 
                                   'Dmid_mchirp_fdmid_fspin': ['cte', 'a20', 'a01', 'a21', 'a10','a11', 'c1', 'c11'],
-                                  'Dmid_mchirp_fdmid_fspin_c21': ['cte', 'a20', 'a01', 'a21', 'a10','a11', 'c1', 'c11', 'c21']}
+                                  'Dmid_mchirp_fdmid_fspin_c21': ['cte', 'a20', 'a01', 'a21', 'a10','a11', 'c1', 'c11', 'c21'],
+                                  'Dmid_mchirp_fdmid_fspin_cubic': ['cte', 'a20', 'a01', 'a21', 'a10','a11', 'a30', 'a31', 'c1', 'c11'],
+                                  'Dmid_mchirp_fdmid_fspin_4': ['cte', 'a20', 'a01', 'a21', 'a10','a11', 'a30', 'a31', 'a40', 'c1', 'c11'],
+                                  'Dmid_mchirp_mixture': ['D0', 'B', 'C' , 'mu', 'sigma', 'a_01', 'a_11', 'a_21']}
         
-        self.spin_functions = ['Dmid_mchirp_fdmid_fspin','Dmid_mchirp_fdmid_fspin_c21']
+        self.spin_functions = ['Dmid_mchirp_fdmid_fspin','Dmid_mchirp_fdmid_fspin_c21', 'Dmid_mchirp_fdmid_fspin_cubic', 'Dmid_mchirp_fdmid_fspin_4']
         
         sigmoid_names = ['gamma', 'delta']
         
@@ -111,6 +126,7 @@ class Found_injections:
         self.shape_params_names = {'emax_exp' :  sigmoid_names + ['b_0, b_1, b_2'],
                                    'emax_sigmoid' : sigmoid_names + ['b_0, k, M_0'],
                                     None : sigmoid_names,
+                                   'emax_gaussian': sigmoid_names + ['b_0', 'b_1', 'muM', 'sigmaM'],
                                   }
         
         
@@ -131,6 +147,16 @@ class Found_injections:
                     raise
         else:
             path = f'{run}'
+            
+            
+        if self.thr_far != 1:
+            ifar = int(1 / self.thr_far)
+            path = path + f'/ifar_{ifar}/'
+            try:
+                os.mkdir(path)
+            except OSError as e:
+                if e.errno != errno.EEXIST:
+                    raise
                 
         try:
             os.mkdir(path + f'/{self.dmid_fun}')
@@ -145,6 +171,8 @@ class Found_injections:
                 raise
                 
         return
+            
+            
         
     def read_o1o2_set(self, run_dataset):
         assert run_dataset =='o1' or run_dataset == 'o2', "Argument (run_dataset) must be 'o1' or 'o2'."
@@ -330,12 +358,17 @@ class Found_injections:
         else:
             self.read_o1o2_set(run_dataset)
         
+        print('Computing dL pdfs...')
         # Luminosity distance sampling pdf values, p(dL), computed for a flat Lambda-Cold Dark Matter cosmology from the z_pdf values
         self.dL_pdf = self.z_pdf / fits.dL_derivative(self.z, self.dL, self.cosmo)
+        print('Finished computing dL pdfs')
         
         # total mass (m1+m2)
         self.Mtot = self.m1 + self.m2
         self.Mtot_det = self.m1 * (1+self.z) + self.m2 * (1+self.z)
+        
+        self.m1_det = self.m1 * (1 + self.z) 
+        self.m2_det = self.m2 * (1 + self.z)
         
         # mass chirp
         self.Mc = (self.m1 * self.m2)**(3/5) / (self.Mtot)**(1/5) 
@@ -388,6 +421,18 @@ class Found_injections:
         self.interp_z = interpolate.interp1d(new_dL, new_z)
         
         self.mmin = 2. ; self.mmax = 100.  # only for O3 BBH inj
+        print('finished setting up inj set')
+        
+        if self.dmid_fun in self.spin_functions:
+            
+            if self.dataset == 'o4':
+                self.joint_pdfs = self.m_pdf * self.dL_pdf * self.a1_pdf * self.a2_pdf * self.theta1_pdf * self.theta2_pdf
+            
+            else:
+                self.joint_pdfs = self.m_pdf * self.dL_pdf * self.s1z_pdf * self.s2z_pdf
+            
+        else: 
+            self.joint_pdfs = self.m_pdf * self.dL_pdf
         
         return
     
@@ -403,10 +448,10 @@ class Found_injections:
         -------
         None
         '''
-        assert run_fit =='o1' or run_fit == 'o2' or run_fit == 'o3',\
-        "Argument (run_fit) must be 'o1' or 'o2' or 'o3'. "
+        assert run_fit =='o1' or run_fit == 'o2' or run_fit == 'o3' or run_fit == 'o4',\
+        "Argument (run_fit) must be 'o1' or 'o2' or 'o3' or 'o4'. "
         
-        if not rescale_o3: # get separate independent fit files
+        if not rescale_o3 or run_fit == 'o4': # get separate independent fit files
              run_fit_touse = run_fit
             
         else: #rescale o1 and o2
@@ -419,7 +464,7 @@ class Found_injections:
         except:
             raise RuntimeError('ERROR in self.get_opt_params: There are not such files because there is not a fit yet with these options.')
     
-        if rescale_o3 and run_fit != 'o3':
+        if rescale_o3 and run_fit != 'o3' and run_fit != 'o4':
             d0 = self.find_dmid_cte_found_inj(run_fit, 'o3')
             self.dmid_params[0] = d0
             
@@ -553,15 +598,15 @@ class Found_injections:
         -------
         float
         """
-        m1_det = self.m1 * (1 + self.z) 
-        m2_det = self.m2 * (1 + self.z)
+        #print('starting Nexp calculation. Loading m1 and m2.')
         #mtot_det = m1_det + m2_det
-        
+        #print('Computing dmid')
         if self.dmid_fun in self.spin_functions:
-            dmid_values = self.dmid(m1_det, m2_det, self.chi_eff, dmid_params)
+            dmid_values = self.dmid(self.m1_det, self.m2_det, self.chi_eff, dmid_params)
         else: 
-            dmid_values = self.dmid(m1_det, m2_det, dmid_params)
+            dmid_values = self.dmid(self.m1_det, self.m2_det, dmid_params)
             
+        #print('Got dmid')
         #self.apply_dmid_mtotal_max(dmid_values, mtot_det)
         
         if self.emax_fun is None and self.alpha_vary is None:
@@ -575,16 +620,21 @@ class Found_injections:
         elif self.emax_fun is not None and self.alpha_vary is None:
             gamma, delta = shape_params[0], shape_params[1]
             emax_params = shape_params[2:]
-            emax_values = self.emax(m1_det, m2_det, emax_params)
+            emax_values = self.emax(self.m1_det, self.m2_det, emax_params)
             sigmoid_args = emax_values, gamma, delta
             
         else:
             gamma, delta, alpha = shape_params[0], shape_params[1], shape_params[2]
             emax_params = shape_params[3:]
-            emax_values = self.emax(m1_det, m2_det, emax_params)
+            emax_values = self.emax(self.m1_det, self.m2_det, emax_params)
             sigmoid_args = emax_values, gamma, delta, alpha
+            
+        #print('Got emax')
 
-        Nexp = np.sum(self.sigmoid(self.dL, dmid_values, *sigmoid_args))
+        self.current_pdet = self.sigmoid(self.dL, dmid_values, *sigmoid_args)
+        #print('Got pdet')
+        Nexp = np.sum(self.current_pdet)
+        #print('Nexp : ', Nexp)
         return Nexp
         
     def lamda(self, dmid_params, shape_params):
@@ -600,63 +650,52 @@ class Found_injections:
         -------
         float
         """
-        dL = self.dL[self.found_any]
-        dL_pdf = self.dL_pdf[self.found_any]
-        m_pdf = self.m_pdf[self.found_any]
-        z = self.z[self.found_any]
-        m1 = self.m1[self.found_any]
-        m2 = self.m2[self.found_any]
-        chieff = self.chi_eff[self.found_any]
-
-        m1_det = m1 * (1 + z) 
-        m2_det = m2 * (1 + z)
-        #mtot_det = m1_det + m2_det
+        found = self.found_any
         
-        if self.dmid_fun in self.spin_functions:
-            dmid_values = self.dmid(m1_det, m2_det, chieff, dmid_params)
-            
-            if self.dataset == 'o4':
-                a1_pdf = self.a1_pdf[self.found_any]
-                a2_pdf = self.a2_pdf[self.found_any]
-                theta1_pdf = self.theta1_pdf[self.found_any]
-                theta2_pdf = self.theta2_pdf[self.found_any]
-                
-                pdfs = m_pdf * dL_pdf * a1_pdf * a2_pdf * theta1_pdf * theta2_pdf
-            
-            else:
-                s1z_pdf = self.s1z_pdf[self.found_any]
-                s2z_pdf = self.s2z_pdf[self.found_any]
-                
-                pdfs = m_pdf * dL_pdf * s1z_pdf * s2z_pdf
-            
-        else: 
-            dmid_values = self.dmid(m1_det, m2_det, dmid_params)
-            pdfs = m_pdf * dL_pdf
+        pdfs = self.joint_pdfs[found]
             
         #self.apply_dmid_mtotal_max(dmid_values, mtot_det)
-        
-        if self.emax_fun is None and self.alpha_vary is None:
-            gamma, delta, emax = shape_params[0], shape_params[1], shape_params[2]
-            sigmoid_args = emax, gamma, delta
+        if self.current_pdet is not None:
+            pdet = self.current_pdet[found]
             
-        elif self.emax_fun is None and self.alpha_vary is not None:
-            gamma, delta, emax, alpha = shape_params[0], shape_params[1], shape_params[2], shape_params[3]
-            sigmoid_args = emax, gamma, delta, alpha
-
-        elif self.emax_fun is not None and self.alpha_vary is None:
-            gamma, delta = shape_params[0], shape_params[1]
-            emax_params = shape_params[2:]
-            emax_values = self.emax(m1_det, m2_det, emax_params)
-            sigmoid_args = emax_values, gamma, delta
-
         else:
-            gamma, delta, alpha = shape_params[0], shape_params[1], shape_params[2]
-            emax_params = shape_params[3:]
-            emax_values = self.emax(m1_det, m2_det, emax_params)
-            sigmoid_args = emax_values, gamma, delta, alpha
-
-        pdet = self.sigmoid(dL, dmid_values, *sigmoid_args)
-        return pdet * pdfs * self.Ntotal  # lambda
+            
+            dL = self.dL[found]
+            chieff = self.chi_eff[found]
+            m1_det = self.m1_det[found]
+            m2_det = self.m2_det[found]
+            
+            if self.dmid_fun in self.spin_functions:
+                dmid_values = self.dmid(m1_det, m2_det, chieff, dmid_params)
+                
+            else: 
+                dmid_values = self.dmid(m1_det, m2_det, dmid_params)
+        
+            if self.emax_fun is None and self.alpha_vary is None:
+                gamma, delta, emax = shape_params[0], shape_params[1], shape_params[2]
+                sigmoid_args = emax, gamma, delta
+                
+            elif self.emax_fun is None and self.alpha_vary is not None:
+                gamma, delta, emax, alpha = shape_params[0], shape_params[1], shape_params[2], shape_params[3]
+                sigmoid_args = emax, gamma, delta, alpha
+    
+            elif self.emax_fun is not None and self.alpha_vary is None:
+                gamma, delta = shape_params[0], shape_params[1]
+                emax_params = shape_params[2:]
+                emax_values = self.emax(m1_det, m2_det, emax_params)
+                sigmoid_args = emax_values, gamma, delta
+    
+            else:
+                gamma, delta, alpha = shape_params[0], shape_params[1], shape_params[2]
+                emax_params = shape_params[3:]
+                emax_values = self.emax(m1_det, m2_det, emax_params)
+                sigmoid_args = emax_values, gamma, delta, alpha
+        
+        
+            pdet = self.sigmoid(dL, dmid_values, *sigmoid_args)
+            
+        lamda = pdet * pdfs * self.Ntotal
+        return lamda  
     
     def logL_dmid(self, dmid_params, shape_params):
         """
@@ -671,7 +710,10 @@ class Found_injections:
         -------
         float 
         """
+        #print('dmid_params:', dmid_params)
         lnL = -self.Nexp(dmid_params, shape_params) + np.sum(np.log(self.lamda(dmid_params, shape_params)))
+        #
+        #print('lnL dmid:', lnL)
         return lnL
     
     def logL_shape(self, dmid_params, shape_params):
@@ -687,9 +729,11 @@ class Found_injections:
         -------
         float 
         """
-        shape_params[1] = np.exp(shape_params[1])
+        #shape_params[1] = np.exp(shape_params[1])
+        #print('shape_params:', shape_params)
          
         lnL = -self.Nexp(dmid_params, shape_params) + np.sum(np.log(self.lamda(dmid_params, shape_params)))
+        #print('lnL shape:', lnL)
         return lnL
     
     def MLE_dmid(self, methods):
@@ -822,6 +866,8 @@ class Found_injections:
             dmid_params, maxL_1 = self.MLE_dmid(methods)
             all_dmid_params = np.vstack([all_dmid_params, dmid_params])
             
+            print('lnL dmid : ', maxL_1)
+            
             if self.emax_fun is None:
                 shape_params, maxL_2 = self.MLE_shape(methods)
                 gamma_opt, delta_opt, emax_opt = shape_params[:2]
@@ -849,6 +895,8 @@ class Found_injections:
             
             print('\n', maxL_2)
             print(np.abs( total_lnL[i+1] - total_lnL[i] ))
+            print('dmid params:', dmid_params)
+            print('shape params:', shape_params)
             
             if np.abs( total_lnL[i+1] - total_lnL[i] ) <= precision : break
         
@@ -903,7 +951,7 @@ class Found_injections:
         self.get_opt_params(run_fit)
         self.make_folders(run_fit)
         
-        emax_dic = {None: 'cmds', 'emax_exp' : 'emax_exp_cmds', 'emax_sigmoid' : 'emax_sigmoid_cmds'}
+        emax_dic = {None: 'cmds', 'emax_exp' : 'emax_exp_cmds', 'emax_sigmoid' : 'emax_sigmoid_cmds', 'emax_gaussian' : 'emax_gaussian_cmds'}
         
         dic = {'dL': self.dL, 'Mc': self.Mc, 'Mtot': self.Mtot, 'eta': self.eta, 'Mc_det': self.Mc_det, 'Mtot_det': self.Mtot_det, 'chi_eff': self.chi_eff}
         path = f'{run_fit}/{self.dmid_fun}' if self.alpha_vary is None else f'{run_fit}/alpha_vary/{self.dmid_fun}'
