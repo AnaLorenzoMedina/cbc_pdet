@@ -21,6 +21,7 @@ import h5py
 from matplotlib import rc
 import sys
 import os
+import matplotlib.ticker as ticker
 
 
 # # Save the current working directory
@@ -57,7 +58,9 @@ run_dataset = 'o4'
 #emax_fun = 'emax_exp'
 emax_fun = 'emax_gaussian'
 #emax_fun = 'emax_sigmoid'
-dmid_fun = 'Dmid_mchirp_mixture'
+#dmid_fun = 'Dmid_mchirp_mixture'
+#dmid_fun = 'Dmid_mchirp_mixture_logspin'
+dmid_fun = 'Dmid_mchirp_mixture_logspin_corr'
 
 alpha_vary = None
 
@@ -78,8 +81,11 @@ rc('text', usetex=True)
 #                                1.47645182e-05] ]
                                                             
 
-ini_files = [[90, 0.0035, 0.95, 85, 0.6, -0.4726,  -0.001467, 4e-6], [-0.7435, 0.251, 0.3, 0.5, 150, 1]]
-data = Found_injections(dmid_fun, emax_fun, alpha_vary, ini_files=ini_files)
+#ini_files = [[1.438e2,  4.292e-03 , 1.541 , 1.433e2,  7.32e-1,  -5.86e-1,  -3.699e-3,  3.74e-6], [0.804, 4.9203e-14, 0.3, 0.5, 150, 1]]
+#ini_files_spin = [[98.832, 0.0023, 0.7082, 200.722, 1.058, -0.5713, -0.00336, 2.9764e-07, 0.1548, 0.00195, 0 ], [-1.37, 0.381, 0.20327, 0.9999, 2418.1926, 1.393]]
+ini_files_spin_log = [[99.70, 0.00237, 0.696, 202.94, 1.052,-0.567, -0.00348, 8.332e-07, -0.1235, 0.00108, 0.086, 0 ], [-1.378, 0.3825, 0.2025, 0.999, 2491.30475, 1.412 ]]
+
+data = Found_injections(dmid_fun, emax_fun, alpha_vary, ini_files=ini_files_spin_log)
 path = f'{run_dataset}/' + data.path
 
 data.make_folders(run_dataset)
@@ -95,7 +101,7 @@ data.joint_MLE(run_dataset)
  
 #%%
 
-data.load_inj_set(run_dataset)
+#data.load_inj_set(run_dataset)
 data.get_opt_params(run_fit)
 data.set_shape_params()
 
@@ -174,7 +180,6 @@ m2_det = data.m2*(1+data.z)
 mtot_det = data.Mtot_det
 
 dmid_values = data.dmid(m1_det, m2_det, data.dmid_params)
-data.apply_dmid_mtotal_max(dmid_values, mtot_det)
 data.set_shape_params()
 '''
 
@@ -197,15 +202,15 @@ plt.savefig(name, format='pdf', dpi=1000, bbox_inches="tight")
 '''
 
 #%%
-data.cumulative_dist(run_dataset, run_fit,'dL')
-data.cumulative_dist(run_dataset, run_fit,'Mtot')
-data.cumulative_dist(run_dataset, run_fit,'Mc')
-data.cumulative_dist(run_dataset, run_fit,'Mtot_det')
-data.cumulative_dist(run_dataset, run_fit,'Mc_det')
-data.cumulative_dist(run_dataset, run_fit,'eta')
-data.cumulative_dist(run_dataset, run_fit,'chi_eff')
+data.cumulative_dist(run_dataset, run_fit,'dL', ks = True)
+data.cumulative_dist(run_dataset, run_fit,'Mtot', ks = True)
+data.cumulative_dist(run_dataset, run_fit,'Mc', ks = True)
+data.cumulative_dist(run_dataset, run_fit,'Mtot_det', ks = True)
+data.cumulative_dist(run_dataset, run_fit,'Mc_det', ks = True)
+data.cumulative_dist(run_dataset, run_fit,'eta', ks = True)
+data.cumulative_dist(run_dataset, run_fit,'chi_eff', ks = True)
 #%%
-nbins = 5
+nbins = 10
 
 data.binned_cumulative_dist(run_dataset, run_fit, nbins,'chi_eff', 'dL')
 data.binned_cumulative_dist(run_dataset, run_fit, nbins, 'chi_eff', 'Mtot')
@@ -278,7 +283,7 @@ plt.savefig(name, format='pdf', dpi=1000, bbox_inches="tight")
 '''
 #%%
 #### CHIEFF 
-data.get_opt_params('o3')
+data.get_opt_params('o4')
 
 m1_det = data.m1 * (1 + data.z)
 m2_det = data.m2 * (1 + data.z)
@@ -286,7 +291,6 @@ m2_det = data.m2 * (1 + data.z)
 mtot_det = data.Mtot_det
 
 dmid_values = data.dmid(m1_det, m2_det, data.chi_eff, data.dmid_params)
-data.apply_dmid_mtotal_max(dmid_values, mtot_det)
 
 data.set_shape_params()
 
@@ -328,7 +332,6 @@ cbar = plt.colorbar(im)
 cbar.ax.tick_params(labelsize=15)
 cbar.set_label(r'$\varepsilon_\mathrm{max}$', fontsize=24)
 #plt.xlim(-0.1, 6)
-plt.show()
 plt.savefig( path + '/pdet_o3_emax.png')
 name = path + '/pdet_o3_emax.pdf'
 plt.savefig(name, format='pdf', dpi=300, bbox_inches="tight")
@@ -341,7 +344,8 @@ m2_det_ordered = m2_det[order]
 
 
 plt.figure(figsize=(7,6))
-im = plt.scatter(m1_det_ordered, m2_det_ordered, s=1, c=dmid_values_ordered, rasterized=True)
+im = plt.scatter(m1_det_ordered, m2_det_ordered, s=1, c=dmid_values_ordered, norm=LogNorm(), rasterized=True)
+plt.loglog()
 plt.xlabel(r'$m_{1z} [M_{\odot}]$', fontsize=24)
 plt.ylabel('$m_{2z} [M_{\odot}]$', fontsize=24)
 plt.yticks(fontsize=15)
@@ -349,7 +353,7 @@ plt.xticks(fontsize=15)
 cbar = plt.colorbar(im)
 cbar.ax.tick_params(labelsize=15)
 cbar.set_label(r'$d_\mathrm{mid}$', fontsize=24)
-plt.savefig( path + '/m1m2det_dmid.png')
+plt.savefig( path + '/logm1m2det_dmid.png')
 name = path + '/m1m2det_dmid.pdf'
 plt.savefig(name, format='pdf', dpi=300, bbox_inches="tight")
 
@@ -363,11 +367,12 @@ emax = data.emax(m1det, m2det, data.emax_params)
 #y = (1 - np.exp(params_emax[0])) / (1 + np.exp(params_emax[1]*(x-params_emax[2])))
 plt.figure(figsize=(7,4.8))
 plt.plot(mtot, emax, '-')
-plt.ylim(0, 2)
+plt.semilogx()
+#plt.ylim(0, 2)
 #plt.semilogx()
 plt.grid()
-plt.xlabel(r'$M_z [M_{\odot}]$', fontsize=15)
-plt.ylabel(r'$\varepsilon_{max}$', fontsize=15)
+plt.xlabel(r'$M_z [M_{\odot}]$', fontsize=24)
+plt.ylabel(r'$\varepsilon_{max}$', fontsize=24)
 plt.savefig( path + '/emax.png')
 name = path + '/emax.pdf'
 plt.savefig(name, format='pdf', dpi=300, bbox_inches="tight")

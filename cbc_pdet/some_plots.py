@@ -32,15 +32,16 @@ run_fit = 'o4'
 run_dataset = 'o4'
 
 
-#dmid_fun = 'Dmid_mchirp_fdmid'
-dmid_fun = 'Dmid_mchirp_fdmid_fspin'
-emax_fun = 'emax_exp'
+dmid_fun = 'Dmid_mchirp_mixture_spin'
+#dmid_fun = 'Dmid_mchirp_fdmid_fspin'
+#emax_fun = 'emax_exp'
+emax_fun = 'emax_gaussian'
 alpha_vary = None
 
 data = Found_injections(dmid_fun, emax_fun, alpha_vary)
 path = f'{run_dataset}/' + data.path
 data.load_inj_set(run_dataset)
-#data.get_opt_params(run_fit)
+data.get_opt_params(run_fit)
 
 rc('text', usetex=True)
 #rc('font', **{'family': 'serif', 'serif': ['Computer Modern']})
@@ -256,8 +257,8 @@ plt.close()
 
 plt.figure()
 im = plt.scatter(Mtot_plot, emax_plot, c=n_plot, norm=LogNorm())
-plt.plot(Mtot, emax_gaussian(Mtot), '-')
-plt.plot(Mtot, emax_lognormal(Mtot), '-')
+#plt.plot(Mtot, emax_gaussian(Mtot), '-')
+#plt.plot(Mtot, emax_lognormal(Mtot), '-')
 plt.xscale('log')
 cbar = plt.colorbar(im)
 cbar.set_label(r'N events', fontsize=20)
@@ -588,6 +589,24 @@ plt.savefig(name, format='png', dpi=150, bbox_inches="tight")
 
 #%%
 
+
+plt.figure(figsize=(7,6))
+im = plt.scatter(data.Mtot_det, dmid_values/(data.Mc**(5/6)), c=data.eta, s=1, rasterized=True)
+cbar = plt.colorbar(im)
+cbar.set_label(r'$\eta$', fontsize=24)
+cbar.ax.tick_params(labelsize=15)
+plt.semilogx()
+plt.xlabel(r'$M_z [M_{\odot}]$', fontsize=24)
+plt.ylabel(r'$d_\mathrm{mid}$', fontsize=24)
+plt.yticks(fontsize=15)
+plt.xticks(fontsize=15)
+name = path + '/dmid_vs_Mtot_eta.pdf'
+plt.savefig(name, format='pdf', dpi=150, bbox_inches="tight")
+name = path + '/dmid_vs_tMot_eta.png'
+plt.savefig(name, format='png', dpi=150, bbox_inches="tight")
+
+#%%
+
 plt.figure(figsize=(8,4.8))
 im = plt.scatter(data.dL, data.Mc, c=dmid_values, s=1)
 cbar = plt.colorbar(im )
@@ -611,7 +630,8 @@ plt.savefig(name, format='png', dpi=300, bbox_inches="tight")
 #         return np.ma.masked_array(np.interp(np.log(value), x, y))
     
 #chieff_corr = np.exp( (data.dmid_params[6] + data.dmid_params[7] * data.Mtot_det) * data.chi_eff )
-chieff_corr = np.exp( (data.dmid_params[6] + data.dmid_params[7] * data.Mtot_det) * data.chi_eff )
+#chieff_corr = np.exp( (data.dmid_params[8] + data.dmid_params[9] * data.Mtot_det) * data.chi_eff )
+chieff_corr = np.exp( (data.dmid_params[8] + data.dmid_params[9] * data.Mtot_det + data.dmid_params[10] * np.log(data.Mtot_det)) * data.chi_eff )
 
 plt.close('all')
 plt.figure(figsize=(8,4.8))
@@ -626,6 +646,7 @@ plt.yticks(fontsize=15)
 plt.xticks(fontsize=15)
 cbar.ax.yaxis.set_major_formatter(ticker.LogFormatterSciNotation())
 cbar.ax.tick_params(axis='y', which='both', labelsize=15)
+#plt.ylim(0, 530)
 #cbar.ax.yaxis.set_major_formatter(ticker.ScalarFormatter())
 #cbar.ax.tick_params(labelsize=15)
 name = path + '/chieff_corr_mtot.png'

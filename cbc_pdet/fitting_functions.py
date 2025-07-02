@@ -223,7 +223,7 @@ def emax_gaussian(m1_det, m2_det, params):
 
     """
     Mtot = m1_det + m2_det
-    b_0, b_1, muM, sigmaM = 0.3, 0.5, 150, 1
+    b_0, b_1, muM, sigmaM = params
     return (1 - b_0) * (1 - (b_1 * np.exp(-(np.log(Mtot) - np.log(muM))**2 / (2 *sigmaM**2))))
 
 def emax_sigmoid(m1_det, m2_det, params): 
@@ -424,6 +424,145 @@ def Dmid_mchirp_mixture(m1_det, m2_det, params):
     f_eta =  a_01 * (1 - 4*eta)  + a_11 * M * (1 - 4*eta) + a_21 * M**2 * (1 - 4*eta)
     
     return  Mc**(5/6) * f_M * np.exp(f_eta) 
+
+def Dmid_mchirp_mixture_spin(m1_det, m2_det, chi_eff, params):
+    """
+    Dmid values (distance where Pdet = 0.5) as a function of the masses 
+    in the detector frame and the spins (chi effective)
+
+    Parameters
+    ----------
+    m1_det : detector frame mass1, float or 1D array
+    m2_det: detector frame mass2, float or 1D array
+    chi_eff: chi effective, float or 1D array
+    params : parameters that we will be optimizing, 1D array
+    
+    Returns
+    -------
+    Dmid(m1,m2, chi_eff) in the detector's frame
+
+    """
+    D0, B, C , mu, sigma, a_01, a_11, a_21, c_01, c_11 = params
+
+    M = m1_det + m2_det
+    eta = m1_det * m2_det / M**2
+    
+    Mc = (m1_det * m2_det)**(3/5) / M**(1/5)
+    
+    fexp = np.exp(-B * M)
+    fgauss = np.exp(-(np.log(M)-np.log(mu))**2 / (2*sigma**2))
+    
+    f_M = D0 * (fexp + C * fgauss)
+    
+    #f_eta =  a_01 * (1 - 4*eta)  + a_11 * M * (1 - 4*eta) + a_21 * M**2 * (1 - 4*eta) + l_11 * np.log(M) * (1 - 4*eta) + l_21 * np.log(M)**2 * (1 - 4*eta)
+    f_eta =  a_01 * (1 - 4*eta)  + a_11 * M * (1 - 4*eta) + a_21 * M**2 * (1 - 4*eta)
+    f_as = (c_01 + c_11 * M ) * chi_eff
+    
+    return  Mc**(5/6) * f_M * np.exp(f_eta) * np.exp(f_as)
+
+def Dmid_mchirp_mixture_logM_logspin(m1_det, m2_det, chi_eff, params):
+    """
+    Dmid values (distance where Pdet = 0.5) as a function of the masses 
+    in the detector frame and the spins (chi effective)
+
+    Parameters
+    ----------
+    m1_det : detector frame mass1, float or 1D array
+    m2_det: detector frame mass2, float or 1D array
+    chi_eff: chi effective, float or 1D array
+    params : parameters that we will be optimizing, 1D array
+    
+    Returns
+    -------
+    Dmid(m1,m2, chi_eff) in the detector's frame
+
+    """
+    D0, B, C , mu, sigma, a_01, a_11, a_21, c_01, c_11, d_11, l_11, l_21 = params
+
+    M = m1_det + m2_det
+    eta = m1_det * m2_det / M**2
+    
+    Mc = (m1_det * m2_det)**(3/5) / M**(1/5)
+    
+    fexp = np.exp(-B * M)
+    fgauss = np.exp(-(np.log(M)-np.log(mu))**2 / (2*sigma**2))
+    
+    f_M = D0 * (fexp + C * fgauss)
+    
+    f_eta =  a_01 * (1 - 4*eta)  + a_11 * M * (1 - 4*eta) + a_21 * M**2 * (1 - 4*eta) + l_11 * np.log(M) * (1 - 4*eta) + l_21 * np.log(M)**2 * (1 - 4*eta)
+    #f_eta =  a_01 * (1 - 4*eta)  + a_11 * M * (1 - 4*eta) + a_21 * M**2 * (1 - 4*eta)
+    f_as = (c_01 + c_11 * M + d_11 * np.log(M)) * chi_eff
+    
+    return  Mc**(5/6) * f_M * np.exp(f_eta) * np.exp(f_as)
+
+def Dmid_mchirp_mixture_logspin(m1_det, m2_det, chi_eff, params):
+    """
+    Dmid values (distance where Pdet = 0.5) as a function of the masses 
+    in the detector frame and the spins (chi effective)
+
+    Parameters
+    ----------
+    m1_det : detector frame mass1, float or 1D array
+    m2_det: detector frame mass2, float or 1D array
+    chi_eff: chi effective, float or 1D array
+    params : parameters that we will be optimizing, 1D array
+    
+    Returns
+    -------
+    Dmid(m1,m2, chi_eff) in the detector's frame
+
+    """
+    D0, B, C , mu, sigma, a_01, a_11, a_21, c_01, c_11, d_11 = params
+
+    M = m1_det + m2_det
+    eta = m1_det * m2_det / M**2
+    
+    Mc = (m1_det * m2_det)**(3/5) / M**(1/5)
+    
+    fexp = np.exp(-B * M)
+    fgauss = np.exp(-(np.log(M)-np.log(mu))**2 / (2*sigma**2))
+    
+    f_M = D0 * (fexp + C * fgauss)
+    
+    #f_eta =  a_01 * (1 - 4*eta)  + a_11 * M * (1 - 4*eta) + a_21 * M**2 * (1 - 4*eta) + l_11 * np.log(M) * (1 - 4*eta) + l_21 * np.log(M)**2 * (1 - 4*eta)
+    f_eta =  a_01 * (1 - 4*eta)  + a_11 * M * (1 - 4*eta) + a_21 * M**2 * (1 - 4*eta)
+    f_as = (c_01 + c_11 * M + d_11 * np.log(M)) * chi_eff
+    
+    return  Mc**(5/6) * f_M * np.exp(f_eta) * np.exp(f_as)
+
+def Dmid_mchirp_mixture_logspin_corr(m1_det, m2_det, chi_eff, params):
+    """
+    Dmid values (distance where Pdet = 0.5) as a function of the masses 
+    in the detector frame and the spins (chi effective)
+
+    Parameters
+    ----------
+    m1_det : detector frame mass1, float or 1D array
+    m2_det: detector frame mass2, float or 1D array
+    chi_eff: chi effective, float or 1D array
+    params : parameters that we will be optimizing, 1D array
+    
+    Returns
+    -------
+    Dmid(m1,m2, chi_eff) in the detector's frame
+
+    """
+    D0, B, C , mu, sigma, a_01, a_11, a_21, c_01, c_11, d_11, L = params
+
+    M = m1_det + m2_det
+    eta = m1_det * m2_det / M**2
+    
+    Mc = (m1_det * m2_det)**(3/5) / M**(1/5)
+    
+    fexp = np.exp(-B * M - L * np.log(M))
+    fgauss = np.exp(-(np.log(M)-np.log(mu))**2 / (2*sigma**2))
+    
+    f_M = D0 * (fexp + C * fgauss)
+    
+    f_eta =  a_01 * (1 - 4*eta)  + a_11 * M * (1 - 4*eta) + a_21 * M**2 * (1 - 4*eta)
+    f_as = (c_01 + c_11 * M + d_11 * np.log(M)) * chi_eff
+    
+    return  Mc**(5/6) * f_M * np.exp(f_eta) * np.exp(f_as)
 
 
 

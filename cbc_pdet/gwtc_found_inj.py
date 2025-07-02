@@ -111,9 +111,13 @@ class Found_injections:
                                   'Dmid_mchirp_fdmid_fspin_c21': ['cte', 'a20', 'a01', 'a21', 'a10','a11', 'c1', 'c11', 'c21'],
                                   'Dmid_mchirp_fdmid_fspin_cubic': ['cte', 'a20', 'a01', 'a21', 'a10','a11', 'a30', 'a31', 'c1', 'c11'],
                                   'Dmid_mchirp_fdmid_fspin_4': ['cte', 'a20', 'a01', 'a21', 'a10','a11', 'a30', 'a31', 'a40', 'c1', 'c11'],
-                                  'Dmid_mchirp_mixture': ['D0', 'B', 'C' , 'mu', 'sigma', 'a_01', 'a_11', 'a_21']}
+                                  'Dmid_mchirp_mixture': ['D0', 'B', 'C' , 'mu', 'sigma', 'a_01', 'a_11', 'a_21'],
+                                  'Dmid_mchirp_mixture_spin': ['D0', 'B', 'C' , 'mu', 'sigma', 'a_01', 'a_11', 'a_21', 'c_01', 'c_11'],
+                                  'Dmid_mchirp_mixture_logspin': ['D0', 'B', 'C' , 'mu', 'sigma', 'a_01', 'a_11', 'a_21', 'c_01', 'c_11', 'd_11'],
+                                  'Dmid_mchirp_mixture_logspin_corr': ['D0', 'B', 'C' , 'mu', 'sigma', 'a_01', 'a_11', 'a_21', 'c_01', 'c_11', 'd_11', 'L'],
+                                  'Dmid_mchirp_mixture_logM_logspin': ['D0', 'B', 'C' , 'mu', 'sigma', 'a_01', 'a_11', 'a_21', 'c_01', 'c_11', 'd_11', 'l_11', 'l_21']}
         
-        self.spin_functions = ['Dmid_mchirp_fdmid_fspin','Dmid_mchirp_fdmid_fspin_c21', 'Dmid_mchirp_fdmid_fspin_cubic', 'Dmid_mchirp_fdmid_fspin_4']
+        self.spin_functions = ['Dmid_mchirp_fdmid_fspin','Dmid_mchirp_fdmid_fspin_c21', 'Dmid_mchirp_fdmid_fspin_cubic', 'Dmid_mchirp_fdmid_fspin_4', 'Dmid_mchirp_mixture_spin', 'Dmid_mchirp_mixture_logspin', 'Dmid_mchirp_mixture_logspin_corr', 'Dmid_mchirp_mixture_logM_logspin']
         
         sigmoid_names = ['gamma', 'delta']
         
@@ -212,7 +216,7 @@ class Found_injections:
         self.s2y = file["events"][:]["spin2y"]
         self.s2z = file["events"][:]["spin2z"]
         
-        self.chieff_d = file["events"][:]["chi_eff"]
+        self.chi_eff = file["events"][:]["chi_eff"]
         
         # SNR
         self.snr = file["events"][:]["snr_net"]
@@ -324,7 +328,7 @@ class Found_injections:
         self.theta1_pdf = np.exp(file['events'][:]['lnpdraw_spin1_polar_angle'])
         self.theta2_pdf = np.exp(file['events'][:]['lnpdraw_spin2_polar_angle'])
         
-        self.chieff_d = file["events"][:]["chi_eff"]
+        self.chi_eff = file["events"][:]["chi_eff"]
         
         #self.max_s1 = file.attrs['max_spin1'] 
         #self.max_s2 = file.attrs['max_spin2']
@@ -379,22 +383,9 @@ class Found_injections:
         self.eta = mu / self.Mtot
         self.q = self.m2 / self.m1
         
-        if run_dataset == 'o4':
-            self.chi_eff = (self.a1 * self.theta1 * self.m1 + self.a2 * self.theta2 * self.m2) / self.Mtot
+        if run_dataset == 'o3':
+            self.chi_eff = (self.s1z * self.m1 + self.s2z * self.m2) / self.Mtot
             
-        else:
-            # spin amplitude
-            self.a1 = np.sqrt(self.s1x**2 + self.s1y**2 + self.s1z**2)
-            self.a2 = np.sqrt(self.s2x**2 + self.s2y**2 + self.s2z**2)
-            
-            self.a1_max = np.max(self.a1)
-            self.a2_max = np.max(self.a2)
-            
-            self.s1z_pdf = np.log(self.a1_max / np.abs(self.s1z)) / (2*self.a1_max)
-            self.s2z_pdf = np.log(self.a2_max / np.abs(self.s2z)) / (2*self.a2_max)
-    
-            self.chi_eff = (self.s1z * self.m1 + self.s2z * self.m2) / (self.Mtot)
-        
         self.max_index = np.argmax(self.dL)
         self.dLmax = self.dL[self.max_index]
         self.zmax = np.max(self.z)
@@ -421,7 +412,6 @@ class Found_injections:
         self.interp_z = interpolate.interp1d(new_dL, new_z)
         
         self.mmin = 2. ; self.mmax = 100.  # only for O3 BBH inj
-        print('finished setting up inj set')
         
         if self.dmid_fun in self.spin_functions:
             
@@ -429,10 +419,21 @@ class Found_injections:
                 self.joint_pdfs = self.m_pdf * self.dL_pdf * self.a1_pdf * self.a2_pdf * self.theta1_pdf * self.theta2_pdf
             
             else:
+                self.a1 = np.sqrt(self.s1x**2 + self.s1y**2 + self.s1z**2)
+                self.a2 = np.sqrt(self.s2x**2 + self.s2y**2 + self.s2z**2)
+                
+                self.a1_max = np.max(self.a1)
+                self.a2_max = np.max(self.a2)
+                
+                self.s1z_pdf = np.log(self.a1_max / np.abs(self.s1z)) / (2*self.a1_max)
+                self.s2z_pdf = np.log(self.a2_max / np.abs(self.s2z)) / (2*self.a2_max)
+                
                 self.joint_pdfs = self.m_pdf * self.dL_pdf * self.s1z_pdf * self.s2z_pdf
             
         else: 
             self.joint_pdfs = self.m_pdf * self.dL_pdf
+            
+        print('finished setting up inj set')
         
         return
     
@@ -811,7 +812,9 @@ class Found_injections:
         #shape_params_guess[1] = np.log(shape_params_guess[1])
         
         all_bounds = [(None, None)] * len(shape_params_guess)
-        all_bounds[1] = (0, None)
+        all_bounds[1] = (0, None) #delta
+        all_bounds[2] = (0, 1) #b0
+        all_bounds[3] = (0, 1) #b1
         
         res = opt.minimize(fun=lambda in_param: -self.logL_shape(self.dmid_params, in_param), 
                            x0=np.array(shape_params_guess), 
@@ -927,7 +930,7 @@ class Found_injections:
         
         return shape_results[-1, :-1], dmid_results[-1, :-1]
 
-    def cumulative_dist(self, run_dataset, run_fit, var):
+    def cumulative_dist(self, run_dataset, run_fit, var, ks = False):
         '''
         Saves cumulative distributions plots and prints KS tests for the specified variables  
 
@@ -949,13 +952,14 @@ class Found_injections:
         pvalue : float, pvalue from the KStest 
         '''
         self.get_opt_params(run_fit)
+        self.set_shape_params()
         self.make_folders(run_fit)
         
         emax_dic = {None: 'cmds', 'emax_exp' : 'emax_exp_cmds', 'emax_sigmoid' : 'emax_sigmoid_cmds', 'emax_gaussian' : 'emax_gaussian_cmds'}
         
         dic = {'dL': self.dL, 'Mc': self.Mc, 'Mtot': self.Mtot, 'eta': self.eta, 'Mc_det': self.Mc_det, 'Mtot_det': self.Mtot_det, 'chi_eff': self.chi_eff}
         path = f'{run_fit}/{self.dmid_fun}' if self.alpha_vary is None else f'{run_fit}/alpha_vary/{self.dmid_fun}'
-        names_plotting = {'dL': '$d_L$', 'Mc': '$\mathcal{M}$', 'Mtot': '$M$', 'eta': '$\eta$', 'Mc_det': '$\mathcal{M}_z$', 'Mtot_det': '$M_z$', 'chi_eff': '$\chi_{eff}$'}
+        names_plotting = {'dL': r'$d_L$', 'Mc': r'$\mathcal{M}$', 'Mtot': r'$M$', 'eta': r'$\eta$', 'Mc_det': r'$\mathcal{M}_z$', 'Mtot_det': r'$M_z$', 'chi_eff': r'$\chi_{eff}$'}
         
         try:
             os.mkdir(path + f'/{emax_dic[self.emax_fun]}')
@@ -967,12 +971,9 @@ class Found_injections:
         indexo = np.argsort(dic[var])
         varo = dic[var][indexo]
         dLo = self.dL[indexo]
-        m1o = self.m1[indexo]
-        m2o = self.m2[indexo]
-        zo = self.z[indexo]
         chieffo = self.chi_eff[indexo]
-        m1o_det = m1o * (1 + zo) 
-        m2o_det = m2o * (1 + zo)
+        m1o_det = self.m1_det[indexo]
+        m2o_det = self.m2_det[indexo]
         #mtoto_det = m1o_det + m2o_det
         
         if self.dmid_fun in self.spin_functions:
@@ -989,7 +990,8 @@ class Found_injections:
         else:
             emax = np.copy(emax_params)
         
-        cmd = np.cumsum(self.sigmoid(dLo, dmid_values, emax, gamma, delta, alpha))
+        pdet = self.sigmoid(dLo, dmid_values, emax, gamma, delta, alpha)
+        cmd = np.cumsum(pdet)
         
         # Found injections
         var_found = dic[var][self.found_any]
@@ -1009,33 +1011,19 @@ class Found_injections:
         plt.savefig(name, format='pdf', dpi=150, bbox_inches="tight")
         
         # KS test
-        m1_det = self.m1 * (1 + self.z) 
-        m2_det = self.m2 * (1 + self.z)
-        #mtot_det = m1_det + m2_det
-        
-        if self.dmid_fun in self.spin_functions:
-            dmid_values = self.dmid(m1_det, m2_det, self.chi_eff, self.dmid_params)
-        else: 
-           dmid_values = self.dmid(m1_det, m2_det, self.dmid_params)
-           
-        #self.apply_dmid_mtotal_max(dmid_values, mtot_det)
-        
-        if self.emax_fun is not None:
-            emax = self.emax(m1_det, m2_det, emax_params)
-               
-        pdet = self.sigmoid(self.dL, dmid_values, emax, gamma, delta, alpha)
-        
-        def cdf(x):
-            values = [np.sum(pdet[dic[var] < value]) / np.sum(pdet) for value in x]
-            return np.array(values)
-            
-        stat, pvalue = kstest(var_foundo, lambda x: cdf(x))
-        print(f'{var} KStest : statistic = %s , pvalue = %s' %(stat, pvalue))
+        if ks: 
+            pdet_wheighted = cmd / np.sum(pdet)
+            def cdf(x):
+                idxs = np.searchsorted(varo, x, side='right')
+                return np.where(idxs == 0, 0, pdet_wheighted[idxs - 1])
+                
+            stat, pvalue = kstest(var_foundo, cdf)
+            print(f'{var} KStest : statistic = %s , pvalue = %s' %(stat, pvalue))
         
         #return stat, pvalue
         return
 
-    def binned_cumulative_dist(self, run_dataset, run_fit, nbins, var_cmd, var_binned):
+    def binned_cumulative_dist(self, run_dataset, run_fit, nbins, var_cmd, var_binned, ks = False):
         '''
         Saves binned cumulative distributions and prints binned KS tests for the specified variables 
 
@@ -1057,11 +1045,10 @@ class Found_injections:
         -------
         None
         '''
-        self.load_inj_set(run_dataset)
         self.get_opt_params(run_fit)
         self.make_folders(run_fit)
         
-        emax_dic = {None: 'cmds', 'emax_exp' : 'emax_exp_cmds', 'emax_sigmoid' : 'emax_sigmoid_cmds'}
+        emax_dic = {None: 'cmds', 'emax_exp' : 'emax_exp_cmds', 'emax_sigmoid' : 'emax_sigmoid_cmds', 'emax_gaussian' : 'emax_gaussian_cmds'}
         path = f'{run_fit}/{self.dmid_fun}' if self.alpha_vary is None else f'{run_fit}/alpha_vary/{self.dmid_fun}'
         
         try:
@@ -1089,9 +1076,9 @@ class Found_injections:
         index = np.argsort(data_not_sorted)
         data = data_not_sorted[index]
         
-        dLo = self.dL[index]; m1o = self.m1[index]; m2o = self.m2[index]; zo = self.z[index]
-        m1o_det = m1o * (1 + zo) 
-        m2o_det = m2o * (1 + zo)
+        dLo = self.dL[index]
+        m1o_det = self.m1_det[index]
+        m2o_det = self.m2_det[index]
         Mco = self.Mc[index]; Mtoto = self.Mtot[index]; etao = self.eta[index]
         Mco_det = self.Mc_det[index]; Mtoto_det = self.Mtot_det[index]
         chi_effo = self.chi_eff[index]
@@ -1182,11 +1169,14 @@ class Found_injections:
                 nchi, _, _ = plt.hist(varo, bins = nbins, density = True, weights = pdet, histtype = 'step', log = True)
                 nfound, _, _, = plt.hist(found_inj_inbin_sorted, bins = nbins, density = True, histtype = 'step', log = True)
                 plt.plot(nbins[:-1], nfound/nchi, '-')
+                sigma_found = np.sqrt(nfound) / nfound
+                sigma_chi = np.sqrt(nchi) / nchi
+                yerror = np.maximum(sigma_found, sigma_chi)
                 
                 # Fit
                 xfit = nbins[:-1]
                 yfit = nfound/nchi
-                popt, pcov = opt.curve_fit(chieff_corr, xfit, yfit, p0 = [0.7], absolute_sigma=True)
+                popt, pcov = opt.curve_fit(chieff_corr, xfit[nchi>0], yfit[nchi>0], p0 = [0.7], sigma = yerror[nchi>0], absolute_sigma=True)
                 yplot = chieff_corr(x, popt)
                 
                 plt.plot(x, yplot, 'r--')
@@ -1199,25 +1189,14 @@ class Found_injections:
                 chi_eff_params.append(popt)
             
             # KS test
-            if self.dmid_fun in self.spin_functions:
-                dmid_values = self.dmid(m1_det_inbin, m2_det_inbin, chi_eff_inbin, self.dmid_params)
-            else: 
-                dmid_values = self.dmid(m1_det_inbin, m2_det_inbin, self.dmid_params)
-                
-            #self.apply_dmid_mtotal_max(dmid_values, Mtot_det_inbin)
-            
-            if self.emax_fun is not None:
-                emax = self.emax(m1_det_inbin, m2_det_inbin, emax_params)
-                
-            pdet = self.sigmoid(dL_inbin, dmid_values, emax, gamma, delta, alpha)
-            
-            def cdf(x):
-                values = [np.sum(pdet[cmd_dic[var_cmd] < value]) / np.sum(pdet) for value in x]
-                return np.array(values)
-            
-            stat, pvalue = kstest(found_inj_inbin_sorted, lambda x: cdf(x))
-            
-            print(f'{var_cmd} KStest in {i} bin: statistic = %s, pvalue = %s' % (stat, pvalue))
+            if ks: 
+                pdet_wheighted = cmd / np.sum(pdet)
+                def cdf(x):
+                    idxs = np.searchsorted(varo, x, side='right')
+                    return np.where(idxs == 0, 0, pdet_wheighted[idxs - 1])
+                    
+                stat, pvalue = kstest(found_inj_inbin_sorted, cdf)
+                print(f'{var_cmd} KStest in {i} bin: statistic = %s, pvalue = %s' % (stat, pvalue))
         
         print('')   
         
