@@ -1463,6 +1463,9 @@ class Found_injections:
         pdet = np.zeros(len(np.atleast_1d(dL)))
         
         for run, prop in zip(self.runs, self.prop_obs_time):
+            #FIX ME !!
+            if run == 'o4':
+                continue
             pdet_i = self.run_pdet(dL, m1_det, m2_det, run, chieff, rescale_o3) 
             pdet += pdet_i * prop
             
