@@ -25,7 +25,7 @@ import matplotlib.ticker as ticker
 
 
 # # Save the current working directory
-# original_working_directory = os.getcwd()
+#original_working_directory = os.getcwd()
 
 # # Change the current working directory to the parent directory
 #os.chdir(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
@@ -40,14 +40,14 @@ from cbc_pdet.gwtc_found_inj import Found_injections
 
 plt.close('all')
 
-run_fit = 'o4'
-run_dataset = 'o4'
+run_fit = 'o3'
+run_dataset = 'o3'
 
 # function for dmid and emax we wanna use
 #dmid_fun = 'Dmid_mchirp_fdmid_fspin_cubic'
 #dmid_fun = 'Dmid_mchirp_fdmid_fspin_4'
 #dmid_fun = 'Dmid_mchirp_fdmid'
-#dmid_fun = 'Dmid_mchirp_fdmid_fspin'
+dmid_fun = 'Dmid_mchirp_fdmid_fspin'
 #dmid_fun = 'Dmid_mchirp_expansion_noa30'
 #dmid_fun = 'Dmid_mchirp_expansion_exp'
 #dmid_fun = 'Dmid_mchirp_expansion_a11'
@@ -55,12 +55,12 @@ run_dataset = 'o4'
 #dmid_fun = 'Dmid_mchirp_expansion'
 #dmid_fun = 'Dmid_mchirp'
 #dmid_fun = 'Dmid_mchirp_fdmid_fspin_c21'
-#emax_fun = 'emax_exp'
-emax_fun = 'emax_gaussian'
+emax_fun = 'emax_exp'
+#emax_fun = 'emax_gaussian'
 #emax_fun = 'emax_sigmoid'
 #dmid_fun = 'Dmid_mchirp_mixture'
 #dmid_fun = 'Dmid_mchirp_mixture_logspin'
-dmid_fun = 'Dmid_mchirp_mixture_logspin_corr'
+#dmid_fun = 'Dmid_mchirp_mixture_logspin_corr'
 
 alpha_vary = None
 
@@ -85,7 +85,7 @@ rc('text', usetex=True)
 #ini_files_spin = [[98.832, 0.0023, 0.7082, 200.722, 1.058, -0.5713, -0.00336, 2.9764e-07, 0.1548, 0.00195, 0 ], [-1.37, 0.381, 0.20327, 0.9999, 2418.1926, 1.393]]
 ini_files_spin_log = [[99.70, 0.00237, 0.696, 202.94, 1.052,-0.567, -0.00348, 8.332e-07, -0.1235, 0.00108, 0.086, 0 ], [-1.378, 0.3825, 0.2025, 0.999, 2491.30475, 1.412 ]]
 
-data = Found_injections(dmid_fun, emax_fun, alpha_vary, ini_files=ini_files_spin_log)
+data = Found_injections(dmid_fun, emax_fun, alpha_vary)
 path = f'{run_dataset}/' + data.path
 
 data.make_folders(run_dataset)
@@ -283,7 +283,7 @@ plt.savefig(name, format='pdf', dpi=1000, bbox_inches="tight")
 '''
 #%%
 #### CHIEFF 
-data.get_opt_params('o4')
+data.get_opt_params('o3')
 
 m1_det = data.m1 * (1 + data.z)
 m2_det = data.m2 * (1 + data.z)
@@ -333,8 +333,8 @@ cbar.ax.tick_params(labelsize=15)
 cbar.set_label(r'$\varepsilon_\mathrm{max}$', fontsize=24)
 #plt.xlim(-0.1, 6)
 plt.savefig( path + '/pdet_o3_emax.png')
-name = path + '/pdet_o3_emax.pdf'
-plt.savefig(name, format='pdf', dpi=300, bbox_inches="tight")
+name = path + '/t_pdet_o3_emax.pdf'
+plt.savefig(name, format='pdf', dpi=300, bbox_inches="tight", transparent = True)
 
 #%%
 order = np.argsort(dmid_values)
@@ -354,8 +354,8 @@ cbar = plt.colorbar(im)
 cbar.ax.tick_params(labelsize=15)
 cbar.set_label(r'$d_\mathrm{mid}$', fontsize=24)
 plt.savefig( path + '/logm1m2det_dmid.png')
-name = path + '/m1m2det_dmid.pdf'
-plt.savefig(name, format='pdf', dpi=300, bbox_inches="tight")
+name = path + '/t_m1m2det_dmid.pdf'
+plt.savefig(name, format='pdf', dpi=300, bbox_inches="tight", transparent = True)
 
 #%%
 data.set_shape_params()
@@ -367,15 +367,15 @@ emax = data.emax(m1det, m2det, data.emax_params)
 #y = (1 - np.exp(params_emax[0])) / (1 + np.exp(params_emax[1]*(x-params_emax[2])))
 plt.figure(figsize=(7,4.8))
 plt.plot(mtot, emax, '-')
-plt.semilogx()
+#plt.semilogx()
 #plt.ylim(0, 2)
 #plt.semilogx()
 plt.grid()
 plt.xlabel(r'$M_z [M_{\odot}]$', fontsize=24)
 plt.ylabel(r'$\varepsilon_{max}$', fontsize=24)
 plt.savefig( path + '/emax.png')
-name = path + '/emax.pdf'
-plt.savefig(name, format='pdf', dpi=300, bbox_inches="tight")
+name = path + '/t_emax.pdf'
+plt.savefig(name, format='pdf', dpi=300, bbox_inches="tight", transparent = True)
 
 
 #%%

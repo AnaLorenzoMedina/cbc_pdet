@@ -582,8 +582,8 @@ plt.xlabel(r'$\mathcal{M}_z [M_{\odot}]$', fontsize=24)
 plt.ylabel(r'$d_\mathrm{mid}$', fontsize=24)
 plt.yticks(fontsize=15)
 plt.xticks(fontsize=15)
-name = path + '/dmid_vs_mchirp_eta.pdf'
-plt.savefig(name, format='pdf', dpi=150, bbox_inches="tight")
+name = path + '/t_dmid_vs_mchirp_eta.pdf'
+plt.savefig(name, format='pdf', dpi=150, bbox_inches="tight", transparent = True)
 name = path + '/dmid_vs_mchirp_eta.png'
 plt.savefig(name, format='png', dpi=150, bbox_inches="tight")
 
@@ -629,9 +629,9 @@ plt.savefig(name, format='png', dpi=300, bbox_inches="tight")
 #         x, y = [np.log(self.vmin), np.log(self.midpoint), np.log(self.vmax)], [0, 0.5, 1]
 #         return np.ma.masked_array(np.interp(np.log(value), x, y))
     
-#chieff_corr = np.exp( (data.dmid_params[6] + data.dmid_params[7] * data.Mtot_det) * data.chi_eff )
+chieff_corr = np.exp( (data.dmid_params[6] + data.dmid_params[7] * data.Mtot_det) * data.chi_eff )
 #chieff_corr = np.exp( (data.dmid_params[8] + data.dmid_params[9] * data.Mtot_det) * data.chi_eff )
-chieff_corr = np.exp( (data.dmid_params[8] + data.dmid_params[9] * data.Mtot_det + data.dmid_params[10] * np.log(data.Mtot_det)) * data.chi_eff )
+#chieff_corr = np.exp( (data.dmid_params[8] + data.dmid_params[9] * data.Mtot_det + data.dmid_params[10] * np.log(data.Mtot_det)) * data.chi_eff )
 
 plt.close('all')
 plt.figure(figsize=(8,4.8))
@@ -651,8 +651,8 @@ cbar.ax.tick_params(axis='y', which='both', labelsize=15)
 #cbar.ax.tick_params(labelsize=15)
 name = path + '/chieff_corr_mtot.png'
 plt.savefig(name, format='png', dpi=150, bbox_inches="tight")
-name = path + '/chieff_corr_mtot.pdf'
-plt.savefig(name, format='pdf', dpi=150, bbox_inches="tight")
+name = path + '/t_chieff_corr_mtot.pdf'
+plt.savefig(name, format='pdf', dpi=150, bbox_inches="tight", transparent = True)
 
 # plt.figure()
 # plt.hist(chieff_corr, bins=50)
@@ -672,8 +672,8 @@ plt.xlabel(r'$\mathcal{M}_z [M_{\odot}]$', fontsize=24)
 plt.ylabel(r'$d_\mathrm{mid}$', fontsize=24)
 plt.yticks(fontsize=15)
 plt.xticks(fontsize=15)
-name = path + '/dmid_vs_mchirp_chieff.pdf'
-plt.savefig(name, format='pdf', dpi=150, bbox_inches="tight")
+name = path + '/t_dmid_vs_mchirp_chieff.pdf'
+plt.savefig(name, format='pdf', dpi=150, bbox_inches="tight", transparent = True)
 name = path + '/dmid_vs_mchirp_chieff.png'
 plt.savefig(name, format='png', dpi=150, bbox_inches="tight")
 
