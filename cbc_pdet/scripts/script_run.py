@@ -33,15 +33,15 @@ plt.close('all')
 
 run_fit = 'o3'
 run_dataset = 'o3'
-sources = 'bbh, bns, nsbh, imbh'
+sources = 'bbh, bns, nsbh'
 #sources = 'imbh'
 #sources = 'bbh'
 
 # function for dmid and emax we wanna use
 #dmid_fun = 'Dmid_mchirp_fdmid'
-#dmid_fun = 'Dmid_mchirp_fdmid_fspin'
+dmid_fun = 'Dmid_mchirp_fdmid_fspin'
 #dmid_fun = 'Dmid_mchirp_fdmid_fspin_cubic'
-dmid_fun = 'Dmid_mchirp_fdmid_fspin_4'
+#dmid_fun = 'Dmid_mchirp_fdmid_fspin_4'
 #dmid_fun = 'Dmid_mchirp_expansion_noa30'
 #dmid_fun = 'Dmid_mchirp_expansion_exp'
 #dmid_fun = 'Dmid_mchirp_expansion_a11'
@@ -49,9 +49,9 @@ dmid_fun = 'Dmid_mchirp_fdmid_fspin_4'
 #dmid_fun = 'Dmid_mchirp_expansion'
 #dmid_fun = 'Dmid_mchirp'
 #dmid_fun = 'Dmid_mchirp_fdmid_fspin_c21'
-#emax_fun = 'emax_exp'
+emax_fun = 'emax_exp'
 #emax_fun = 'emax_mix'
-emax_fun = 'emax_sigmoid'
+#emax_fun = 'emax_sigmoid'
 #emax_fun = 'emax_sigmoid_nolog'
 
 alpha_vary = None
@@ -87,7 +87,7 @@ ini_files_imbh = [[8.71047422e+01, -7.24775437e-06, -3.94322637e-01,  4.73292056
 
 
 #ini_files = ini_files_4_sources
-data = Found_injections(dmid_fun, emax_fun, alpha_vary, ini_files = ini_files_4_sources)
+data = Found_injections(dmid_fun, emax_fun, alpha_vary, ini_files = ini_files_3_sources)
 
 if isinstance(sources, str):
     each_source = [source.strip() for source in sources.split(',')] 
@@ -244,6 +244,7 @@ m1_det_bbh = data.sets['bbh']['m1'] * (1 + data.sets['bbh']['z'])
 m2_det_bbh = data.sets['bbh']['m2'] * (1 + data.sets['bbh']['z'])
 
 mtot_det_bbh = data.sets['bbh']['Mtot_det']
+Mc_det_bbh = data.sets['bbh']['Mc_det']
 
 chi_eff_bbh = data.sets['bbh']['chi_eff']
 dL_bbh = data.sets['bbh']['dL']
@@ -256,6 +257,7 @@ m1_det_nsbh = data.sets['nsbh']['m1'] * (1 + data.sets['nsbh']['z'])
 m2_det_nsbh = data.sets['nsbh']['m2'] * (1 + data.sets['nsbh']['z'])
 
 mtot_det_nsbh = data.sets['nsbh']['Mtot_det']
+Mc_det_nsbh = data.sets['nsbh']['Mc_det']
 
 chi_eff_nsbh = data.sets['nsbh']['chi_eff']
 dL_nsbh = data.sets['nsbh']['dL']
@@ -268,6 +270,7 @@ m1_det_bns = data.sets['bns']['m1'] * (1 + data.sets['bns']['z'])
 m2_det_bns = data.sets['bns']['m2']* (1 + data.sets['bns']['z'])
 
 mtot_det_bns = data.sets['bns']['Mtot_det']
+Mc_det_bns = data.sets['bns']['Mc_det']
 
 chi_eff_bns = data.sets['bns']['chi_eff']
 dL_bns = data.sets['bns']['dL']
@@ -288,13 +291,14 @@ dL_imbh = data.sets['imbh']['dL']
 
 #%%
 
-m1_det_all = np.concatenate([m1_det_bbh, m1_det_bns, m1_det_nsbh, m1_det_imbh])
-m2_det_all = np.concatenate([m2_det_bbh, m2_det_bns, m2_det_nsbh, m2_det_imbh])
+m1_det_all = np.concatenate([m1_det_bbh, m1_det_bns, m1_det_nsbh])
+m2_det_all = np.concatenate([m2_det_bbh, m2_det_bns, m2_det_nsbh])
 
-mtot_det_all = np.concatenate([mtot_det_bbh, mtot_det_bns, mtot_det_nsbh, mtot_det_imbh])
+mtot_det_all = np.concatenate([mtot_det_bbh, mtot_det_bns, mtot_det_nsbh])
+Mc_det_all = np.concatenate([Mc_det_bbh, Mc_det_bns, Mc_det_nsbh])
 
-chi_eff_all = np.concatenate([chi_eff_bbh, chi_eff_bns, chi_eff_nsbh, chi_eff_imbh])
-dL_all = np.concatenate([dL_bbh, dL_bns, dL_nsbh, dL_imbh])
+chi_eff_all = np.concatenate([chi_eff_bbh, chi_eff_bns, chi_eff_nsbh])
+dL_all = np.concatenate([dL_bbh, dL_bns, dL_nsbh])
 
 #%%
 
@@ -368,8 +372,8 @@ cbar.ax.tick_params(labelsize=15)
 cbar.set_label(r'$\varepsilon_\mathrm{max}$', fontsize=24)
 plt.show()
 plt.savefig( path + '/pdet_o3_emax.png')
-name = path + '/pdet_o3_emax.pdf'
-plt.savefig(name, format='pdf', dpi=300, bbox_inches="tight")
+name = path + '/t_pdet_o3_emax.pdf'
+plt.savefig(name, format='pdf', dpi=300, bbox_inches="tight", transparent = True)
 
 #%%
 order = np.argsort(dmid_values_all)
@@ -389,8 +393,8 @@ cbar = plt.colorbar(im)
 cbar.ax.tick_params(labelsize=15)
 cbar.set_label(r'$d_\mathrm{mid}$', fontsize=24)
 plt.savefig( path + '/m1m2det_dmid.png')
-name = path + '/m1m2det_dmid.pdf'
-plt.savefig(name, format='pdf', dpi=300, bbox_inches="tight")
+name = path + '/t_m1m2det_dmid.pdf'
+plt.savefig(name, format='pdf', dpi=300, bbox_inches="tight", transparent = True)
 
 #%%
 data.set_shape_params()
@@ -407,8 +411,51 @@ plt.xlabel(r'$M_z [M_{\odot}]$', fontsize=24)
 plt.ylabel(r'$\varepsilon_\mathrm{max}$', fontsize=24)
 plt.yticks(fontsize=15)
 plt.xticks(fontsize=15)
-name = path + '/emax.pdf'
-plt.savefig(name, format='pdf', dpi=300, bbox_inches="tight")
+name = path + '/t_emax.pdf'
+plt.savefig(name, format='pdf', dpi=300, bbox_inches="tight", transparent = True)
+
+#%%
+plt.figure(figsize=(7,6))
+im = plt.scatter(Mc_det_all, dmid_values_all, c=chi_eff_all, s=1, rasterized=True)
+cbar = plt.colorbar(im)
+cbar.set_label(r'$\chi_\mathrm{eff}$', fontsize=24)
+cbar.ax.tick_params(labelsize=15)
+plt.xlabel(r'$\mathcal{M}_z [M_{\odot}]$', fontsize=24)
+plt.ylabel(r'$d_\mathrm{mid}$', fontsize=24)
+plt.yticks(fontsize=15)
+plt.xticks(fontsize=15)
+name = path + '/t_dmid_vs_mchirp_chieff.pdf'
+plt.savefig(name, format='pdf', dpi=150, bbox_inches="tight", transparent = True)
+name = path + '/dmid_vs_mchirp_chieff.png'
+plt.savefig(name, format='png', dpi=150, bbox_inches="tight")
+
+#%%
+import matplotlib.ticker as ticker
+
+chieff_corr = np.exp( (data.dmid_params[6] + data.dmid_params[7] * mtot_det_all) * chi_eff_all )
+#chieff_corr = np.exp( (data.dmid_params[8] + data.dmid_params[9] * data.Mtot_det) * data.chi_eff )
+#chieff_corr = np.exp( (data.dmid_params[8] + data.dmid_params[9] * data.Mtot_det + data.dmid_params[10] * np.log(data.Mtot_det)) * data.chi_eff )
+
+plt.close('all')
+plt.figure(figsize=(8,4.8))
+#im = plt.scatter(data.chi_eff, data.Mc_det, s=1, c=chieff_corr, norm=MidPointLogNorm(vmin=chieff_corr.min(), vmax=chieff_corr.max(), midpoint=1), cmap = 'Spectral')
+im = plt.scatter(chi_eff_all, mtot_det_all, s=1, c=chieff_corr, norm=LogNorm(vmin=0.4, vmax=2.6), cmap = 'Spectral', rasterized=True)
+cbar = plt.colorbar(im)
+#cbar.ax.tick_params(axis='both', which='major', labelsize=15)
+cbar.set_label(r'$\exp (f_{AS})$', fontsize=24)
+plt.xlabel(r'$\chi_\mathrm{eff}$', fontsize=24)
+plt.ylabel(r'$M_{z}$', fontsize=24)
+plt.yticks(fontsize=15)
+plt.xticks(fontsize=15)
+cbar.ax.yaxis.set_major_formatter(ticker.LogFormatterSciNotation())
+cbar.ax.tick_params(axis='y', which='both', labelsize=15)
+#plt.ylim(0, 530)
+#cbar.ax.yaxis.set_major_formatter(ticker.ScalarFormatter())
+#cbar.ax.tick_params(labelsize=15)
+name = path + '/chieff_corr_mtot.png'
+plt.savefig(name, format='png', dpi=150, bbox_inches="tight")
+name = path + '/t_chieff_corr_mtot.pdf'
+plt.savefig(name, format='pdf', dpi=150, bbox_inches="tight", transparent = True)
 
 
 #%%
