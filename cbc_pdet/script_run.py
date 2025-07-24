@@ -46,8 +46,8 @@ run_dataset = 'o3'
 # function for dmid and emax we wanna use
 #dmid_fun = 'Dmid_mchirp_fdmid_fspin_cubic'
 #dmid_fun = 'Dmid_mchirp_fdmid_fspin_4'
-#dmid_fun = 'Dmid_mchirp_fdmid'
-dmid_fun = 'Dmid_mchirp_fdmid_fspin'
+dmid_fun = 'Dmid_mchirp_fdmid'
+#dmid_fun = 'Dmid_mchirp_fdmid_fspin'
 #dmid_fun = 'Dmid_mchirp_expansion_noa30'
 #dmid_fun = 'Dmid_mchirp_expansion_exp'
 #dmid_fun = 'Dmid_mchirp_expansion_a11'
@@ -283,7 +283,7 @@ plt.savefig(name, format='pdf', dpi=1000, bbox_inches="tight")
 '''
 #%%
 #### CHIEFF 
-data.get_opt_params('o3')
+data.get_opt_params('o4')
 
 m1_det = data.m1 * (1 + data.z)
 m2_det = data.m2 * (1 + data.z)
@@ -342,7 +342,7 @@ dmid_values_ordered = dmid_values[order]
 m1_det_ordered = m1_det[order]
 m2_det_ordered = m2_det[order]
 
-
+#%%
 plt.figure(figsize=(7,6))
 im = plt.scatter(m1_det_ordered, m2_det_ordered, s=1, c=dmid_values_ordered, norm=LogNorm(), rasterized=True)
 plt.loglog()
@@ -358,6 +358,24 @@ name = path + '/t_m1m2det_dmid.pdf'
 plt.savefig(name, format='pdf', dpi=300, bbox_inches="tight", transparent = True)
 
 #%%
+#WHITE
+plt.figure(figsize=(7,6))
+im = plt.scatter(m1_det_ordered, m2_det_ordered, s=1, c=dmid_values_ordered, norm=LogNorm(), rasterized=True)
+plt.loglog()
+plt.xlabel(r'$m_{1z} [M_{\odot}]$', fontsize=24, color = 'white')
+plt.ylabel('$m_{2z} [M_{\odot}]$', fontsize=24, color = 'white')
+plt.yticks(fontsize=15)
+plt.xticks(fontsize=15)
+cbar = plt.colorbar(im)
+cbar.ax.tick_params(labelsize=15, colors='white')
+cbar.set_label(r'$d_\mathrm{mid}$', fontsize=24, color = 'white')
+plt.tick_params(axis='x', colors='white')  # x-axis ticks and labels
+plt.tick_params(axis='y', colors='white')
+plt.savefig( path + '/logm1m2det_dmid.png')
+name = path + '/twhite_m1m2det_dmid.pdf'
+plt.savefig(name, format='pdf', dpi=300, bbox_inches="tight", transparent = True)
+
+#%%
 data.set_shape_params()
 
 m1det = np.linspace(min(m1_det), max(m1_det), 200)
@@ -367,10 +385,10 @@ emax = data.emax(m1det, m2det, data.emax_params)
 #y = (1 - np.exp(params_emax[0])) / (1 + np.exp(params_emax[1]*(x-params_emax[2])))
 plt.figure(figsize=(7,4.8))
 plt.plot(mtot, emax, '-')
-#plt.semilogx()
+plt.semilogx()
 #plt.ylim(0, 2)
 #plt.semilogx()
-plt.grid()
+#plt.grid()
 plt.xlabel(r'$M_z [M_{\odot}]$', fontsize=24)
 plt.ylabel(r'$\varepsilon_{max}$', fontsize=24)
 plt.savefig( path + '/emax.png')

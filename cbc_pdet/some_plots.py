@@ -31,8 +31,8 @@ plt.close('all')
 run_fit = 'o4'
 run_dataset = 'o4'
 
-
-dmid_fun = 'Dmid_mchirp_mixture_spin'
+dmid_fun = 'Dmid_mchirp_mixture_logspin_corr'
+#dmid_fun = 'Dmid_mchirp_mixture_spin'
 #dmid_fun = 'Dmid_mchirp_fdmid_fspin'
 #emax_fun = 'emax_exp'
 emax_fun = 'emax_gaussian'
@@ -127,17 +127,23 @@ def fun_tot(Mtot):
 Mtot = np.linspace(np.min(Mtot_plot), np.max(Mtot_plot), 1000)
 
 plt.figure()
-plt.scatter(Mtot_plot, dmid_plot/(Mc_plot)**(5/6), c=eta_plot, s=1+5*np.log(nfound_plot))
-plt.plot(Mtot, fun_tot(Mtot), '-')
-plt.loglog()
-plt.colorbar(label=r'$\eta$')
-plt.xlabel(r'$M_z$')
-plt.ylabel(r'$d_\mathrm{mid} \, / \, \mathcal{M}^{5/6}$')
-plt.grid(True, which='both')
-name="binned_analysis/dL_joint_fit_results_emax_vary/Mtot_loglog_dmid.png"
+im = plt.scatter(Mtot_plot, dmid_plot/(Mc_plot)**(5/6), c=eta_plot, s=1+5*np.log(nfound_plot))
+#plt.plot(Mtot, fun_tot(Mtot), '-')
+plt.semilogx()
+cbar = plt.colorbar(im)
+cbar.ax.tick_params(labelsize=15, colors='white')
+cbar.set_label(label=r'$\eta$', color='white', fontsize=24)
+plt.xlabel(r'$M_z$', color='white', fontsize=24)
+plt.ylabel(r'$d_\mathrm{mid} \, / \, \mathcal{M}_z^{5/6}$', color='white', fontsize=24)
+plt.yticks(fontsize=15)
+plt.xticks(fontsize=15)
+plt.tick_params(axis='x', colors='white')  # x-axis ticks and labels
+plt.tick_params(axis='y', colors='white')
+#plt.grid(True, which='both')
+name="binned_analysis/dL_joint_fit_results_emax_vary/white_Mtot_logx_dmid.png"
 plt.savefig(name, format='png', dpi=300)
-name="binned_analysis/dL_joint_fit_results_emax_vary/Mtot_loglog_dmid.pdf"
-plt.savefig(name, format='pdf', dpi=300, bbox_inches="tight")
+name="binned_analysis/dL_joint_fit_results_emax_vary/twhite_Mtot_logx_dmid.pdf"
+plt.savefig(name, format='pdf', dpi=300, bbox_inches="tight", transparent = True)
 
 #%%
 #plt.plot(Mc_plot.flatten(), 70*(Mc_plot.flatten())**(5/6), 'r-', label='cte = 70')
@@ -219,6 +225,7 @@ for i in range(nbin1):
 
 toplot = np.nonzero(morethan10)
 
+
 emax_plot = emax[toplot]
 Mc_plot = Mc[toplot]
 Mtot_plot = Mtot[toplot]
@@ -261,18 +268,20 @@ im = plt.scatter(Mtot_plot, emax_plot, c=n_plot, norm=LogNorm())
 #plt.plot(Mtot, emax_lognormal(Mtot), '-')
 plt.xscale('log')
 cbar = plt.colorbar(im)
-cbar.set_label(r'N events', fontsize=20)
+cbar.set_label(r'N events', fontsize=20, color='white')
 cbar.ax.yaxis.set_major_formatter(ticker.LogFormatterSciNotation())
-cbar.ax.tick_params(axis='y', which='both', labelsize=15)
-plt.xlabel(r'$M_z$', fontsize = 24)
-plt.ylabel(r'$\varepsilon_\mathrm{max}$', fontsize = 24)
-plt.grid(True, which='both')
+cbar.ax.tick_params(axis='y', which='both', colors='white', labelsize=15)
+plt.xlabel(r'$M_z$', fontsize = 24, color = 'white')
+plt.ylabel(r'$\varepsilon_\mathrm{max}$', fontsize = 24, color='white')
+#plt.grid(True, which='both')
 plt.yticks(fontsize=15)
 plt.xticks(fontsize=15)
-name="binned_analysis/dL_joint_fit_results_emax_vary/Mtot_log.png"
+plt.tick_params(axis='x', colors='white')  # x-axis ticks and labels
+plt.tick_params(axis='y', colors='white')
+name="binned_analysis/dL_joint_fit_results_emax_vary/white_Mtot_log.png"
 plt.savefig(name, format='png', dpi=300)
-name="binned_analysis/dL_joint_fit_results_emax_vary/Mtot_log.pdf"
-plt.savefig(name, format='pdf', dpi=300, bbox_inches="tight")
+name="binned_analysis/dL_joint_fit_results_emax_vary/twhite_Mtot_log.pdf"
+plt.savefig(name, format='pdf', dpi=300, bbox_inches="tight", transparent=True)
 
 #%%
 plt.figure()
