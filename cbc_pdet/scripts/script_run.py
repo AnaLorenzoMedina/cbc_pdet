@@ -39,7 +39,7 @@ sources = 'bbh, bns, nsbh'
 
 # function for dmid and emax we wanna use
 #dmid_fun = 'Dmid_mchirp_fdmid'
-dmid_fun = 'Dmid_mchirp_fdmid_fspin'
+#dmid_fun = 'Dmid_mchirp_fdmid_fspin'
 #dmid_fun = 'Dmid_mchirp_fdmid_fspin_cubic'
 #dmid_fun = 'Dmid_mchirp_fdmid_fspin_4'
 #dmid_fun = 'Dmid_mchirp_expansion_noa30'
@@ -49,10 +49,12 @@ dmid_fun = 'Dmid_mchirp_fdmid_fspin'
 #dmid_fun = 'Dmid_mchirp_expansion'
 #dmid_fun = 'Dmid_mchirp'
 #dmid_fun = 'Dmid_mchirp_fdmid_fspin_c21'
-emax_fun = 'emax_exp'
+#emax_fun = 'emax_exp'
 #emax_fun = 'emax_mix'
 #emax_fun = 'emax_sigmoid'
 #emax_fun = 'emax_sigmoid_nolog'
+dmid_fun = 'Dmid_mchirp_mixture_logspin_corr'
+emax_fun = 'emax_gaussian'
 
 alpha_vary = None
 
@@ -76,10 +78,7 @@ ini_files_4_sources = [[ 1.15341023e+02, -1.11041171e-05, -1.45113888e+00,  1.11
                          3.28819168e-04, -4.27337660e-03, 0., 0.,  3.39429723e-02,  5.61212292e-03], 
                        [ 5.45981998e-01,  1.44198708e-21, -2.26423282e+00,  7.75663512e-03, -6.75911668e-06]]
 
-ini_files_4_sources = [[ 1.08806961e+02, -7.27382274e-06, -4.15308800e-01, -3.80434134e-07,
-                        1.04326772e-03, -1.04753609e-02, -8.95047613e-09,  4.83547088e-08, 0.,
-                        1.25960150e-01,  4.41568954e-03],  [5.42613833e-01,  2.71685598e-79, -1.49074349e+00,  1.62358016e-03,
-                                1.47645182e-05] ]
+ini_files_4_sources = [[ 83.016, 0.00314, 0.74181, 218.231, 0.87566, -0.5712, -0.003573, 1.3588e-06, -0.0922916, 0.00121, 0.0766, -0.09137],  [-1.3639, 0.378019,0.18802, 0.99999, 3239.7326, 1.604237] ]
 
 ini_files_imbh = [[8.71047422e+01, -7.24775437e-06, -3.94322637e-01,  4.73292056e-05,
                    3.62306966e-04, -1.15754512e-02,  2.04977352e-01,  1.90820585e-03 ], 
@@ -87,7 +86,7 @@ ini_files_imbh = [[8.71047422e+01, -7.24775437e-06, -3.94322637e-01,  4.73292056
 
 
 #ini_files = ini_files_4_sources
-data = Found_injections(dmid_fun, emax_fun, alpha_vary, ini_files = ini_files_3_sources)
+data = Found_injections(dmid_fun, emax_fun, alpha_vary, ini_files = ini_files_4_sources)
 
 if isinstance(sources, str):
     each_source = [source.strip() for source in sources.split(',')] 
@@ -159,13 +158,13 @@ plt.savefig(name, format='pdf', dpi=1000, bbox_inches="tight")
 '''
 
 #%%
-data.cumulative_dist(run_dataset, run_fit, 'imbh', 'dL')
-data.cumulative_dist(run_dataset, run_fit, 'imbh', 'Mtot')
-data.cumulative_dist(run_dataset, run_fit, 'imbh', 'Mc')
-data.cumulative_dist(run_dataset, run_fit, 'imbh', 'Mtot_det')
-data.cumulative_dist(run_dataset, run_fit, 'imbh', 'Mc_det')
-data.cumulative_dist(run_dataset, run_fit, 'imbh', 'eta')
-data.cumulative_dist(run_dataset, run_fit, 'imbh', 'chi_eff')
+data.cumulative_dist(run_dataset, run_fit, 'bbh, bns, nsbh', 'dL')
+data.cumulative_dist(run_dataset, run_fit, 'bbh, bns, nsbh', 'Mtot')
+data.cumulative_dist(run_dataset, run_fit, 'bbh, bns, nsbh', 'Mc')
+data.cumulative_dist(run_dataset, run_fit, 'bbh, bns, nsbh', 'Mtot_det')
+data.cumulative_dist(run_dataset, run_fit, 'bbh, bns, nsbh', 'Mc_det')
+data.cumulative_dist(run_dataset, run_fit, 'bbh, bns, nsbh', 'eta')
+data.cumulative_dist(run_dataset, run_fit, 'bbh, bns, nsbh', 'chi_eff')
 #%%
 nbins = 5
 
@@ -238,7 +237,7 @@ plt.savefig(name, format='pdf', dpi=1000, bbox_inches="tight")
 #%%
 #### CHIEFF 
 
-found = data.sets['bbh']['found_any']
+found_bbh = data.sets['bbh']['found_any']
 
 m1_det_bbh = data.sets['bbh']['m1'] * (1 + data.sets['bbh']['z'])
 m2_det_bbh = data.sets['bbh']['m2'] * (1 + data.sets['bbh']['z'])
@@ -251,7 +250,7 @@ dL_bbh = data.sets['bbh']['dL']
 
 #%%
 
-found = data.sets['nsbh']['found_any']
+found_nsbh = data.sets['nsbh']['found_any']
 
 m1_det_nsbh = data.sets['nsbh']['m1'] * (1 + data.sets['nsbh']['z'])
 m2_det_nsbh = data.sets['nsbh']['m2'] * (1 + data.sets['nsbh']['z'])
@@ -264,7 +263,7 @@ dL_nsbh = data.sets['nsbh']['dL']
 
 #%%
 
-found = data.sets['bns']['found_any']
+found_bns = data.sets['bns']['found_any']
 
 m1_det_bns = data.sets['bns']['m1'] * (1 + data.sets['bns']['z'])
 m2_det_bns = data.sets['bns']['m2']* (1 + data.sets['bns']['z'])
@@ -279,17 +278,19 @@ dL_bns = data.sets['bns']['dL']
 
 #%%
 
-found = data.sets['imbh']['found_any']
+found_imbh = data.sets['imbh']['found_any']
 
 m1_det_imbh = data.sets['imbh']['m1'] * (1 + data.sets['imbh']['z'])
 m2_det_imbh = data.sets['imbh']['m2'] * (1 + data.sets['imbh']['z'])
 
 mtot_det_imbh = data.sets['imbh']['Mtot_det']
+Mc_det_imbh = data.sets['imbh']['Mc_det']
 
 chi_eff_imbh = data.sets['imbh']['chi_eff']
 dL_imbh = data.sets['imbh']['dL']
 
 #%%
+found_all = np.concatenate([found_bbh, found_bns, found_nsbh])
 
 m1_det_all = np.concatenate([m1_det_bbh, m1_det_bns, m1_det_nsbh])
 m2_det_all = np.concatenate([m2_det_bbh, m2_det_bns, m2_det_nsbh])
@@ -299,6 +300,18 @@ Mc_det_all = np.concatenate([Mc_det_bbh, Mc_det_bns, Mc_det_nsbh])
 
 chi_eff_all = np.concatenate([chi_eff_bbh, chi_eff_bns, chi_eff_nsbh])
 dL_all = np.concatenate([dL_bbh, dL_bns, dL_nsbh])
+
+#%%
+found_all = np.concatenate([found_bbh, found_bns, found_nsbh, found_imbh])
+
+m1_det_all = np.concatenate([m1_det_bbh, m1_det_bns, m1_det_nsbh, m1_det_imbh])
+m2_det_all = np.concatenate([m2_det_bbh, m2_det_bns, m2_det_nsbh, m2_det_imbh])
+
+mtot_det_all = np.concatenate([mtot_det_bbh, mtot_det_bns, mtot_det_nsbh, mtot_det_imbh])
+Mc_det_all = np.concatenate([Mc_det_bbh, Mc_det_bns, Mc_det_nsbh, Mc_det_imbh])
+
+chi_eff_all = np.concatenate([chi_eff_bbh, chi_eff_bns, chi_eff_nsbh, chi_eff_imbh])
+dL_all = np.concatenate([dL_bbh, dL_bns, dL_nsbh, dL_imbh])
 
 #%%
 
@@ -344,7 +357,6 @@ plt.savefig(name, format='pdf', dpi=300, bbox_inches="tight")
 
 plt.figure(figsize=(8,4.8))
 im = plt.scatter(dL_all/dmid_values_all, data.sigmoid(dL_all,dmid_values_all, data.emax(m1_det_all, m2_det_all, data.emax_params), data.gamma, data.delta), s=1, c=data.emax(m1_det_all, m2_det_all, data.emax_params), rasterized=True)
-plt.semilogx()
 plt.yticks([0, 0.2, 0.4, 0.6, 0.8, 1])
 plt.xlabel(r'$d_L / d_\mathrm{mid}$', fontsize = 24)
 plt.ylabel(r'$P_\mathrm{det}$', fontsize = 24)
@@ -354,8 +366,8 @@ cbar = plt.colorbar(im)
 cbar.ax.tick_params(labelsize=15)
 cbar.set_label(r'$\varepsilon_\mathrm{max}$', fontsize=24)
 plt.show()
-plt.savefig( path + '/pdet_o3_emax_logscale.png')
-name = path + '/pdet_o3_emax_logscale.pdf'
+plt.savefig( path + '/pdet_o3_emax.png')
+name = path + '/pdet_o3_emax.pdf'
 plt.savefig(name, format='pdf', dpi=300, bbox_inches="tight")
 
 #%%
@@ -367,6 +379,7 @@ plt.xlabel(r'$d_L / d_\mathrm{mid}$', fontsize = 24)
 plt.ylabel(r'$P_\mathrm{det}$', fontsize = 24)
 plt.yticks(fontsize=15)
 plt.xticks(fontsize=15)
+plt.xlim(0, 10)
 cbar = plt.colorbar(im)
 cbar.ax.tick_params(labelsize=15)
 cbar.set_label(r'$\varepsilon_\mathrm{max}$', fontsize=24)
@@ -376,10 +389,16 @@ name = path + '/t_pdet_o3_emax.pdf'
 plt.savefig(name, format='pdf', dpi=300, bbox_inches="tight", transparent = True)
 
 #%%
-order = np.argsort(dmid_values_all)
-dmid_values_ordered = dmid_values_all[order]
-m1_det_ordered = m1_det_all[order]
-m2_det_ordered = m2_det_all[order]
+
+to_plot = np.where(dmid_values_all<1e30)[0]
+order = np.argsort(dmid_values_all[to_plot])
+dmid_values_ordered = dmid_values_all[to_plot][order]
+m1_det_ordered = m1_det_all[to_plot][order]
+m2_det_ordered = m2_det_all[to_plot][order]
+
+m1_line = np.linspace(min(m1_det_all), max(m1_det_all), 100)
+m2_line_1 = 500 - m1_line
+m2_line_2 = 1000 - m1_line
 
 
 plt.figure(figsize=(7,6))
@@ -389,12 +408,49 @@ plt.xlabel(r'$m_{1z} [M_{\odot}]$', fontsize=24)
 plt.ylabel('$m_{2z} [M_{\odot}]$', fontsize=24)
 plt.yticks(fontsize=15)
 plt.xticks(fontsize=15)
+#plt.fill_between(m1_line, m2_line_1, m2_line_2,
+#                  where=(m2_line_2 >= m2_line_1),
+#                  interpolate=True, color='orange', alpha=0.3,
+#                  label='Mtot [500, 1000] Msun')
+# #plt.plot(m1_line, m2_line_1, 'r--')
+#plt.plot(m1_line, m2_line_2, 'b--')
+
 cbar = plt.colorbar(im)
 cbar.ax.tick_params(labelsize=15)
 cbar.set_label(r'$d_\mathrm{mid}$', fontsize=24)
 plt.savefig( path + '/m1m2det_dmid.png')
 name = path + '/t_m1m2det_dmid.pdf'
 plt.savefig(name, format='pdf', dpi=300, bbox_inches="tight", transparent = True)
+#%%
+D0 = 83.4619
+C = 0.6112
+B = 0.00636
+L = -0.0668
+mu = 172.303
+sigma = 0.543
+a_01 = -0.3817
+a_11 = -0.0119
+a_21 = 2.1433e-5
+c_01 = 0.06517
+c_11 = 0.00371
+d_11 = 0.03635
+
+M = np.linspace(0, 2000, 1000)
+fexp = np.exp(-B * M - L * np.log(M))
+fgauss = np.exp(-(np.log(M)-np.log(mu))**2 / (2*sigma**2))
+
+f_M = D0 * (fexp + C * fgauss)
+
+eta = 0.1
+f_eta_1 =  a_01 * (1 - 4*eta)  + a_11 * M * (1 - 4*eta) + a_21 * M**2 * (1 - 4*eta)
+eta = 0.2
+f_eta_2 =  a_01 * (1 - 4*eta)  + a_11 * M * (1 - 4*eta) + a_21 * M**2 * (1 - 4*eta)
+chi_eff = 0.1
+f_as = (c_01 + c_11 * M + d_11 * np.log(M)) * chi_eff
+
+plt.figure()
+plt.plot(M, f_as , '.')
+
 
 #%%
 data.set_shape_params()
@@ -406,7 +462,7 @@ emax = data.emax(m1det, m2det, data.emax_params)
 
 plt.figure(figsize=(7,4.8))
 plt.plot(mtot, emax, '-')
-plt.ylim(0, 1.2)
+#plt.ylim(0, 1.2)
 plt.xlabel(r'$M_z [M_{\odot}]$', fontsize=24)
 plt.ylabel(r'$\varepsilon_\mathrm{max}$', fontsize=24)
 plt.yticks(fontsize=15)

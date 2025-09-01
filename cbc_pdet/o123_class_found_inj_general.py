@@ -104,9 +104,10 @@ class Found_injections:
                                   'Dmid_mchirp_fdmid_fspin': ['cte', 'a20', 'a01', 'a21', 'a10','a11', 'c1', 'c11'],
                                   'Dmid_mchirp_fdmid_fspin_c21': ['cte', 'a20', 'a01', 'a21', 'a10','a11', 'c1', 'c11', 'c21'],
                                   'Dmid_mchirp_fdmid_fspin_cubic': ['cte', 'a20', 'a01', 'a21', 'a10','a11', 'a30', 'a31', 'c1', 'c11'],
-                                  'Dmid_mchirp_fdmid_fspin_4': ['cte', 'a20', 'a01', 'a21', 'a10','a11', 'a30', 'a31', 'a40', 'c1', 'c11']}
+                                  'Dmid_mchirp_fdmid_fspin_4': ['cte', 'a20', 'a01', 'a21', 'a10','a11', 'a30', 'a31', 'a40', 'c1', 'c11'],
+                                  'Dmid_mchirp_mixture_logspin_corr': ['D0', 'B', 'C' , 'mu', 'sigma', 'a_01', 'a_11', 'a_21', 'c_01', 'c_11', 'd_11', 'L'],}
         
-        self.spin_functions = ['Dmid_mchirp_fdmid_fspin','Dmid_mchirp_fdmid_fspin_c21', 'Dmid_mchirp_fdmid_fspin_cubic', 'Dmid_mchirp_fdmid_fspin_4']
+        self.spin_functions = ['Dmid_mchirp_fdmid_fspin','Dmid_mchirp_fdmid_fspin_c21', 'Dmid_mchirp_fdmid_fspin_cubic', 'Dmid_mchirp_fdmid_fspin_4', 'Dmid_mchirp_mixture_logspin_corr']
         
         sigmoid_names = ['gamma', 'delta']
         
@@ -119,6 +120,7 @@ class Found_injections:
         self.shape_params_names = {'emax_exp' : sigmoid_names + ['b_0, b_1, b_2'],
                                   'emax_sigmoid' : sigmoid_names + ['b_0, b_1, b_2'],
                                   'emax_sigmoid_nolog' : sigmoid_names + ['b_0, b_1, b_2'],
+                                  'emax_gaussian': sigmoid_names + ['b_0', 'b_1', 'muM', 'sigmaM'],
                                    None : sigmoid_names,
                                   }
         
@@ -779,6 +781,7 @@ class Found_injections:
 
         """
         dmid_params_guess = np.copy(self.dmid_params)
+        
         res = opt.minimize(fun=lambda in_param: -self.total_lnL_dmid(in_param, self.shape_params, sources), 
                            x0=np.array(dmid_params_guess), 
                            args=(), 
@@ -808,7 +811,9 @@ class Found_injections:
         #shape_params_guess[1] = np.log(shape_params_guess[1])
         
         all_bounds = [(None, None)] * len(shape_params_guess)
-        all_bounds[1] = (0, None)
+        all_bounds[1] = (0, None) #delta
+        all_bounds[2] = (0, 1) #b0
+        all_bounds[3] = (0, 1) #b1
                                                
         
         res = opt.minimize(fun=lambda in_param: -self.total_lnL_shape(self.dmid_params, in_param, sources), 
@@ -1063,11 +1068,11 @@ class Found_injections:
         
         sources_folder = "_".join(sorted(each_source)) 
         
-        self.get_opt_params(run_fit, 'bbh, bns, nsbh, imbh')
+        self.get_opt_params(run_fit, sources)
         
         self.make_folders(run_fit, sources_folder)
         
-        emax_dic = {None: 'cmds', 'emax_exp' : 'emax_exp_cmds', 'emax_sigmoid' : 'emax_sigmoid_cmds', 'emax_sigmoid_nolog' : 'emax_sigmoid_nolog_cmds'}
+        emax_dic = {None: 'cmds', 'emax_exp' : 'emax_exp_cmds', 'emax_sigmoid' : 'emax_sigmoid_cmds', 'emax_sigmoid_nolog' : 'emax_sigmoid_nolog_cmds', 'emax_gaussian' : 'emax_gaussian_cmds'}
         
         path = f'{run_fit}/{sources_folder}/{self.dmid_fun}' if self.alpha_vary is None else f'{run_fit}/{sources_folder}/alpha_vary/{self.dmid_fun}'
         names_plotting = {'dL': '$d_L$', 'Mc': '$\mathcal{M}$', 'Mtot': '$M$', 'eta': '$\eta$', 'Mc_det': '$\mathcal{M}_z$', 'Mtot_det': '$M_z$', 'chi_eff': '$\chi_\mathrm{eff}$'}
@@ -1572,8 +1577,8 @@ class Found_injections:
             return d0
         
         except:
-            
-            d0 = {'o1' : np.loadtxt(f'{os.path.dirname(__file__)}/d0.dat')[0], 'o2' : np.loadtxt(f'{os.path.dirname(__file__)}/d0.dat')[1]}
+            print('reading d0 file')
+            d0 = {'o1' : np.loadtxt(f'{os.path.dirname(__file__)}/{run_dataset}/{self.path}/d0.dat')[0], 'o2' : np.loadtxt(f'{os.path.dirname(__file__)}/{run_dataset}/{self.path}/d0.dat')[1]}
             
             return d0[run_dataset]
         
