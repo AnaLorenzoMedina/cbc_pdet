@@ -46,7 +46,7 @@ run_dataset = 'o3'
 # function for dmid and emax we wanna use
 #dmid_fun = 'Dmid_mchirp_fdmid_fspin_cubic'
 #dmid_fun = 'Dmid_mchirp_fdmid_fspin_4'
-dmid_fun = 'Dmid_mchirp_fdmid'
+#dmid_fun = 'Dmid_mchirp_fdmid'
 #dmid_fun = 'Dmid_mchirp_fdmid_fspin'
 #dmid_fun = 'Dmid_mchirp_expansion_noa30'
 #dmid_fun = 'Dmid_mchirp_expansion_exp'
@@ -55,12 +55,12 @@ dmid_fun = 'Dmid_mchirp_fdmid'
 #dmid_fun = 'Dmid_mchirp_expansion'
 #dmid_fun = 'Dmid_mchirp'
 #dmid_fun = 'Dmid_mchirp_fdmid_fspin_c21'
-emax_fun = 'emax_exp'
-#emax_fun = 'emax_gaussian'
+#emax_fun = 'emax_exp'
+emax_fun = 'emax_gaussian'
 #emax_fun = 'emax_sigmoid'
 #dmid_fun = 'Dmid_mchirp_mixture'
 #dmid_fun = 'Dmid_mchirp_mixture_logspin'
-#dmid_fun = 'Dmid_mchirp_mixture_logspin_corr'
+dmid_fun = 'Dmid_mchirp_mixture_logspin_corr'
 
 alpha_vary = None
 
@@ -83,9 +83,12 @@ rc('text', usetex=True)
 
 #ini_files = [[1.438e2,  4.292e-03 , 1.541 , 1.433e2,  7.32e-1,  -5.86e-1,  -3.699e-3,  3.74e-6], [0.804, 4.9203e-14, 0.3, 0.5, 150, 1]]
 #ini_files_spin = [[98.832, 0.0023, 0.7082, 200.722, 1.058, -0.5713, -0.00336, 2.9764e-07, 0.1548, 0.00195, 0 ], [-1.37, 0.381, 0.20327, 0.9999, 2418.1926, 1.393]]
-ini_files_spin_log = [[99.70, 0.00237, 0.696, 202.94, 1.052,-0.567, -0.00348, 8.332e-07, -0.1235, 0.00108, 0.086, 0 ], [-1.378, 0.3825, 0.2025, 0.999, 2491.30475, 1.412 ]]
+#ini_files_spin_log = [[99.70, 0.00237, 0.696, 202.94, 1.052,-0.567, -0.00348, 8.332e-07, -0.1235, 0.00108, 0.086, 0 ], [-1.378, 0.3825, 0.2025, 0.999, 2491.30475, 1.412 ]]
 
-data = Found_injections(dmid_fun, emax_fun, alpha_vary)
+ini_files_4_sources = [[ 83.016, 0.00314, 0.74181, 218.231, 0.87566, -0.5712, -0.003573, 1.3588e-06, -0.0922916, 0.00121, 0.0766, -0.09137],  [-1.3639, 0.378019,0.18802, 0.99999, 3239.7326, 1.604237] ]
+
+
+data = Found_injections(dmid_fun, emax_fun, alpha_vary, ini_files_4_sources)
 path = f'{run_dataset}/' + data.path
 
 data.make_folders(run_dataset)
@@ -202,13 +205,13 @@ plt.savefig(name, format='pdf', dpi=1000, bbox_inches="tight")
 '''
 
 #%%
-data.cumulative_dist(run_dataset, run_fit,'dL', ks = True)
-data.cumulative_dist(run_dataset, run_fit,'Mtot', ks = True)
-data.cumulative_dist(run_dataset, run_fit,'Mc', ks = True)
-data.cumulative_dist(run_dataset, run_fit,'Mtot_det', ks = True)
-data.cumulative_dist(run_dataset, run_fit,'Mc_det', ks = True)
-data.cumulative_dist(run_dataset, run_fit,'eta', ks = True)
-data.cumulative_dist(run_dataset, run_fit,'chi_eff', ks = True)
+data.cumulative_dist(run_dataset, run_fit,'dL', ks = False)
+data.cumulative_dist(run_dataset, run_fit,'Mtot', ks = False)
+data.cumulative_dist(run_dataset, run_fit,'Mc', ks = False)
+data.cumulative_dist(run_dataset, run_fit,'Mtot_det', ks = False)
+data.cumulative_dist(run_dataset, run_fit,'Mc_det', ks = False)
+data.cumulative_dist(run_dataset, run_fit,'eta', ks = False)
+data.cumulative_dist(run_dataset, run_fit,'chi_eff', ks = False)
 #%%
 nbins = 10
 
@@ -283,7 +286,7 @@ plt.savefig(name, format='pdf', dpi=1000, bbox_inches="tight")
 '''
 #%%
 #### CHIEFF 
-data.get_opt_params('o4')
+data.get_opt_params('o3')
 
 m1_det = data.m1 * (1 + data.z)
 m2_det = data.m2 * (1 + data.z)

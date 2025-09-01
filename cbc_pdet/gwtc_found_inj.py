@@ -1308,47 +1308,52 @@ class Found_injections:
         -------
         float. Rescaled constant d0
         '''
-        try:
-            self.load_inj_set(run_dataset)
-            Nfound = self.found_any.sum()
-            print(Nfound)
-            
-            self.get_opt_params(run_fit, rescale_o3 = False) #we always want 'o3' fit
-            
-            dmid_params = np.copy(self.dmid_params)
-            dmid_params[0] = 1.
-    
-            m1_det = self.m1 * (1 + self.z)
-            m2_det = self.m2 * (1 + self.z)
-            #mtot_det = m1_det + m2_det
-            
-            dmid_values = self.dmid(m1_det, m2_det, dmid_params)
-            #self.apply_dmid_mtotal_max(dmid_values, mtot_det)
-            
-            emax_params, gamma, delta, alpha = self.get_shape_params()
-            
-            if self.emax_fun is not None:
-                emax = self.emax(m1_det, m2_det, emax_params)  
-            else:
-                emax = np.copy(emax_params)
-            
-            def find_root(x):
-                new_dmid_values = x * dmid_values
-                #self.apply_dmid_mtotal_max(new_dmid_values, mtot_det)
-                
-                frac = self.dL / ( new_dmid_values)
-                denom = 1. + frac ** alpha * \
-                        np.exp(gamma* (frac - 1.) + delta * (frac**2 - 1.))
-                        
-                return  np.nansum(emax / denom)  -  Nfound
-            
-            d0 = fsolve(find_root, [50])  # rescaled Dmid cte (it has units of Dmid !!)
-            return d0
+        #try:
+        self.load_inj_set(run_dataset)
+        Nfound = self.found_any.sum()
+        print(Nfound)
         
-        except:
-            d0 = {'o1' : np.loadtxt(f'{os.path.dirname(__file__)}/d0.dat')[0], 'o2' : np.loadtxt(f'{os.path.dirname(__file__)}/d0.dat')[1]}
+        self.get_opt_params(run_fit, rescale_o3 = False) #we always want 'o3' fit
+        
+        dmid_params = np.copy(self.dmid_params)
+        dmid_params[0] = 1.
+
+        m1_det = self.m1 * (1 + self.z)
+        m2_det = self.m2 * (1 + self.z)
+        chieff = self.chi_eff
+        #mtot_det = m1_det + m2_det
+        
+        if self.dmid_fun in self.spin_functions:
+            dmid_values = self.dmid(m1_det, m2_det, chieff, dmid_params)
             
-            return d0[run_dataset]
+        else: 
+            dmid_values = self.dmid(m1_det, m2_det, dmid_params)
+        
+        emax_params, gamma, delta, alpha = self.get_shape_params()
+        
+        if self.emax_fun is not None:
+            emax = self.emax(m1_det, m2_det, emax_params)  
+        else:
+            emax = np.copy(emax_params)
+        
+        def find_root(x):
+            new_dmid_values = x * dmid_values
+            #self.apply_dmid_mtotal_max(new_dmid_values, mtot_det)
+            
+            frac = self.dL / ( new_dmid_values)
+            denom = 1. + frac ** alpha * \
+                    np.exp(gamma* (frac - 1.) + delta * (frac**2 - 1.))
+                    
+            return  np.nansum(emax / denom)  -  Nfound
+        
+        d0 = fsolve(find_root, [50])  # rescaled Dmid cte (it has units of Dmid !!)
+        return d0
+        
+        # except:
+        #     print('reading d0 file')
+        #     d0 = {'o1' : np.loadtxt(f'{os.path.dirname(__file__)}/d0.dat')[0], 'o2' : np.loadtxt(f'{os.path.dirname(__file__)}/d0.dat')[1]}
+            
+            # return d0[run_dataset]
 
     def predicted_events(self, run_fit, run_dataset='o3'):
         '''
