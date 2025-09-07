@@ -117,41 +117,47 @@ class Found_injections:
                                    'emax_sigmoid' : sigmoid_names + ['b_0, k, M_0'],
                                     None : sigmoid_names,
                                   }
+       # self.obs_run = {}
+        
+        self.sets = {}
         
         
-    def make_folders(self, run):
-
+    def make_folders(self, run, sources):
+        
+        if isinstance(sources, str):
+            each_source = [source.strip() for source in sources.split(',')] 
+            
+        sources_folder = "_".join(sorted(each_source)) 
+        
         try:
             os.mkdir(f'{run}')
         except OSError as e:
             if e.errno != errno.EEXIST:
                 raise
+        
+        try:
+            os.mkdir(f'{run}/{sources_folder}')
+        except OSError as e:
+            if e.errno != errno.EEXIST:
+                raise
                 
         if self.alpha_vary is not None:
-            path = f'{run}/alpha_vary'
+            
+            path = f'{run}/{sources_folder}/alpha_vary'
             try:
-                os.mkdir(f'{run}/alpha_vary')
+                os.mkdir(f'{run}/{sources_folder}/alpha_vary')
             except OSError as e:
                 if e.errno != errno.EEXIST:
                     raise
         else:
-            path = f'{run}'
-            
-        if self.thr_far != 1:
-            ifar = int(1 / self.thr_far)
-            path = path + f'/ifar_{ifar}/'
-            try:
-                os.mkdir(path)
-            except OSError as e:
-                if e.errno != errno.EEXIST:
-                    raise
+            path = f'{run}/{sources_folder}'
                 
         try:
             os.mkdir(path + f'/{self.dmid_fun}')
         except OSError as e:
             if e.errno != errno.EEXIST:
                 raise
-  
+                
         try:
             os.mkdir(path + f'/{self.dmid_fun}/{self.emax_fun}')
         except OSError as e:
@@ -160,175 +166,221 @@ class Found_injections:
                 
         return
         
-    def read_o1o2_set(self, run_dataset):
+    def read_o1o2_set(self, run_dataset, source = 'bbh'):
+        
         assert run_dataset =='o1' or run_dataset == 'o2', "Argument (run_dataset) must be 'o1' or 'o2'."
         
+        assert source =='bbh' or source == 'bns' or source == 'nsbh' or source == 'imbh',\
+        "Argument (source) must be 'bbh' or 'bns' or 'nsbh' or 'imbh'. "
+        
         try:
-            file = h5py.File(f'{os.path.dirname(__file__)}/{run_dataset}-bbh-IMRPhenomXPHMpseudoFourPN.hdf5', 'r')
+            file = h5py.File(f'{os.path.dirname(__file__)}/{run_dataset}-{source}-IMRPhenomXPHMpseudoFourPN.hdf5', 'r')
         except:
             raise RuntimeError('File with the injection set not found. Please add it to your installation \
                                 of cbc_pdet, in the folder where o123_class_found_inj_general.py is. \
                                 It can be downloaded from https://dcc.ligo.org/LIGO-T2100280 (currently LVK access)')
+                                
+        self.sets[f'{source}'] = {}
+                
         atr = dict(file.attrs.items())
         
         # Total number of generated injections
-        self.Ntotal = atr['total_generated'] 
+        self.sets[f'{source}']['Ntotal'] = atr['total_generated'] 
         
         # Mass 1 and mass 2 values in the source frame in solar units
-        self.m1 = file["events"][:]["mass1_source"]
-        self.m2 = file["events"][:]["mass2_source"]
+        self.sets[f'{source}']['m1']= file["events"][:]["mass1_source"]
+        self.sets[f'{source}']['m2'] = file["events"][:]["mass2_source"]
 
         # Redshift and luminosity distance [Mpc] values 
-        self.z = file["events"][:]["z"]
-        self.dL = file["events"][:]["distance"]
+        self.sets[f'{source}']['z'] = file["events"][:]["z"]
+        self.sets[f'{source}']['dL'] = file["events"][:]["distance"]
       
         # Joint mass sampling pdf (probability density function) values, p(m1,m2)
-        self.m1_pdf = np.exp(file["events"][:]["logpdraw_mass1_source_GIVEN_z"])
-        self.m2_pdf = np.exp(file["events"][:]["logpdraw_mass2_source_GIVEN_mass1_source"])
-        self.m_pdf = self.m1_pdf * self.m2_pdf
+        self.sets[f'{source}']['m1_pdf'] = np.exp(file["events"][:]["logpdraw_mass1_source_GIVEN_z"])
+        self.sets[f'{source}']['m2_pdf']= np.exp(file["events"][:]["logpdraw_mass2_source_GIVEN_mass1_source"])
+        self.sets[f'{source}']['m_pdf'] = self.sets[f'{source}']['m1_pdf'] * self.sets[f'{source}']['m2_pdf']
         
         # Redshift sampling pdf values, p(z), corresponding to a redshift defined by a flat Lambda-Cold Dark Matter cosmology
-        self.z_pdf = np.exp(file["events"][:]["logpdraw_z"])
+        self.sets[f'{source}']['z_pdf'] = np.exp(file["events"][:]["logpdraw_z"])
         
-        self.s1x = file["events"][:]["spin1x"]
-        self.s1y = file["events"][:]["spin1y"]
-        self.s1z = file["events"][:]["spin1z"]
+        self.sets[f'{source}']['s1x']= file["events"][:]["spin1x"]
+        self.sets[f'{source}']['s1y'] = file["events"][:]["spin1y"]
+        self.sets[f'{source}']['s1z'] = file["events"][:]["spin1z"]
         
-        self.s2x = file["events"][:]["spin2x"]
-        self.s2y = file["events"][:]["spin2y"]
-        self.s2z = file["events"][:]["spin2z"]
+        self.sets[f'{source}']['s2x'] = file["events"][:]["spin2x"]
+        self.sets[f'{source}']['s2y'] = file["events"][:]["spin2y"]
+        self.sets[f'{source}']['s2z'] = file["events"][:]["spin2z"]
         
-        self.chieff_d = file["events"][:]["chi_eff"]
+        self.sets[f'{source}']['chieff_d']= file["events"][:]["chi_eff"]
         
         # SNR
-        self.snr = file["events"][:]["snr_net"]
-        found_snr = self.snr >= self.thr_snr
+        self.sets[f'{source}']['snr'] = file["events"][:]["snr_net"]
+        found_snr = self.sets[f'{source}']['snr'] >= self.thr_snr
         
         # indexes of the found injections
-        self.found_any = found_snr
-        print(f'Found inj in {run_dataset} set: ', self.found_any.sum())   
+        self.sets[f'{source}']['found_any'] = found_snr
+        print(f'Found inj in {run_dataset} set: ', self.sets[f'{source}']['found_any'])   
         
         return
        
-    def read_o3_set(self):
+    def read_o3_set(self, source):
         
         try:
-            file = h5py.File(f'{os.path.dirname(__file__)}/endo3_bbhpop-LIGO-T2100113-v12.hdf5', 'r')
+            file = h5py.File(f'{os.path.dirname(__file__)}/endo3_{source}pop-LIGO-T2100113-v12.hdf5', 'r')
         except:
             raise RuntimeError('File with the injection set not found. Please add it to your installation \
                                 of cbc_pdet, in the folder where o123_class_found_inj_general.py is. \
                                 It can be downloaded from https://zenodo.org/records/7890437')
         
-        # Total number of generated injections
-        self.Ntotal = file.attrs['total_generated'] 
+        assert source =='bbh' or source == 'bns' or source == 'nsbh' or source == 'imbh',\
+        "Argument (source) must be 'bbh' or 'bns' or 'nsbh' or 'imbh'. "
         
-        # Mass 1 and mass 2 values in the source frame in solar units
-        self.m1 = file["injections/mass1_source"][:]
-        self.m2 = file["injections/mass2_source"][:]
         
-        # Redshift and luminosity distance [Mpc] values 
-        self.z = file["injections/redshift"][:]
-        self.dL = file["injections/distance"][:]
+        self.sets[f'{source}'] = {}
+        
+        #Total number of generated injections
+        self.sets[f'{source}']['Ntotal'] = file.attrs['total_generated'] 
+        
+        #Mass 1 and mass 2 values in the source frame in solar units
+        self.sets[f'{source}']['m1'] = file["injections/mass1_source"][:]
+        self.sets[f'{source}']['m2'] = file["injections/mass2_source"][:]
+        
+        #Redshift and luminosity distance [Mpc] values 
+        self.sets[f'{source}']['z'] = file["injections/redshift"][:]
+        self.sets[f'{source}']['dL'] = file["injections/distance"][:]
       
-        # Joint mass sampling pdf (probability density function) values, p(m1,m2)
-        self.m_pdf = file["injections/mass1_source_mass2_source_sampling_pdf"][:]
+        #Joint mass sampling pdf (probability density function) values, p(m1,m2)
+        self.sets[f'{source}']['m_pdf'] = file["injections/mass1_source_mass2_source_sampling_pdf"][:]
         
-        # Redshift sampling pdf values, p(z), corresponding to a redshift defined by a flat Lambda-Cold Dark Matter cosmology
-        self.z_pdf = file["injections/redshift_sampling_pdf"][:]
+        #Redshift sampling pdf values, p(z), corresponding to a redshift defined by a flat Lambda-Cold Dark Matter cosmology
+        self.sets[f'{source}']['z_pdf'] = file["injections/redshift_sampling_pdf"][:]
         
-        self.s1x = file["injections/spin1x"][:]
-        self.s1y = file["injections/spin1y"][:]
-        self.s1z = file["injections/spin1z"][:]
+        self.sets[f'{source}']['s1x'] = file["injections/spin1x"][:]
+        self.sets[f'{source}']['s1y'] = file["injections/spin1y"][:]
+        self.sets[f'{source}']['s1z'] = file["injections/spin1z"][:]
         
-        self.s2x = file["injections/spin2x"][:]
-        self.s2y = file["injections/spin2y"][:]
-        self.s2z = file["injections/spin2z"][:]
+        self.sets[f'{source}']['s2x'] = file["injections/spin2x"][:]
+        self.sets[f'{source}']['s2y'] = file["injections/spin2y"][:]
+        self.sets[f'{source}']['s2z'] = file["injections/spin2z"][:]
         
         #self.max_s1 = file.attrs['max_spin1'] 
         #self.max_s2 = file.attrs['max_spin2']
         
-        # False alarm rate statistics from each pipeline
-        self.far_pbbh = file["injections/far_pycbc_bbh"][:]
-        self.far_gstlal = file["injections/far_gstlal"][:]
-        self.far_mbta = file["injections/far_mbta"][:]
-        self.far_pfull = file["injections/far_pycbc_hyperbank"][:]
-        self.snr = file['injections/optimal_snr_net'][:]
+        #False alarm rate statistics from each pipeline
+        self.sets[f'{source}']['far_pbbh'] = file["injections/far_pycbc_bbh"][:]
+        self.sets[f'{source}']['far_gstlal'] = file["injections/far_gstlal"][:]
+        self.sets[f'{source}']['far_mbta'] = file["injections/far_mbta"][:]
+        self.sets[f'{source}']['far_pfull'] = file["injections/far_pycbc_hyperbank"][:]
+        self.sets[f'{source}']['snr'] = file['injections/optimal_snr_net'][:]
         
-        found_pbbh = self.far_pbbh <= self.thr_far
-        found_gstlal = self.far_gstlal <= self.thr_far
-        found_mbta = self.far_mbta <= self.thr_far
-        found_pfull = self.far_pfull <= self.thr_far
+        found_pbbh = self.sets[f'{source}']['far_pbbh'] <= self.thr_far
+        found_gstlal = self.sets[f'{source}']['far_gstlal'] <= self.thr_far
+        found_mbta = self.sets[f'{source}']['far_mbta'] <= self.thr_far
+        found_pfull = self.sets[f'{source}']['far_pfull'] <= self.thr_far
 
-        # indexes of the found injections
-        self.found_any = found_pbbh | found_gstlal | found_mbta | found_pfull
-        print('Found inj in o3 set: ', self.found_any.sum())  
+        #indexes of the found injections
+        self.sets[f'{source}']['found_any'] = found_pbbh | found_gstlal | found_mbta | found_pfull
+        print(f'Found inj in o3 set and {source} sources: ', self.sets[f'{source}']['found_any'] .sum())  
         
         return
         
-    def load_inj_set(self, run_dataset):
-        self.read_o3_set() if run_dataset == 'o3' else self.read_o1o2_set(run_dataset)
+    def load_inj_set(self, run_dataset, source):
+        self.read_o3_set(source) if run_dataset == 'o3' else self.read_o1o2_set(run_dataset)
         
-        # Luminosity distance sampling pdf values, p(dL), computed for a flat Lambda-Cold Dark Matter cosmology from the z_pdf values
-        self.dL_pdf = self.z_pdf / fits.dL_derivative(self.z, self.dL, self.cosmo)
+        source_data = self.sets[f'{source}'].copy()
         
-        # total mass (m1+m2)
-        self.Mtot = self.m1 + self.m2
-        self.Mtot_det = self.m1 * (1+self.z) + self.m2 * (1+self.z)
+        #Luminosity distance sampling pdf values, p(dL), computed for a flat Lambda-Cold Dark Matter cosmology from the z_pdf values
+        self.sets[f'{source}']['dL_pdf'] = source_data['z_pdf']/ fits.dL_derivative(source_data['z'], source_data['dL'], self.cosmo)
         
-        # mass chirp
-        self.Mc = (self.m1 * self.m2)**(3/5) / (self.Mtot)**(1/5) 
-        self.Mc_det = (self.m1 * self.m2 * (1+self.z)**2 )**(3/5) / self.Mtot**(1/5) 
+        #total mass (m1+m2)
+        Mtot_source = source_data['m1'] + source_data['m2']
+        self.sets[f'{source}']['Mtot'] = Mtot_source
+        self.sets[f'{source}']['Mtot_det'] = source_data['m1'] * (1+source_data['z']) + source_data['m2'] * (1+source_data['z'])        
         
-        # eta aka symmetric mass ratio
-        mu = (self.m1 * self.m2) / self.Mtot
-        self.eta = mu / self.Mtot
-        self.q = self.m2 / self.m1
+        #mass chirp
+        self.sets[f'{source}']['Mc'] = (source_data['m1'] * source_data['m2'])**(3/5) / (Mtot_source)**(1/5) 
+        self.sets[f'{source}']['Mc_det'] = (source_data['m1'] * source_data['m2'] * (1+source_data['z'])**2 )**(3/5) / Mtot_source**(1/5) 
         
-        # spin amplitude
-        self.a1 = np.sqrt(self.s1x**2 + self.s1y**2 + self.s1z**2)
-        self.a2 = np.sqrt(self.s2x**2 + self.s2y**2 + self.s2z**2)
+        #eta aka symmetric mass ratio
+        mu = (source_data['m1'] * source_data['m2']) / Mtot_source
+        self.sets[f'{source}']['eta'] = mu / Mtot_source
+        self.sets[f'{source}']['q'] = source_data['m2'] / source_data['m1']
         
-        self.a1_max = np.max(self.a1)
-        self.a2_max = np.max(self.a2)
+        #spin amplitude
+        self.sets[f'{source}']['a1'] = np.sqrt(source_data['s1x']**2 + source_data['s1y']**2 + source_data['s1z']**2)
+        self.sets[f'{source}']['a2'] = np.sqrt(source_data['s2x']**2 + source_data['s2y']**2 + source_data['s2z']**2)
         
-        self.s1z_pdf = np.log(self.a1_max / np.abs(self.s1z)) / (2*self.a1_max)
-        self.s2z_pdf = np.log(self.a2_max / np.abs(self.s2z)) / (2*self.a2_max)
+        a1_max = np.max(self.sets[f'{source}']['a1'])
+        a2_max = np.max(self.sets[f'{source}']['a2'])
+        
+        self.sets[f'{source}']['a1_max'] = a1_max
+        self.sets[f'{source}']['a2_max'] = a2_max
+        
+        self.sets[f'{source}']['s1z_pdf'] = np.log(a1_max / np.abs(source_data['s1z'])) / (2*a1_max)
+        self.sets[f'{source}']['s2z_pdf'] = np.log(a2_max / np.abs(source_data['s2z'])) / (2*a2_max)
         
         # a1v = np.array([self.s1x , self.s1y , self.s1z])
         # a2v = np.array([self.s1x , self.s1y , self.s1z])
-
-        self.chi_eff = (self.s1z * self.m1 + self.s2z * self.m2) / (self.Mtot)
         
-        self.max_index = np.argmax(self.dL)
-        self.dLmax = self.dL[self.max_index]
-        self.zmax = np.max(self.z)
+        self.sets[f'{source}']['chi_eff'] = (source_data['s1z'] * source_data['m1'] + source_data['s2z']* source_data['m2']) / (Mtot_source)
         
-        index = np.random.choice(np.arange(len(self.dL)), 200, replace=False)
-        if self.max_index not in index:
-            index = np.insert(index, -1, self.max_index)
+        max_index = np.argmax(source_data['dL'])
+        self.sets[f'{source}']['dLmax'] = source_data['dL'][max_index]
+        self.sets[f'{source}']['zmax'] = np.max(source_data['z'])
+        
+        index = np.random.choice(np.arange(len(source_data['dL'])), 200, replace=False)
+        if max_index not in index:
+            index = np.insert(index, -1, max_index)
             
-        try_dL = self.dL[index]
-        try_dLpdf = self.dL_pdf[index]
+        try_dL = source_data['dL'][index]
+        try_dLpdf = self.sets[f'{source}']['dL_pdf'][index]
     
-        # Add a point at 0 for interpolation
+        #we add 0 value
         inter_dL = np.insert(try_dL, 0, 0, axis=0)
         inter_dLpdf = np.insert(try_dLpdf, 0, 0, axis=0)
-        self.interp_dL_pdf = interpolate.interp1d(inter_dL, inter_dLpdf)
+        self.sets[f'{source}']['interp_dL_pdf'] = interpolate.interp1d(inter_dL, inter_dLpdf)
         
-        try_z = self.z[index]
+        try_z = source_data['z'][index]
         inter_z = np.insert(try_z, 0, 0, axis=0)
         
-        # Add a value for self.zmax
-        new_dL = np.insert(inter_dL, -1, self.dLmax, axis=0)
-        new_z = np.insert(inter_z, -1, self.zmax, axis=0)
+        #add a value for self.zmax
+        new_dL = np.insert(inter_dL, -1, self.sets[f'{source}']['dLmax'], axis=0)
+        new_z = np.insert(inter_z, -1, self.sets[f'{source}']['zmax'], axis=0)
         
-        self.interp_z = interpolate.interp1d(new_dL, new_z)
+        self.sets[f'{source}']['interp_z'] = interpolate.interp1d(new_dL, new_z)
         
-        self.mmin = 2. ; self.mmax = 100.  # only for O3 BBH inj
+        #for 03 injections
+        if source == 'bbh':
+            self.sets[f'{source}']['mmin'] = 2.
+            self.sets[f'{source}']['mmax'] = 100.
+            
+            self.sets[f'{source}']['pow_m1'] = -2.35
+            self.sets[f'{source}']['pow_m2'] = 1.
+            
+        elif source == 'bns':
+            self.sets[f'{source}']['mmin'] = 1.
+            self.sets[f'{source}']['mmax'] = 2.5
+            
+            self.sets[f'{source}']['pow_m1'] = 1.
+            self.sets[f'{source}']['pow_m2'] = 0
+            
+        elif source == 'nsbh':
+            self.sets[f'{source}']['mmin'] = 2.5
+            self.sets[f'{source}']['mmax'] = 60.
+            
+            self.sets[f'{source}']['pow_m1'] = -2.35
+            self.sets[f'{source}']['pow_m2'] = 0.
+            
+        elif source == 'imbh':
+            self.sets[f'{source}']['mmin'] = 90.
+            self.sets[f'{source}']['mmax'] = 600.
+            
+            self.sets[f'{source}']['pow_m1'] = -1.
+            self.sets[f'{source}']['pow_m2'] = -1.
         
         return
     
-    def get_opt_params(self, run_fit, rescale_o3 = True):
+    def get_opt_params(self, run_fit, sources, rescale_o3 = True):
         '''
         Sets self.dmid_params and self.shape_params as a class attribute (optimal values from some previous fit).
 
@@ -343,6 +395,12 @@ class Found_injections:
         assert run_fit =='o1' or run_fit == 'o2' or run_fit == 'o3',\
         "Argument (run_fit) must be 'o1' or 'o2' or 'o3'. "
         
+        if isinstance(sources, str):
+           each_source = [source.strip() for source in sources.split(',')] 
+           
+        sources_folder = "_".join(sorted(each_source)) 
+       
+        
         if not rescale_o3: # get separate independent fit files
              run_fit_touse = run_fit
             
@@ -350,7 +408,7 @@ class Found_injections:
             run_fit_touse = 'o3'
 
         try:
-            path = f'{os.path.dirname(__file__)}/{run_fit_touse}/' + self.path
+            path = f'{os.path.dirname(__file__)}/{run_fit_touse}/{sources_folder}/' + self.path
             self.dmid_params = np.loadtxt( path + '/joint_fit_dmid.dat')[-1, :-1]
             self.shape_params = np.loadtxt( path + '/joint_fit_shape.dat')[-1, :-1]
         except:
