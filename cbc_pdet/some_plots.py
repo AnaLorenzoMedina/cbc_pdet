@@ -713,12 +713,12 @@ figure.savefig(f'{path}/{nboots}_boots_corner_plot_shape.png')
 figure = corner.corner(params_data[:, 5:], labels = [r'$D_0$', r'$a_{20}$', r'$a_{01}$', r'$a_{21}$', r'$a_{10}$', r'$a_{11}$', r'$c_{1}$', r'$c_{11}$'])
 figure.savefig(f'{path}/{nboots}_boots_corner_plot_dmid.png')
 #%%
-emax_params = params_data[:, 2:5]
-dmid_params = params_data[:, 5:]
+emax_params = params_data[:, 2:6]
+dmid_params = params_data[:, 6:]
 gamma = params_data[:,:1]
 delta = params_data[:,1:2]
 
-data.load_inj_set('o3')
+#data.load_inj_set('o3')
 m1_det = data.m1 * (1 + data.z)
 m2_det = data.m2 * (1 + data.z)
 mtot_det = m1_det + m2_det 
@@ -739,7 +739,7 @@ plt.figure()
 for i in range(len(emax)):
     
     plt.plot(mtot, emax[i], '-', alpha = 0.5)
-plt.ylim(0, 1.2)
+#plt.ylim(0, 1.2)
 plt.xlabel(r'$M_z [M_{\odot}]$', fontsize=24)
 plt.ylabel(r'$\varepsilon_\mathrm{max}$', fontsize=24)
 plt.yticks(fontsize=15)
@@ -823,18 +823,31 @@ plt.savefig(name, format='pdf', dpi=150, bbox_inches="tight")
 #%%
 #chieff
 #dmid vs eta
-cte = dmid_params[:,0]
-a_20 = dmid_params[:,1]
-a_01 = dmid_params[:,2]
-a_21 = dmid_params[:,3]
-a_10 = dmid_params[:,4]
-a_11 = dmid_params[:,5]
-c_1 = dmid_params[:,6]
-c_11 = dmid_params[:,7]
+# cte = dmid_params[:,0]
+# a_20 = dmid_params[:,1]
+# a_01 = dmid_params[:,2]
+# a_21 = dmid_params[:,3]
+# a_10 = dmid_params[:,4]
+# a_11 = dmid_params[:,5]
+# c_1 = dmid_params[:,6]
+# c_11 = dmid_params[:,7]
 
+D0 = dmid_params[:,0] 
+B = dmid_params[:,1] 
+C = dmid_params[:,2]  
+mu = dmid_params[:,3] 
+sigma = dmid_params[:,4] 
+a_01 = dmid_params[:,5] 
+a_11 = dmid_params[:,6] 
+a_21 = dmid_params[:,7] 
+c_01 = dmid_params[:,8] 
+c_11 = dmid_params[:,9] 
+d_11 = dmid_params[:,10] 
+L = dmid_params[:,11] 
 
+#%%
 eta = np.linspace(min(data.eta), max(data.eta), 500)
-M_values = [20, 50, 150, 250, 450]
+M_values = [30, 150, 350, 750, 1000]
 colors = ['#9467bd', '#1f77b4', '#ff7f0e', '#2ca02c', '#e78ac3']
 labels = [r'$M_z = 20 [M_{\odot}]$', r'$M_z = 50 [M_{\odot}]$', r'$M_z = 150 [M_{\odot}]$', r'$M_z = 250 [M_{\odot}]$', r'$M_z = 450 [M_{\odot}]$']
 
@@ -843,9 +856,16 @@ plt.figure()
 for M, color, label in zip(M_values, colors, labels):
     
     Mc = eta**(3/5) * M
-    chieff = 0.75
-    pol = np.array([cte[i] * np.exp((c_1[i] + c_11[i] * M) * chieff) * np.exp(a_20[i] * M**2  + a_01[i] * (1 - 4*eta) + a_21[i] * M**2 * (1 - 4*eta) + a_10[i] * M + a_11[i] * M * (1 - 4*eta)) for i in range(len(cte)) ])
-    dmid = pol * Mc**(5/6)
+    chi_eff = 0.75
+    fexp = np.array([np.exp(-B[i] * M - L[i] * np.log(M)) for i in range(len(L))])
+    fgauss = np.array([np.exp(-(np.log(M)-np.log(mu[i]))**2 / (2*sigma[i]**2)) for i in range(len(L)) ])
+    
+    f_M = np.array([D0[i] * (fexp[i] + C[i] * fgauss[i]) for i in range(len(L)) ])
+    
+    f_eta = np.array([ a_01[i] * (1 - 4*eta)  + a_11[i] * M * (1 - 4*eta) + a_21[i] * M**2 * (1 - 4*eta) for i in range(len(L)) ])
+    f_as = np.array([(c_01[i] + c_11[i] * M + d_11[i] * np.log(M)) * chi_eff for i in range(len(L)) ])
+    
+    dmid = Mc**(5/6) * f_M * np.exp(f_eta) * np.exp(f_as)
     
     for i in range(len(cte)):
         if i == 0:
@@ -876,12 +896,19 @@ plt.figure()
 
 for eta, color, label in zip(eta_values, colors, labels):
     
-    #Mc = eta**(3/5) * M
-    chieff = 0.75
-    pol = np.array([cte[i] * np.exp((c_1[i] + c_11[i] * M) * chieff) * np.exp(a_20[i] * M**2  + a_01[i] * (1 - 4*eta) + a_21[i] * M**2 * (1 - 4*eta) + a_10[i] * M + a_11[i] * M * (1 - 4*eta)) for i in range(len(cte)) ])
-    dmid = pol #* Mc**(5/6)
+    Mc = eta**(3/5) * M
+    chi_eff = 0.75
+    fexp = np.array([np.exp(-B[i] * M - L[i] * np.log(M)) for i in range(len(L))])
+    fgauss = np.array([np.exp(-(np.log(M)-np.log(mu[i]))**2 / (2*sigma[i]**2)) for i in range(len(L)) ])
     
-    for i in range(len(cte)):
+    f_M = np.array([D0[i] * (fexp[i] + C[i] * fgauss[i]) for i in range(len(L)) ])
+    
+    f_eta = np.array([ a_01[i] * (1 - 4*eta)  + a_11[i] * M * (1 - 4*eta) + a_21[i] * M**2 * (1 - 4*eta) for i in range(len(L)) ])
+    f_as = np.array([(c_01[i] + c_11[i] * M + d_11[i] * np.log(M)) * chi_eff for i in range(len(L)) ])
+    
+    dmid = Mc**(5/6) * f_M * np.exp(f_eta) * np.exp(f_as)
+    
+    for i in range(len(L)):
         if i == 0:
             plt.loglog(M, dmid[i], color=color, alpha=0.3, rasterized=True, label=label)
         else:
@@ -902,20 +929,28 @@ plt.savefig(name, format='pdf', dpi=150, bbox_inches="tight")
 #chieff 
 #dmid vs chieff various Mz
 chieff = np.linspace(min(data.chi_eff), max(data.chi_eff), 500)
-M_values = [20, 50, 150, 250, 450]
+M_values = [30, 150, 350, 750, 1000]
 colors = ['#9467bd', '#1f77b4', '#ff7f0e', '#2ca02c', '#e78ac3']
-labels = [r'$M_z = 20 \, M_{\odot}$', r'$M_z = 50  \, M_{\odot}$', r'$M_z = 150 \, M_{\odot}$', r'$M_z = 250 \, M_{\odot}$', r'$M_z = 450 \, M_{\odot}$']
+labels = [r'$M_z = 30 \, M_{\odot}$', r'$M_z = 150  \, M_{\odot}$', r'$M_z = 350 \, M_{\odot}$', r'$M_z = 750 \, M_{\odot}$', r'$M_z = 1000 \, M_{\odot}$']
 
 plt.figure()
 
 for M, color, label in zip(M_values, colors, labels):
     
     eta = 0.175
+    M = np.ones(len(chieff)) * M
     Mc = eta**(3/5) * M
-    pol = np.array([cte[i] * np.exp((c_1[i] + c_11[i] * M) * chieff) * np.exp(a_20[i] * M**2  + a_01[i] * (1 - 4*eta) + a_21[i] * M**2 * (1 - 4*eta) + a_10[i] * M + a_11[i] * M * (1 - 4*eta)) for i in range(len(cte)) ])
-    dmid = pol * Mc**(5/6)
+    fexp = np.array([np.exp(-B[i] * M - L[i] * np.log(M)) for i in range(len(L))])
+    fgauss = np.array([np.exp(-(np.log(M)-np.log(mu[i]))**2 / (2*sigma[i]**2)) for i in range(len(L)) ])
     
-    for i in range(len(cte)):
+    f_M = np.array([D0[i] * (fexp[i] + C[i] * fgauss[i]) for i in range(len(L)) ])
+    
+    f_eta = np.array([ a_01[i] * (1 - 4*eta)  + a_11[i] * M * (1 - 4*eta) + a_21[i] * M**2 * (1 - 4*eta) for i in range(len(L)) ])
+    f_as = np.array([(c_01[i] + c_11[i] * M + d_11[i] * np.log(M)) * chieff for i in range(len(L)) ])
+    
+    dmid = Mc**(5/6) * f_M * np.exp(f_eta) * np.exp(f_as)
+    
+    for i in range(len(L)):
         if i == 0:
             plt.semilogy(chieff, dmid[i], color=color, alpha=0.2, rasterized=True, label=label)
         else:

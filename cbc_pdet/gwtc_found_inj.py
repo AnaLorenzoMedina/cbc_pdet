@@ -347,7 +347,7 @@ class Found_injections:
 
         # indexes of the found injections
         self.found_any = found_pbbh | found_gstlal | found_mbta | found_cwb
-        print('Found inj in o3 set: ', self.found_any.sum())  
+        print('Found inj in o4 set: ', self.found_any.sum())  
         
         return
         
@@ -1308,52 +1308,52 @@ class Found_injections:
         -------
         float. Rescaled constant d0
         '''
-        #try:
-        self.load_inj_set(run_dataset)
-        Nfound = self.found_any.sum()
-        print(Nfound)
-        
-        self.get_opt_params(run_fit, rescale_o3 = False) #we always want 'o3' fit
-        
-        dmid_params = np.copy(self.dmid_params)
-        dmid_params[0] = 1.
-
-        m1_det = self.m1 * (1 + self.z)
-        m2_det = self.m2 * (1 + self.z)
-        chieff = self.chi_eff
-        #mtot_det = m1_det + m2_det
-        
-        if self.dmid_fun in self.spin_functions:
-            dmid_values = self.dmid(m1_det, m2_det, chieff, dmid_params)
+        try:
+            self.load_inj_set(run_dataset)
+            Nfound = self.found_any.sum()
+            print(Nfound)
             
-        else: 
-            dmid_values = self.dmid(m1_det, m2_det, dmid_params)
-        
-        emax_params, gamma, delta, alpha = self.get_shape_params()
-        
-        if self.emax_fun is not None:
-            emax = self.emax(m1_det, m2_det, emax_params)  
-        else:
-            emax = np.copy(emax_params)
-        
-        def find_root(x):
-            new_dmid_values = x * dmid_values
-            #self.apply_dmid_mtotal_max(new_dmid_values, mtot_det)
+            self.get_opt_params(run_fit, rescale_o3 = False) #we always want 'o3' fit
             
-            frac = self.dL / ( new_dmid_values)
-            denom = 1. + frac ** alpha * \
-                    np.exp(gamma* (frac - 1.) + delta * (frac**2 - 1.))
-                    
-            return  np.nansum(emax / denom)  -  Nfound
-        
-        d0 = fsolve(find_root, [50])  # rescaled Dmid cte (it has units of Dmid !!)
-        return d0
-        
-        # except:
-        #     print('reading d0 file')
-        #     d0 = {'o1' : np.loadtxt(f'{os.path.dirname(__file__)}/d0.dat')[0], 'o2' : np.loadtxt(f'{os.path.dirname(__file__)}/d0.dat')[1]}
+            dmid_params = np.copy(self.dmid_params)
+            dmid_params[0] = 1.
+    
+            m1_det = self.m1 * (1 + self.z)
+            m2_det = self.m2 * (1 + self.z)
+            chieff = self.chi_eff
+            #mtot_det = m1_det + m2_det
             
-            # return d0[run_dataset]
+            if self.dmid_fun in self.spin_functions:
+                dmid_values = self.dmid(m1_det, m2_det, chieff, dmid_params)
+                
+            else: 
+                dmid_values = self.dmid(m1_det, m2_det, dmid_params)
+            
+            emax_params, gamma, delta, alpha = self.get_shape_params()
+            
+            if self.emax_fun is not None:
+                emax = self.emax(m1_det, m2_det, emax_params)  
+            else:
+                emax = np.copy(emax_params)
+            
+            def find_root(x):
+                new_dmid_values = x * dmid_values
+                #self.apply_dmid_mtotal_max(new_dmid_values, mtot_det)
+                
+                frac = self.dL / ( new_dmid_values)
+                denom = 1. + frac ** alpha * \
+                        np.exp(gamma* (frac - 1.) + delta * (frac**2 - 1.))
+                        
+                return  np.nansum(emax / denom)  -  Nfound
+            
+            d0 = fsolve(find_root, [50])  # rescaled Dmid cte (it has units of Dmid !!)
+            return d0
+            
+        except:
+            print('reading d0 file')
+            d0 = {'o1' : np.loadtxt(f'{os.path.dirname(__file__)}/d0.dat')[0], 'o2' : np.loadtxt(f'{os.path.dirname(__file__)}/d0.dat')[1]}
+            
+            return d0[run_dataset]
 
     def predicted_events(self, run_fit, run_dataset='o3'):
         '''
@@ -1477,8 +1477,13 @@ class Found_injections:
         return pdet
     
     def bootstrap_resampling(self, n_boots, run_dataset, run_fit):
-        self.load_inj_set(run_dataset)
-        total = len(self.dL)
+        
+        try:
+            total = len(self.dL)
+        except:
+            self.load_inj_set(run_dataset)
+            total = len(self.dL)
+            
         all_params = np.zeros([1, len(np.atleast_1d(self.dmid_params)) + len(np.atleast_1d(self.shape_params))])
         
         for i in range(n_boots):
@@ -1487,6 +1492,8 @@ class Found_injections:
             
             self.m1 = self.m1[boots]
             self.m2 = self.m2[boots]
+            self.m1_det = self.m1_det[boots]
+            self.m2_det = self.m2_det[boots]
             self.z = self.z[boots]
             self.dL = self.dL[boots]
             

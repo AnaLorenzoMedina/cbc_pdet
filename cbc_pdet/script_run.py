@@ -40,8 +40,8 @@ from cbc_pdet.gwtc_found_inj import Found_injections
 
 plt.close('all')
 
-run_fit = 'o3'
-run_dataset = 'o3'
+run_fit = 'o4'
+run_dataset = 'o4'
 
 # function for dmid and emax we wanna use
 #dmid_fun = 'Dmid_mchirp_fdmid_fspin_cubic'
@@ -88,7 +88,7 @@ rc('text', usetex=True)
 ini_files_4_sources = [[ 83.016, 0.00314, 0.74181, 218.231, 0.87566, -0.5712, -0.003573, 1.3588e-06, -0.0922916, 0.00121, 0.0766, -0.09137],  [-1.3639, 0.378019,0.18802, 0.99999, 3239.7326, 1.604237] ]
 
 
-data = Found_injections(dmid_fun, emax_fun, alpha_vary, ini_files_4_sources)
+data = Found_injections(dmid_fun, emax_fun, alpha_vary)
 path = f'{run_dataset}/' + data.path
 
 data.make_folders(run_dataset)
@@ -401,7 +401,7 @@ plt.savefig(name, format='pdf', dpi=300, bbox_inches="tight", transparent = True
 
 #%%
 
-data.bootstrap_resampling(100, 'o3', 'o3')
+data.bootstrap_resampling(100, 'o4', 'o4')
 
 
 #os.chdir(original_working_directory)
