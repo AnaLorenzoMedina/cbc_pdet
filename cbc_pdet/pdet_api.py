@@ -18,7 +18,7 @@ class PdetEstimation():
         if method_dict is None:  # Current defaults use a fit on O3 injections
             method_dict = {'observing_run': 'o3', 'sources': 'bbh', 'dmid_fun': 'Dmid_mchirp_fdmid_fspin', 'emax_fun': 'emax_exp'}        
         self.run = method_dict.pop('observing_run')
-        self.sources = method_dict.pop('observing_run')
+        self.sources = method_dict.pop('sources')
 
         self.fit = Found_injections(**method_dict, cosmo_parameters=cosmo_parameters)
         
