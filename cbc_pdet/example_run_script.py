@@ -8,13 +8,13 @@ Created on Fri Oct 25 12:42:57 2024
 
 #example script on how to initialise the class 
 import cbc_pdet 
-from cbc_pdet.o123_class_found_inj_general import Found_injections
+from cbc_pdet.gwtc_found_inj import Found_injections
 
 #set the ini variables, dmid_fun is the function you are using for dmid, 
 #emax_fun is the function for emax (max search efficiency)
 
-dmid_fun = 'Dmid_mchirp_fdmid_fspin' #the final one including spins effect
-emax_fun = 'emax_exp'
+dmid_fun = 'Dmid_mchirp_mixture_logspin_corr' #the final one including spins effect
+emax_fun = 'emax_gaussian'
 
 data = Found_injections(dmid_fun, emax_fun) #initialise class
 
@@ -22,14 +22,19 @@ data = Found_injections(dmid_fun, emax_fun) #initialise class
 run_fit = 'o3'   #the fit you want the optimal parameters from (in case you want to use o3 fit with o2 dataset, for example)
 run_dataset = 'o3'  #the dataset you want to use (either for the fit or to use for extra results), can be o1, o2 or o3
 
+sources = 'bbh, bns, nsbh'
 #create folders to save results
-data.make_folders(run_fit)
+data.make_folders(run_fit, sources)
 
 #load the injection set (i.e. the data)
-data.load_inj_set(run_dataset)
+data.load_all_inj_sets(run_dataset, sources)
+#%%
+
+#run the fit 
+#data.joint_MLE(run_dataset, sources)
 
 #fetch the optimal parameters for the sigmoid (Pdet) function from the fit you have made
-data.get_opt_params(run_fit)
+data.get_opt_params(run_fit, sources)
 
 #compute pdet for some luminosity distance, masses and spins values (effective spin)
 

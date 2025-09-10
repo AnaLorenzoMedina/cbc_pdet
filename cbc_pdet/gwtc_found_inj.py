@@ -106,7 +106,7 @@ class Found_injections:
                                   'Dmid_mchirp_fdmid_fspin_4': ['cte', 'a20', 'a01', 'a21', 'a10','a11', 'a30', 'a31', 'a40', 'c1', 'c11'],
                                   'Dmid_mchirp_mixture_logspin_corr': ['D0', 'B', 'C' , 'mu', 'sigma', 'a_01', 'a_11', 'a_21', 'c_01', 'c_11', 'd_11', 'L'],}
         
-        self.spin_functions = ['Dmid_mchirp_fdmid_fspin','Dmid_mchirp_fdmid_fspin_c21']
+        self.spin_functions = ['Dmid_mchirp_fdmid_fspin','Dmid_mchirp_fdmid_fspin_c21', 'Dmid_mchirp_fdmid_fspin_cubic', 'Dmid_mchirp_fdmid_fspin_4', 'Dmid_mchirp_mixture_spin', 'Dmid_mchirp_mixture_logspin', 'Dmid_mchirp_mixture_logspin_corr', 'Dmid_mchirp_mixture_logM_logspin']
         
         sigmoid_names = ['gamma', 'delta']
         
@@ -463,7 +463,7 @@ class Found_injections:
             
         return
     
-    def get_ini_values(self, sources = 'bbh'):
+    def get_ini_values(self):
         '''
         Gets the dmid and shape initial params for a new optimization
 
@@ -473,16 +473,12 @@ class Found_injections:
         shape_ini_values : 1D array. Initial values for the shape optiization
         
         '''
-        if isinstance(sources, str):
-            each_source = [source.strip() for source in sources.split(',')] 
-            
-        sources_folder = "_".join(sorted(each_source)) 
         
         if self.alpha_vary is None:
-            path = f'{os.path.dirname(__file__)}/ini_values/{sources_folder}/{self.dmid_fun}' if self.emax_fun is None else f'{os.path.dirname(__file__)}/ini_values/{sources_folder}/{self.dmid_fun}_{self.emax_fun}'
+            path = f'{os.path.dirname(__file__)}/ini_values/{self.dmid_fun}' if self.emax_fun is None else f'{os.path.dirname(__file__)}/ini_values/{self.dmid_fun}_{self.emax_fun}'
             
         else: 
-            path = f'{os.path.dirname(__file__)}/ini_values/{sources_folder}/alpha_vary_{self.dmid_fun}' if self.emax_fun is None else f'{os.path.dirname(__file__)}/ini_values/{sources_folder}/alpha_vary_{self.dmid_fun}_{self.emax_fun}'
+            path = f'{os.path.dirname(__file__)}/ini_values/alpha_vary_{self.dmid_fun}' if self.emax_fun is None else f'{os.path.dirname(__file__)}/ini_values/alpha_vary_{self.dmid_fun}_{self.emax_fun}'
             
         
         try:
@@ -602,8 +598,8 @@ class Found_injections:
         """
         source_data = self.sets[f'{source}'].copy()
         
-        m1_det = source_data['m1'] * (1 + source_data['z']) 
-        m2_det = source_data['m2'] * (1 + source_data['z'])
+        m1_det = source_data['m1_det']
+        m2_det = source_data['m2_det']
         dL = source_data['dL']
         chi_eff = source_data['chi_eff']
         
@@ -665,15 +661,11 @@ class Found_injections:
         dL = source_data['dL'][source_data['found_any']]
         dL_pdf = source_data['dL_pdf'][source_data['found_any']]
         m_pdf = source_data['m_pdf'][source_data['found_any']]
-        z = source_data['z'][source_data['found_any']]
-        m1 = source_data['m1'][source_data['found_any']]
-        m2 = source_data['m2'][source_data['found_any']]
+        m1_det = source_data['m1_det'][source_data['found_any']]
+        m2_det = source_data['m2_det'][source_data['found_any']]
         chieff = source_data['chi_eff'][source_data['found_any']]
         s1z_pdf = source_data['s1z_pdf'][source_data['found_any']]
         s2z_pdf = source_data['s2z_pdf'][source_data['found_any']]
-        
-        m1_det = m1 * (1 + z) 
-        m2_det = m2 * (1 + z)
         
         if self.dmid_fun in self.spin_functions:
             dmid_values = self.dmid(m1_det, m2_det, chieff, dmid_params)
@@ -736,12 +728,11 @@ class Found_injections:
         -------
         float 
         """
-        shape_params[1] = np.exp(shape_params[1])
          
         lnL = -self.Nexp(dmid_params, shape_params, source) + np.sum(np.log(self.lamda(dmid_params, shape_params, source)))
         return lnL
     
-    def total_lnL_dmid(self, dmid_params, shape_params, sources):
+    def total_logL_dmid(self, dmid_params, shape_params, sources):
        
        if isinstance(sources, str):
            each_source = [source.strip() for source in sources.split(',')]
@@ -753,7 +744,7 @@ class Found_injections:
        except KeyError as e:
            raise ValueError(f'Unknown source type: {e.args[0]}')
            
-    def total_lnL_shape(self, dmid_params, shape_params, sources):
+    def total_logL_shape(self, dmid_params, shape_params, sources):
         
         if isinstance(sources, str):
             each_source = [source.strip() for source in sources.split(',')]
@@ -812,7 +803,7 @@ class Found_injections:
             all_bounds[2] = (0, 1) #b0
             all_bounds[3] = (0, 1) #b1
         
-        res = opt.minimize(fun=lambda in_param: -self.logL_shape(self.dmid_params, in_param, sources), 
+        res = opt.minimize(fun=lambda in_param: -self.total_logL_shape(self.dmid_params, in_param, sources), 
                            x0=np.array(shape_params_guess), 
                            args=(), 
                            method=methods,
@@ -870,7 +861,7 @@ class Found_injections:
             
             dmid_params, maxL_1 = self.MLE_dmid(methods, sources)
             all_dmid_params = np.vstack([all_dmid_params, dmid_params])
-            
+
             shape_params, maxL_2 = self.MLE_shape(methods, sources)
             print('lnL shape: ', maxL_2)
             
