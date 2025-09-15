@@ -84,7 +84,11 @@ class Found_injections:
         
         self.runs = ['o1', 'o2', 'o3']
         
-        self.obs_time = {'o1' : 0.1331507, 'o2' : 0.323288, 'o3' : 0.75435365296528} #years
+        #coincident analysis (two or three detectors operating) observing time of O3
+        self.coincident_time_o3 = 0.75435365296528 #years
+        
+        #total observing time of each run (O3 is different from above because O3 looked at single detector time too)
+        self.obs_time = {'o1' : 0.1331507, 'o2' : 0.323288, 'o3' : 0.91101} #years
         self.total_obs_time = np.sum(list(self.obs_time.values()))
         self.prop_obs_time = np.array([self.obs_time[i]/self.total_obs_time for i in self.runs])
         
@@ -224,7 +228,7 @@ class Found_injections:
         
         # indexes of the found injections
         self.sets[f'{source}']['found_any'] = found_snr
-        print(f'Found inj in {run_dataset} set: ', self.sets[f'{source}']['found_any'])   
+        print(f'Found inj in {run_dataset} set: ', self.sets[f'{source}']['found_any'].sum())   
         
         return
        
@@ -393,32 +397,34 @@ class Found_injections:
             each_source = [source.strip() for source in sources.split(',')] 
         [self.load_inj_set(run_dataset, source) for source in each_source]
         
-        self.dL = np.concatenate([self.sets[f'{source}']['dL'] for source in each_source])
-        self.z = np.concatenate([self.sets[f'{source}']['z'] for source in each_source])
-        self.m1 = np.concatenate([self.sets[f'{source}']['m1'] for source in each_source])
-        self.m2 = np.concatenate([self.sets[f'{source}']['m2'] for source in each_source])
-        self.m1_det = np.concatenate([self.sets[f'{source}']['m1_det'] for source in each_source])
-        self.m2_det = np.concatenate([self.sets[f'{source}']['m2_det'] for source in each_source])
-        self.chi_eff = np.concatenate([self.sets[f'{source}']['chi_eff'] for source in each_source])
-        self.s1x = np.concatenate([self.sets[f'{source}']['s1x'] for source in each_source])
-        self.s1y = np.concatenate([self.sets[f'{source}']['s1y'] for source in each_source])
-        self.s1z = np.concatenate([self.sets[f'{source}']['s1z'] for source in each_source])
-        self.s2x = np.concatenate([self.sets[f'{source}']['s2x'] for source in each_source])
-        self.s2y = np.concatenate([self.sets[f'{source}']['s2y'] for source in each_source])
-        self.s2z = np.concatenate([self.sets[f'{source}']['s2z'] for source in each_source])
-        self.Mtot = np.concatenate([self.sets[f'{source}']['Mtot'] for source in each_source])
-        self.Mtot_det = np.concatenate([self.sets[f'{source}']['Mtot_det'] for source in each_source])
-        self.Mc = np.concatenate([self.sets[f'{source}']['Mc'] for source in each_source])
-        self.Mc_det = np.concatenate([self.sets[f'{source}']['Mc_det'] for source in each_source])
-        self.eta = np.concatenate([self.sets[f'{source}']['eta'] for source in each_source])
-        self.q = np.concatenate([self.sets[f'{source}']['q'] for source in each_source])
-        self.found_any = np.concatenate([self.sets[f'{source}']['found_any'] for source in each_source])
+        self.Ntotal = sum(self.sets[source]['Ntotal'] for source in each_source)
+        self.dL = np.concatenate([self.sets[source]['dL'] for source in each_source])
+        self.z = np.concatenate([self.sets[source]['z'] for source in each_source])
+        self.m1 = np.concatenate([self.sets[source]['m1'] for source in each_source])
+        self.m2 = np.concatenate([self.sets[source]['m2'] for source in each_source])
+        self.m1_det = np.concatenate([self.sets[source]['m1_det'] for source in each_source])
+        self.m2_det = np.concatenate([self.sets[source]['m2_det'] for source in each_source])
+        self.chi_eff = np.concatenate([self.sets[source]['chi_eff'] for source in each_source])
+        self.s1x = np.concatenate([self.sets[source]['s1x'] for source in each_source])
+        self.s1y = np.concatenate([self.sets[source]['s1y'] for source in each_source])
+        self.s1z = np.concatenate([self.sets[source]['s1z'] for source in each_source])
+        self.s2x = np.concatenate([self.sets[source]['s2x'] for source in each_source])
+        self.s2y = np.concatenate([self.sets[source]['s2y'] for source in each_source])
+        self.s2z = np.concatenate([self.sets[source]['s2z'] for source in each_source])
+        self.Mtot = np.concatenate([self.sets[source]['Mtot'] for source in each_source])
+        self.Mtot_det = np.concatenate([self.sets[source]['Mtot_det'] for source in each_source])
+        self.Mc = np.concatenate([self.sets[source]['Mc'] for source in each_source])
+        self.Mc_det = np.concatenate([self.sets[source]['Mc_det'] for source in each_source])
+        self.eta = np.concatenate([self.sets[source]['eta'] for source in each_source])
+        self.q = np.concatenate([self.sets[source]['q'] for source in each_source])
+        self.found_any = np.concatenate([self.sets[source]['found_any'] for source in each_source])
+        self.total_found_inj = np.sum(self.found_any)
         
-        self.dL_pdf = np.concatenate([self.sets[f'{source}']['dL_pdf'] for source in each_source])
-        self.z_pdf = np.concatenate([self.sets[f'{source}']['z_pdf'] for source in each_source])
-        self.m_pdf = np.concatenate([self.sets[f'{source}']['m_pdf'] for source in each_source])
-        self.s1z_pdf = np.concatenate([self.sets[f'{source}']['s1z_pdf'] for source in each_source])
-        self.s2z_pdf = np.concatenate([self.sets[f'{source}']['s2z_pdf'] for source in each_source])
+        self.dL_pdf = np.concatenate([self.sets[source]['dL_pdf'] for source in each_source])
+        self.z_pdf = np.concatenate([self.sets[source]['z_pdf'] for source in each_source])
+        self.m_pdf = np.concatenate([self.sets[source]['m_pdf'] for source in each_source])
+        self.s1z_pdf = np.concatenate([self.sets[source]['s1z_pdf'] for source in each_source])
+        self.s2z_pdf = np.concatenate([self.sets[source]['s2z_pdf'] for source in each_source])
         
         return
         
@@ -698,6 +704,7 @@ class Found_injections:
 
         pdet = self.sigmoid(dL, dmid_values, *sigmoid_args)
         return pdet * pdfs * source_data['Ntotal'] # lambda
+
     
     def logL_dmid(self, dmid_params, shape_params, source):
         """
@@ -863,7 +870,6 @@ class Found_injections:
             all_dmid_params = np.vstack([all_dmid_params, dmid_params])
 
             shape_params, maxL_2 = self.MLE_shape(methods, sources)
-            print('lnL shape: ', maxL_2)
             
             if self.emax_fun is None:
                 gamma_opt, delta_opt, emax_opt = shape_params[:2]
@@ -957,7 +963,7 @@ class Found_injections:
         
         dic = {'dL': self.dL, 'z': self.z, 'Mc': self.Mc, 'Mtot': self.Mtot, 'eta': self.eta, 'Mc_det': self.Mc_det, 'Mtot_det': self.Mtot_det, 'chi_eff': self.chi_eff}
         path = f'{run_fit}/{sources_folder}/{self.dmid_fun}' if self.alpha_vary is None else f'{run_fit}/{sources_folder}/alpha_vary/{self.dmid_fun}'
-        names_plotting = {'dL': '$d_L$', 'z': '$z$', 'Mc': '$\mathcal{M}$', 'Mtot': '$M$', 'eta': '$\eta$', 'Mc_det': '$\mathcal{M}_z$', 'Mtot_det': '$M_z$', 'chi_eff': '$\chi_{eff}$'}
+        names_plotting = {'dL': r'$d_L$', 'z': r'$z$', 'Mc': r'$\mathcal{M}$', 'Mtot': r'$M$', 'eta': r'$\eta$', 'Mc_det': r'$\mathcal{M}_z$', 'Mtot_det': r'$M_z$', 'chi_eff': r'$\chi_{eff}$'}
         
         try:
             os.mkdir(path + f'/{emax_dic[self.emax_fun]}')
@@ -1012,7 +1018,7 @@ class Found_injections:
         if self.dmid_fun in self.spin_functions:
             dmid_values = self.dmid(self.m1_det, self.m2_det, self.chi_eff, self.dmid_params)
         else: 
-           dmid_values = self.dmid(self.m1_det, self.m2_det, self.dmid_params)
+            dmid_values = self.dmid(self.m1_det, self.m2_det, self.dmid_params)
            
         #self.apply_dmid_mtotal_max(dmid_values, mtot_det)
         
@@ -1315,7 +1321,7 @@ class Found_injections:
         
         return Vtot
     
-    def find_dmid_cte_found_inj(self, run_dataset, sources='bbh', run_fit='o3'):
+    def find_dmid_cte_found_inj(self, run_dataset, run_fit='o3'):
         '''
         Method for finding the rescaled factor (d0) for whatever injection set we want (usually o1 or o2) using the run_fit that we want (usually o3)
 
@@ -1328,17 +1334,21 @@ class Found_injections:
         -------
         float. Rescaled constant d0
         '''
+        assert run_dataset =='o1' or run_dataset == 'o2', "Argument (run_dataset) must be 'o1' or 'o2'."
+        
         try:
-            self.load_all_inj_sets(run_dataset, sources)
+            self.load_all_inj_sets(run_dataset, 'bbh')
             Nfound = self.found_any.sum()
-            print(Nfound)
             
-            self.get_opt_params(run_fit, sources, rescale_o3 = False) #we always want 'o3' fit
+            self.get_opt_params(run_fit, 'bbh', rescale_o3 = False) #we always want 'o3' fit
             
             dmid_params = np.copy(self.dmid_params)
             dmid_params[0] = 1.
             
-            dmid_values = self.dmid(self.m1_det, self.m2_det, dmid_params)
+            if self.dmid_fun in self.spin_functions:
+                dmid_values = self.dmid(self.m1_det, self.m2_det, self.chi_eff, dmid_params)
+            else: 
+                dmid_values = self.dmid(self.m1_det, self.m2_det, dmid_params)
             #self.apply_dmid_mtotal_max(dmid_values, mtot_det)
             
             emax_params, gamma, delta, alpha = self.get_shape_params()
@@ -1359,14 +1369,16 @@ class Found_injections:
                 return  np.nansum(emax / denom)  -  Nfound
             
             d0 = fsolve(find_root, [50])  # rescaled Dmid cte (it has units of Dmid !!)
+            self.load_all_inj_sets('o3', 'bbh')
+            print('Current injection file loaded is o3, to be taken into account.')
             return d0
         
         except:
             d0 = {'o1' : np.loadtxt(f'{os.path.dirname(__file__)}/d0.dat')[0], 'o2' : np.loadtxt(f'{os.path.dirname(__file__)}/d0.dat')[1]}
-            
+            print('Something went wrong computing the cte, using the d0.dat file that already exists instead.')
             return d0[run_dataset]
 
-    def predicted_events(self, run_fit, sources='bbh', run_dataset='o3'):
+    def predicted_events(self, run_fit = 'o3', run_dataset='o3'):
         '''
         find the predicted found events in each run using rescaled fits from one injection set
 
@@ -1379,15 +1391,18 @@ class Found_injections:
         -------
         float. predicted found events
         '''
-        self.load_all_inj_sets(run_dataset, sources)
+        self.load_all_inj_sets(run_dataset, 'bbh')
+        Nfound = self.found_any.sum()
         
-        self.get_opt_params(run_fit, sources)
+        self.get_opt_params(run_fit, 'bbh')
         
         dmid_params = np.copy(self.dmid_params)
         dmid_params[0] = 1.
 
-        
-        dmid_values = self.dmid(self.m1_det, self.m2_det, dmid_params)
+        if self.dmid_fun in self.spin_functions:
+            dmid_values = self.dmid(self.m1_det, self.m2_det, self.chi_eff, dmid_params)
+        else: 
+            dmid_values = self.dmid(self.m1_det, self.m2_det, dmid_params)
         #self.apply_dmid_mtotal_max(dmid_values, mtot_det)
         
         emax_params, gamma, delta, alpha = self.get_shape_params()
@@ -1404,9 +1419,9 @@ class Found_injections:
                     np.exp(gamma* (frac - 1.) + delta * (frac**2 - 1.))
             return np.sum( emax / denom )
         
-        o1_inj = manual_found_inj(self.find_dmid_cte_found_inj(self, 'o1', run_fit))
-        o2_inj = manual_found_inj(self.find_dmid_cte_found_inj(self, 'o2', run_fit))
-        o3_inj = self.load_inj_set('o3').found_any.sum()
+        o1_inj = manual_found_inj(self.find_dmid_cte_found_inj(run_dataset ='o1', run_fit = run_fit))
+        o2_inj = manual_found_inj(self.find_dmid_cte_found_inj(run_dataset ='o2', run_fit = run_fit))
+        o3_inj = Nfound
         
         frac1 = o1_inj / o3_inj
         frac2 = o2_inj / o3_inj
@@ -1477,50 +1492,60 @@ class Found_injections:
         return pdet
     
     def bootstrap_resampling(self, n_boots, run_dataset, sources):
-        self.load_all_inj_sets(run_dataset, sources)
-        total = len(self.dL)
+        if isinstance(sources, str):
+            each_source = [source.strip() for source in sources.split(',')] 
+            
+        sources_folder = "_".join(sorted(each_source)) 
+        
+        self.make_folders(run_dataset, sources_folder)
+        
+        [self.load_inj_set(run_dataset, source) for source in each_source]
+        
         all_params = np.zeros([1, len(np.atleast_1d(self.dmid_params)) + len(np.atleast_1d(self.shape_params))])
         
         for i in range(n_boots):
-            self.load_inj_set(run_dataset)
-            boots = np.random.choice(np.arange(total), total, replace=True)
-            
-            self.m1 = self.m1[boots]
-            self.m2 = self.m2[boots]
-            self.z = self.z[boots]
-            self.dL = self.dL[boots]
-            
-            self.Mtot = self.Mtot[boots]
-            self.Mtot_det = self.Mtot_det[boots]
-            self.Mc = self.Mc[boots]
-            self.Mc_det = self.Mc_det[boots]
-            self.eta = self.eta[boots]
-            self.q = self.q[boots]    
-            self.m_pdf = self.m_pdf[boots]
-            self.z_pdf = self.z_pdf[boots]
-            self.dL_pdf = self.dL_pdf[boots]
-
-            self.s1x = self.s1x[boots]
-            self.s1y = self.s1y[boots]
-            self.s1z = self.s1z[boots]
-            self.s2x = self.s2x[boots]
-            self.s2y = self.s2y[boots]
-            self.s2z = self.s2z[boots]
-            self.sz1_pdz = self.s1z_pdf[boots]
-            self.sz2_pdz = self.s2z_pdf[boots]
-
-            self.a1 = self.a1[boots]
-            self.a2 = self.a2[boots]
-            self.chi_eff = self.chi_eff[boots]
-            
-            self.found_any = self.found_any[boots]
+            for source in each_source:
+                self.load_inj_set(run_dataset, source)
+                
+                total = len(self.sets[source]['dL'])
+                boots = np.random.choice(np.arange(total), total, replace=True)
+                
+                self.sets[source]['m1'] = self.sets[source]['m1'][boots]
+                self.sets[source]['m2 ']= self.sets[source]['m2'][boots]
+                self.sets[source]['z'] = self.sets[source]['z'][boots]
+                self.sets[source]['dL'] = self.sets[source]['dL'][boots]
+                
+                self.sets[source]['Mtot'] = self.sets[source]['Mtot'][boots]
+                self.sets[source]['Mtot_det'] = self.sets[source]['Mtot_det'][boots]
+                self.sets[source]['Mc'] = self.sets[source]['Mc'][boots]
+                self.sets[source]['Mc_det'] = self.sets[source]['Mc_det'][boots]
+                self.sets[source]['eta'] = self.sets[source]['eta'][boots]
+                self.sets[source]['q'] = self.sets[source]['q'][boots]  
+                self.sets[source]['m_pdf'] = self.sets[source]['m_pdf'][boots]
+                self.sets[source]['z_pdf'] = self.sets[source]['z_pdf'][boots]
+                self.sets[source]['dL_pdf'] = self.sets[source]['dL_pdf'][boots]
+    
+                self.sets[source]['s1x'] = self.sets[source]['s1x'][boots]
+                self.sets[source]['s1y'] = self.sets[source]['s1y'][boots]
+                self.sets[source]['s1z'] = self.sets[source]['s1z'][boots]
+                self.sets[source]['s2x'] = self.sets[source]['s2x'][boots]
+                self.sets[source]['s2y'] = self.sets[source]['s2y'][boots]
+                self.sets[source]['s2z'] = self.sets[source]['s2z'][boots]
+                self.sets[source]['s1z_pdf'] = self.sets[source]['s1z_pdf'][boots]
+                self.sets[source]['s2z_pdf'] = self.sets[source]['s2z_pdf'][boots]
+    
+                self.sets[source]['a1'] = self.sets[source]['a1'][boots]
+                self.sets[source]['a2'] = self.sets[source]['a2'][boots]
+                self.sets[source]['chi_eff'] = self.sets[source]['chi_eff'][boots]
+                
+                self.sets[source]['found_any'] = self.sets[source]['found_any'][boots]
 
             opt_params_shape, opt_params_dmid = self.joint_MLE(run_dataset, sources, bootstrap=True)
             print(i, 'n boots', opt_params_shape, opt_params_dmid)
             all_params = np.vstack([all_params, np.hstack((opt_params_shape, opt_params_dmid))])
         
         header = f'{self.shape_params_names[self.emax_fun]}, {self.dmid_params_names[self.dmid_fun]}'
-        path = f'{run_dataset}/' + self.path
+        path = f'{run_dataset}/{sources_folder}/' + self.path
         name_file = path + f'/{n_boots}_boots_opt_params.dat'
         np.savetxt(name_file, all_params, header=header, fmt='%s')
         

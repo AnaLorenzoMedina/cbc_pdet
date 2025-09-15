@@ -15,6 +15,9 @@ from cbc_pdet.gwtc_found_inj import Found_injections
 
 dmid_fun = 'Dmid_mchirp_mixture_logspin_corr' #the final one including spins effect
 emax_fun = 'emax_gaussian'
+dmid_fun = 'Dmid_mchirp_fdmid_fspin' #the final one including spins effect
+emax_fun = 'emax_exp'
+alpha_vary = None
 
 data = Found_injections(dmid_fun, emax_fun) #initialise class
 
@@ -22,17 +25,24 @@ data = Found_injections(dmid_fun, emax_fun) #initialise class
 run_fit = 'o3'   #the fit you want the optimal parameters from (in case you want to use o3 fit with o2 dataset, for example)
 run_dataset = 'o3'  #the dataset you want to use (either for the fit or to use for extra results), can be o1, o2 or o3
 
-sources = 'bbh, bns, nsbh'
+sources = 'bbh'
 #create folders to save results
 data.make_folders(run_fit, sources)
 
-#load the injection set (i.e. the data)
+#%%
+if isinstance(sources, str):
+    each_source = [source.strip() for source in sources.split(',')] 
+
+#load all injection sets separately
+[data.load_inj_set(run_dataset, source) for source in each_source]
+
+#load the injection sets together
 data.load_all_inj_sets(run_dataset, sources)
 #%%
 
 #run the fit 
-#data.joint_MLE(run_dataset, sources)
-
+data.joint_MLE(run_dataset, sources)
+#%%
 #fetch the optimal parameters for the sigmoid (Pdet) function from the fit you have made
 data.get_opt_params(run_fit, sources)
 
@@ -60,11 +70,9 @@ pdet1 = data.sigmoid(dL,dmid_values, emax_values, data.gamma, data.delta)
 
 #another way to get Pdet. Here, run_fit is the oberserving run from which we want the fit
 #you can't give it different values of params than the ones from the fit
-pdet2 = data.run_pdet(dL, m1_det, m2_det, run_fit, chieff)
+pdet2 = data.run_pdet(dL, m1_det, m2_det, chieff, run_fit, sources)
 
 #you can check both methods return the same value :)
 print(pdet1, pdet2)
-
-
 
 
