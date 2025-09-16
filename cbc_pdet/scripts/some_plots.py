@@ -10,37 +10,48 @@ import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.colors import LogNorm
 from matplotlib import rc
-import corner
+#import corner
 import sys
 import os
 import matplotlib.ticker as ticker
 
-# Save the current working directory
-original_working_directory = os.getcwd()
+# # Save the current working directory
+# original_working_directory = os.getcwd()
 
-# Change the current working directory to the parent directory
-os.chdir(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+# # Change the current working directory to the parent directory
+# os.chdir(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-sys.path.append('../')
+# sys.path.append('../')
 
 # Import the class from the module
-from o123_class_found_inj_general import Found_injections
+from cbc_pdet.gwtc_found_inj import Found_injections
 
 plt.close('all')
 
 run_fit = 'o3'
 run_dataset = 'o3'
+sources = 'bbh, bns, nsbh'
 
 
 #dmid_fun = 'Dmid_mchirp_fdmid'
-dmid_fun = 'Dmid_mchirp_fdmid_fspin'
-emax_fun = 'emax_exp'
+dmid_fun = 'Dmid_mchirp_mixture_logspin_corr'
+emax_fun = 'emax_gaussian'
 alpha_vary = None
 
 data = Found_injections(dmid_fun, emax_fun, alpha_vary)
-path = f'{run_dataset}/' + data.path
-data.load_inj_set(run_dataset)
-data.get_opt_params(run_fit)
+
+if isinstance(sources, str):
+    each_source = [source.strip() for source in sources.split(',')] 
+    
+sources_folder = "_".join(sorted(each_source)) 
+
+path = f'{run_dataset}/{sources_folder}/' + data.path
+
+data.make_folders(run_fit, sources)
+
+data.load_all_inj_sets(run_dataset, sources)
+data.get_opt_params(run_fit, sources)
+data.set_shape_params()
 
 rc('text', usetex=True)
 #rc('font', **{'family': 'serif', 'serif': ['Computer Modern']})
@@ -605,12 +616,12 @@ figure.savefig(f'{path}/{nboots}_boots_corner_plot_shape.png')
 figure = corner.corner(params_data[:, 5:], labels = [r'$D_0$', r'$a_{20}$', r'$a_{01}$', r'$a_{21}$', r'$a_{10}$', r'$a_{11}$', r'$c_{1}$', r'$c_{11}$'])
 figure.savefig(f'{path}/{nboots}_boots_corner_plot_dmid.png')
 #%%
-emax_params = params_data[:, 2:5]
-dmid_params = params_data[:, 5:]
+emax_params = params_data[:, 2:6]
+dmid_params = params_data[:, 6:]
 gamma = params_data[:,:1]
 delta = params_data[:,1:2]
 
-data.load_inj_set('o3')
+data.load_all_inj_sets('o3', sources)
 m1_det = data.m1 * (1 + data.z)
 m2_det = data.m2 * (1 + data.z)
 mtot_det = m1_det + m2_det 
@@ -631,7 +642,7 @@ plt.figure()
 for i in range(len(emax)):
     
     plt.plot(mtot, emax[i], '-', alpha = 0.5)
-plt.ylim(0, 1.2)
+#plt.ylim(0, 1.2)
 plt.xlabel(r'$M_z [M_{\odot}]$', fontsize=24)
 plt.ylabel(r'$\varepsilon_\mathrm{max}$', fontsize=24)
 plt.yticks(fontsize=15)
@@ -715,14 +726,27 @@ plt.savefig(name, format='pdf', dpi=150, bbox_inches="tight")
 #%%
 #chieff
 #dmid vs eta
-cte = dmid_params[:,0]
-a_20 = dmid_params[:,1]
-a_01 = dmid_params[:,2]
-a_21 = dmid_params[:,3]
-a_10 = dmid_params[:,4]
-a_11 = dmid_params[:,5]
-c_1 = dmid_params[:,6]
-c_11 = dmid_params[:,7]
+# cte = dmid_params[:,0]
+# a_20 = dmid_params[:,1]
+# a_01 = dmid_params[:,2]
+# a_21 = dmid_params[:,3]
+# a_10 = dmid_params[:,4]
+# a_11 = dmid_params[:,5]
+# c_1 = dmid_params[:,6]
+# c_11 = dmid_params[:,7]
+
+D0 = dmid_params[:,0] 
+B = dmid_params[:,1] 
+C = dmid_params[:,2]  
+mu = dmid_params[:,3] 
+sigma = dmid_params[:,4] 
+a_01 = dmid_params[:,5] 
+a_11 = dmid_params[:,6] 
+a_21 = dmid_params[:,7] 
+c_01 = dmid_params[:,8] 
+c_11 = dmid_params[:,9] 
+d_11 = dmid_params[:,10] 
+L = dmid_params[:,11] 
 
 
 eta = np.linspace(min(data.eta), max(data.eta), 500)
@@ -768,12 +792,19 @@ plt.figure()
 
 for eta, color, label in zip(eta_values, colors, labels):
     
-    #Mc = eta**(3/5) * M
-    chieff = 0.75
-    pol = np.array([cte[i] * np.exp((c_1[i] + c_11[i] * M) * chieff) * np.exp(a_20[i] * M**2  + a_01[i] * (1 - 4*eta) + a_21[i] * M**2 * (1 - 4*eta) + a_10[i] * M + a_11[i] * M * (1 - 4*eta)) for i in range(len(cte)) ])
-    dmid = pol #* Mc**(5/6)
+    Mc = eta**(3/5) * M
+    chi_eff = 0.75
+    fexp = np.array([np.exp(-B[i] * M - L[i] * np.log(M)) for i in range(len(L))])
+    fgauss = np.array([np.exp(-(np.log(M)-np.log(mu[i]))**2 / (2*sigma[i]**2)) for i in range(len(L)) ])
     
-    for i in range(len(cte)):
+    f_M = np.array([D0[i] * (fexp[i] + C[i] * fgauss[i]) for i in range(len(L)) ])
+    
+    f_eta = np.array([ a_01[i] * (1 - 4*eta)  + a_11[i] * M * (1 - 4*eta) + a_21[i] * M**2 * (1 - 4*eta) for i in range(len(L)) ])
+    f_as = np.array([(c_01[i] + c_11[i] * M + d_11[i] * np.log(M)) * chi_eff for i in range(len(L)) ])
+    
+    dmid = Mc**(5/6) * f_M * np.exp(f_eta) * np.exp(f_as)
+    
+    for i in range(len(L)):
         if i == 0:
             plt.loglog(M, dmid[i], color=color, alpha=0.3, rasterized=True, label=label)
         else:
@@ -803,11 +834,19 @@ plt.figure()
 for M, color, label in zip(M_values, colors, labels):
     
     eta = 0.175
+    M = np.ones(len(chieff)) * M
     Mc = eta**(3/5) * M
-    pol = np.array([cte[i] * np.exp((c_1[i] + c_11[i] * M) * chieff) * np.exp(a_20[i] * M**2  + a_01[i] * (1 - 4*eta) + a_21[i] * M**2 * (1 - 4*eta) + a_10[i] * M + a_11[i] * M * (1 - 4*eta)) for i in range(len(cte)) ])
-    dmid = pol * Mc**(5/6)
+    fexp = np.array([np.exp(-B[i] * M - L[i] * np.log(M)) for i in range(len(L))])
+    fgauss = np.array([np.exp(-(np.log(M)-np.log(mu[i]))**2 / (2*sigma[i]**2)) for i in range(len(L)) ])
     
-    for i in range(len(cte)):
+    f_M = np.array([D0[i] * (fexp[i] + C[i] * fgauss[i]) for i in range(len(L)) ])
+    
+    f_eta = np.array([ a_01[i] * (1 - 4*eta)  + a_11[i] * M * (1 - 4*eta) + a_21[i] * M**2 * (1 - 4*eta) for i in range(len(L)) ])
+    f_as = np.array([(c_01[i] + c_11[i] * M + d_11[i] * np.log(M)) * chieff for i in range(len(L)) ])
+    
+    dmid = Mc**(5/6) * f_M * np.exp(f_eta) * np.exp(f_as)
+    
+    for i in range(len(L)):
         if i == 0:
             plt.semilogy(chieff, dmid[i], color=color, alpha=0.2, rasterized=True, label=label)
         else:
