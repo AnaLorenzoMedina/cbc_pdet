@@ -1256,6 +1256,7 @@ class Found_injections:
         pdet * Vtot : float. Sensitive volume
         '''
         self.get_opt_params(run_fit, sources, rescale_o3) 
+        self.load_inj_set(run_fit, 'bbh')
         
         #we compute some values of dl for some z to make later an interpolator
         if self.zinterp_VT is None:
@@ -1281,18 +1282,18 @@ class Found_injections:
         if self.emax_fun is not None:
             emax = lambda dL_int : self.emax(m1_det(dL_int), m2_det(dL_int), emax_params)
             quad_fun = lambda dL_int : self.sigmoid(dL_int, dmid(dL_int), emax(dL_int), gamma, delta, alpha) \
-                       * self.interp_dL_pdf(dL_int)
+                       * self.sets['bbh']['interp_dL_pdf'](dL_int)
         else:
             emax = np.copy(emax_params)
             quad_fun = lambda dL_int : self.sigmoid(dL_int, dmid(dL_int), emax, gamma, delta, alpha) \
-                       * self.interp_dL_pdf(dL_int)
+                       * self.sets['bbh']['interp_dL_pdf'](dL_int)
             
-        pdet = integrate.quad(quad_fun, 0, self.dLmax)[0]
+        pdet = integrate.quad(quad_fun, 0, self.sets['bbh']['dLmax'])[0]
 
         if self.Vtot is None:
             # NB the factor of 1/(1+z) for time dilation in the signal rate 
             vquad = lambda z_int : 4 * np.pi * self.cosmo.differential_comoving_volume(z_int).value / (1 + z_int)
-            self.Vtot = integrate.quad(vquad, 0, self.zmax)[0]
+            self.Vtot = integrate.quad(vquad, 0, self.sets['bbh']['zmax'])[0]
         
         return pdet * self.Vtot
     

@@ -15,8 +15,8 @@ from cbc_pdet.gwtc_found_inj import Found_injections
 
 dmid_fun = 'Dmid_mchirp_mixture_logspin_corr' #the final one including spins effect
 emax_fun = 'emax_gaussian'
-dmid_fun = 'Dmid_mchirp_fdmid_fspin' #the final one including spins effect
-emax_fun = 'emax_exp'
+#dmid_fun = 'Dmid_mchirp_fdmid_fspin' #the final one including spins effect
+#emax_fun = 'emax_exp'
 alpha_vary = None
 
 data = Found_injections(dmid_fun, emax_fun) #initialise class
@@ -25,7 +25,7 @@ data = Found_injections(dmid_fun, emax_fun) #initialise class
 run_fit = 'o3'   #the fit you want the optimal parameters from (in case you want to use o3 fit with o2 dataset, for example)
 run_dataset = 'o3'  #the dataset you want to use (either for the fit or to use for extra results), can be o1, o2 or o3
 
-sources = 'bbh'
+sources = 'bbh, bns, nsbh'
 #create folders to save results
 data.make_folders(run_fit, sources)
 
