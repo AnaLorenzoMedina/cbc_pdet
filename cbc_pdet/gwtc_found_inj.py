@@ -310,7 +310,7 @@ class Found_injections:
         self.sets[source]['Mtot_det'] = Mtot_source * oneplusz
         
         #mass chirp
-        Mc = fits.Mc(source_data['m1'] * source_data['m2'])
+        Mc = fits.Mc(source_data['m1'], source_data['m2'])
         self.sets[source]['Mc'] = Mc
         self.sets[source]['Mc_det'] = Mc * oneplusz
         
