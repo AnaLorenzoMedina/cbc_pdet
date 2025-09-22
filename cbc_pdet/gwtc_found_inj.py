@@ -303,15 +303,16 @@ class Found_injections:
         
         #total mass (m1+m2)
         Mtot_source = source_data['m1'] + source_data['m2']
-        self.sets[source]['m1_det'] = source_data['m1'] * (1+source_data['z'])
-        self.sets[source]['m2_det'] = source_data['m2'] * (1+source_data['z'])
+        oneplusz = 1 + source_data['z']
+        self.sets[source]['m1_det'] = source_data['m1'] * oneplusz
+        self.sets[source]['m2_det'] = source_data['m2'] * oneplusz
         self.sets[source]['Mtot'] = Mtot_source
-        self.sets[source]['Mtot_det'] = Mtot_source * (1+source_data['z'])
+        self.sets[source]['Mtot_det'] = Mtot_source * oneplusz
         
         #mass chirp
-        Mc = (source_data['m1'] * source_data['m2'])**(3/5) / (Mtot_source)**(1/5) 
+        Mc = fits.Mc(source_data['m1'] * source_data['m2'])
         self.sets[source]['Mc'] = Mc
-        self.sets[source]['Mc_det'] = Mc * (1+source_data['z'])
+        self.sets[source]['Mc_det'] = Mc * oneplusz
         
         #eta aka symmetric mass ratio
         mu = (source_data['m1'] * source_data['m2']) / Mtot_source

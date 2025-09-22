@@ -9,6 +9,10 @@ Created on Thu Sep 28 12:58:56 2023
 import numpy as np
 import astropy.constants as const
 
+def Mc(m1, m2):
+    M = m1 + m2
+    return (m1 * m2)**(3/5) / M**(1/5)
+
 def Dmid_mchirp(m1_det, m2_det, cte):
     """
     Dmid values (distance where Pdet = 0.5) as a function of the masses 
@@ -25,9 +29,8 @@ def Dmid_mchirp(m1_det, m2_det, cte):
     Dmid(m1,m2) in the detector's frame
 
     """
-    M = m1_det + m2_det
-    Mc = (m1_det * m2_det)**(3/5) / M**(1/5)
-    return cte * Mc**(5/6) 
+    Mc_det = Mc(m1_det + m2_det)
+    return cte * Mc_det**(5/6) 
 
 def Dmid_mchirp_expansion(m1_det, m2_det, params):
     """
@@ -49,11 +52,11 @@ def Dmid_mchirp_expansion(m1_det, m2_det, params):
     
     M = m1_det + m2_det
     eta = m1_det * m2_det / M**2
-    Mc = (m1_det * m2_det)**(3/5) / M**(1/5)
+    Mc_det = Mc(m1_det + m2_det)
     
     pol = cte *(1+ a_20 * M**2  + a_01 * (1 - 4*eta) + a_21 * M**2 * (1 - 4*eta)  + a_30 * M**3 + a_10 * M )
     
-    return pol * Mc**(5/6)
+    return pol * Mc_det**(5/6)
 
 def Dmid_mchirp_expansion_asqrt(m1_det, m2_det, params):
     """
@@ -75,11 +78,11 @@ def Dmid_mchirp_expansion_asqrt(m1_det, m2_det, params):
     
     M = m1_det + m2_det
     eta = m1_det * m2_det / M**2
-    Mc = (m1_det * m2_det)**(3/5) / M**(1/5)
+    Mc_det = Mc(m1_det + m2_det)
     
     pol = cte *(1+ a_20 * M**2  + a_01 * (1 - 4*eta) + a_21 * M**2 * (1 - 4*eta)  + a_30 * M**3 + a_sqrt * M**(1/2) )
     
-    return pol * Mc**(5/6) 
+    return pol * Mc_det**(5/6) 
 
 def Dmid_mchirp_expansion_a11(m1_det, m2_det, params):
     """
@@ -101,11 +104,11 @@ def Dmid_mchirp_expansion_a11(m1_det, m2_det, params):
     
     M = m1_det + m2_det
     eta = m1_det * m2_det / M**2
-    Mc = (m1_det * m2_det)**(3/5) / M**(1/5)
+    Mc_det = Mc(m1_det + m2_det)
     
     pol = cte *(1+ a_20 * M**2  + a_01 * (1 - 4*eta) + a_21 * M**2 * (1 - 4*eta)  + a_30 * M**3 + a_10 * M + a_11 * M * (1 - 4*eta))
     
-    return pol * Mc**(5/6)
+    return pol * Mc_det**(5/6)
 
 
 def Dmid_mchirp_power(m1_det, m2_det, params):
@@ -127,11 +130,11 @@ def Dmid_mchirp_power(m1_det, m2_det, params):
     
     M = m1_det + m2_det
     eta = m1_det * m2_det / M**2
-    Mc = (m1_det * m2_det)**(3/5) / M**(1/5)
+    Mc_det = Mc(m1_det + m2_det)
     
     pol = cte *(1+ a_20 * M**2 / 2 + a_01 * (1 - 4*eta) + a_21 * M**2 * (1 - 4*eta) / 2 + a_30 * M**3 )
     
-    return pol * Mc**((5+power_param)/6)
+    return pol * Mc_det**((5+power_param)/6)
 
 def Dmid_mchirp_expansion_exp(m1_det, m2_det, params):
     """
@@ -153,11 +156,11 @@ def Dmid_mchirp_expansion_exp(m1_det, m2_det, params):
     
     M = m1_det + m2_det
     eta = m1_det * m2_det / M**2
-    Mc = (m1_det * m2_det)**(3/5) / M**(1/5)
+    Mc_det = Mc(m1_det + m2_det)
     
     pol = cte *(1+ a_20 * M**2  + a_01 * (1 - 4*eta) + a_21 * M**2 * (1 - 4*eta)  + a_30 * M**3 + a_10 * M + a_11 * M * (1 - 4*eta))
     
-    return pol * Mc**(5/6) * np.exp(-M/Mstar)
+    return pol * Mc_det**(5/6) * np.exp(-M/Mstar)
 
 def Dmid_mchirp_expansion_noa30(m1_det, m2_det, params):
     """
@@ -180,11 +183,11 @@ def Dmid_mchirp_expansion_noa30(m1_det, m2_det, params):
     M = m1_det + m2_det
     eta = m1_det * m2_det / M**2
     
-    Mc = (m1_det * m2_det)**(3/5) / M**(1/5)
+    Mc_det = Mc(m1_det + m2_det)
     
     pol = cte *(1+ a_20 * M**2  + a_01 * (1 - 4*eta) + a_21 * M**2 * (1 - 4*eta) + a_10 * M + a_11 * M * (1 - 4*eta))
     
-    return pol * Mc**(5/6)
+    return pol * Mc_det**(5/6)
 
 def emax_exp(m1_det, m2_det, params):
     """
@@ -289,11 +292,11 @@ def Dmid_mchirp_fdmid(m1_det, m2_det, params):
     M = m1_det + m2_det
     eta = m1_det * m2_det / M**2
     
-    Mc = (m1_det * m2_det)**(3/5) / M**(1/5)
+    Mc_det = Mc(m1_det + m2_det)
     
     f_dmid = (a_20 * M**2  + a_01 * (1 - 4*eta) + a_21 * M**2 * (1 - 4*eta) + a_10 * M + a_11 * M * (1 - 4*eta))
     
-    return  Mc**(5/6) * D0 * np.exp(f_dmid)
+    return  Mc_det**(5/6) * D0 * np.exp(f_dmid)
 
 
 def Dmid_mchirp_fdmid_fspin(m1_det, m2_det, chi_eff, params):
@@ -318,12 +321,12 @@ def Dmid_mchirp_fdmid_fspin(m1_det, m2_det, chi_eff, params):
     M = m1_det + m2_det
     eta = m1_det * m2_det / M**2
     
-    Mc = (m1_det * m2_det)**(3/5) / M**(1/5)
+    Mc_det = Mc(m1_det + m2_det)
     
     f_dmid = (a_20 * M**2  + a_01 * (1 - 4*eta) + a_21 * M**2 * (1 - 4*eta) + a_10 * M + a_11 * M * (1 - 4*eta))
     f_as = (c_1 + c_11 * M) * chi_eff
     
-    return  Mc**(5/6) * D0 * np.exp(f_dmid) * np.exp(f_as)
+    return  Mc_det**(5/6) * D0 * np.exp(f_dmid) * np.exp(f_as)
 
 def Dmid_mchirp_fdmid_fspin_c21(m1_det, m2_det, chi_eff, params):
     """
@@ -347,12 +350,12 @@ def Dmid_mchirp_fdmid_fspin_c21(m1_det, m2_det, chi_eff, params):
     M = m1_det + m2_det
     eta = m1_det * m2_det / M**2
     
-    Mc = (m1_det * m2_det)**(3/5) / M**(1/5)
+    Mc_det = Mc(m1_det + m2_det)
     
     f_dmid = (a_20 * M**2  + a_01 * (1 - 4*eta) + a_21 * M**2 * (1 - 4*eta) + a_10 * M + a_11 * M * (1 - 4*eta))
     f_as = (c_1 + c_11 * M + c_21 * M**2) * chi_eff
     
-    return  Mc**(5/6) * D0 * np.exp(f_dmid) * np.exp(f_as)
+    return  Mc_det**(5/6) * D0 * np.exp(f_dmid) * np.exp(f_as)
 
 def Dmid_mchirp_mixture_logspin_corr(m1_det, m2_det, chi_eff, params):
     """
@@ -376,7 +379,7 @@ def Dmid_mchirp_mixture_logspin_corr(m1_det, m2_det, chi_eff, params):
     M = m1_det + m2_det
     eta = m1_det * m2_det / M**2
     
-    Mc = (m1_det * m2_det)**(3/5) / M**(1/5)
+    Mc_det = Mc(m1_det + m2_det)
     
     fexp = np.exp(-B * M - L * np.log(M))
     fgauss = np.exp(-(np.log(M)-np.log(mu))**2 / (2*sigma**2))
@@ -386,7 +389,7 @@ def Dmid_mchirp_mixture_logspin_corr(m1_det, m2_det, chi_eff, params):
     f_eta =  a_01 * (1 - 4*eta)  + a_11 * M * (1 - 4*eta) + a_21 * M**2 * (1 - 4*eta)
     f_as = (c_01 + c_11 * M + d_11 * np.log(M)) * chi_eff
     
-    return  Mc**(5/6) * f_M * np.exp(f_eta) * np.exp(f_as)
+    return  Mc_det**(5/6) * f_M * np.exp(f_eta) * np.exp(f_as)
 
 
 def dL_derivative(z, dL, cosmo):
