@@ -11,6 +11,7 @@ Created on Mon Apr 21 11:59:47 2025
 """
 Created on Fri Oct 13 11:11:32 2023
 
+
 @author: ana
 """
 
@@ -205,13 +206,16 @@ plt.savefig(name, format='pdf', dpi=1000, bbox_inches="tight")
 '''
 
 #%%
-data.cumulative_dist(run_dataset, run_fit,'dL', ks = False)
-data.cumulative_dist(run_dataset, run_fit,'Mtot', ks = False)
-data.cumulative_dist(run_dataset, run_fit,'Mc', ks = False)
-data.cumulative_dist(run_dataset, run_fit,'Mtot_det', ks = False)
-data.cumulative_dist(run_dataset, run_fit,'Mc_det', ks = False)
-data.cumulative_dist(run_dataset, run_fit,'eta', ks = False)
-data.cumulative_dist(run_dataset, run_fit,'chi_eff', ks = False)
+data.get_opt_params(run_fit)
+data.set_shape_params()
+
+data.cumulative_dist(run_dataset, run_fit,'dL', ks = True)
+data.cumulative_dist(run_dataset, run_fit,'Mtot', ks = True)
+data.cumulative_dist(run_dataset, run_fit,'Mc', ks = True)
+data.cumulative_dist(run_dataset, run_fit,'Mtot_det', ks = True)
+data.cumulative_dist(run_dataset, run_fit,'Mc_det', ks =True)
+data.cumulative_dist(run_dataset, run_fit,'eta', ks = True)
+data.cumulative_dist(run_dataset, run_fit,'chi_eff', ks =True)
 #%%
 nbins = 10
 

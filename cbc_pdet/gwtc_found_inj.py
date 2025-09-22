@@ -367,16 +367,18 @@ class Found_injections:
         self.dL_pdf = self.z_pdf / fits.dL_derivative(self.z, self.dL, self.cosmo)
         print('Finished computing dL pdfs')
         
+        oneplusz = 1 + self.z
+        
         # total mass (m1+m2)
         self.Mtot = self.m1 + self.m2
-        self.Mtot_det = self.m1 * (1+self.z) + self.m2 * (1+self.z)
+        self.Mtot_det = self.Mtot * oneplusz
         
-        self.m1_det = self.m1 * (1 + self.z) 
-        self.m2_det = self.m2 * (1 + self.z)
+        self.m1_det = self.m1 * oneplusz 
+        self.m2_det = self.m2 * oneplusz
         
         # mass chirp
-        self.Mc = (self.m1 * self.m2)**(3/5) / (self.Mtot)**(1/5) 
-        self.Mc_det = (self.m1 * self.m2 * (1+self.z)**2 )**(3/5) / self.Mtot**(1/5) 
+        self.Mc = fits.Mc(self.m1, self.m2)
+        self.Mc_det = self.Mc * oneplusz
         
         # eta aka symmetric mass ratio
         mu = (self.m1 * self.m2) / self.Mtot
@@ -777,10 +779,13 @@ class Found_injections:
         -min_likelihood : maximum log likelihood, float
         """
         shape_params_guess = np.copy(self.shape_params)
-        #shape_params_guess[1] = np.log(shape_params_guess[1])
         
         all_bounds = [(None, None)] * len(shape_params_guess)
-        all_bounds[1] = (0, None)
+        all_bounds[1] = (0, None) #delta
+        
+        if self.emax_fun == 'emax_gaussian':
+            all_bounds[2] = (0, 1) #b0
+            all_bounds[3] = (0, 1) #b1
         
         res = opt.minimize(fun=lambda in_param: -self.logL_shape(self.dmid_params, in_param), 
                            x0=np.array(shape_params_guess), 
@@ -789,7 +794,6 @@ class Found_injections:
                            bounds=all_bounds)
         
         opt_params = res.x
-        #opt_params[1] = np.exp(opt_params[1])
         min_likelihood = res.fun  
         self.shape_params = opt_params
         
@@ -809,12 +813,13 @@ class Found_injections:
         -min_likelihood : maximum log likelihood, float
         """
         shape_params_guess = np.copy(self.shape_params)
-        #shape_params_guess[1] = np.log(shape_params_guess[1])
         
         all_bounds = [(None, None)] * len(shape_params_guess)
         all_bounds[1] = (0, None) #delta
-        all_bounds[2] = (0, 1) #b0
-        all_bounds[3] = (0, 1) #b1
+        
+        if self.emax_fun == 'emax_gaussian':
+            all_bounds[2] = (0, 1) #b0
+            all_bounds[3] = (0, 1) #b1
         
         res = opt.minimize(fun=lambda in_param: -self.logL_shape(self.dmid_params, in_param), 
                            x0=np.array(shape_params_guess), 
@@ -823,7 +828,6 @@ class Found_injections:
                            bounds=all_bounds)
         
         opt_params = res.x
-        #opt_params[1] = np.exp(opt_params[1])
         min_likelihood = res.fun  
         self.shape_params = opt_params
 
@@ -1318,8 +1322,8 @@ class Found_injections:
             dmid_params = np.copy(self.dmid_params)
             dmid_params[0] = 1.
     
-            m1_det = self.m1 * (1 + self.z)
-            m2_det = self.m2 * (1 + self.z)
+            m1_det = self.m1_det
+            m2_det = self.m2_det
             chieff = self.chi_eff
             #mtot_det = m1_det + m2_det
             
@@ -1375,8 +1379,8 @@ class Found_injections:
         dmid_params = np.copy(self.dmid_params)
         dmid_params[0] = 1.
 
-        m1_det = self.m1 * (1 + self.z)
-        m2_det = self.m2 * (1 + self.z)
+        m1_det = self.m1_det
+        m2_det = self.m2_det
         #mtot_det = m1_det + m2_det
         
         dmid_values = self.dmid(m1_det, m2_det, dmid_params)
