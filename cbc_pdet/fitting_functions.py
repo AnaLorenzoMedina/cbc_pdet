@@ -9,9 +9,11 @@ Created on Thu Sep 28 12:58:56 2023
 import numpy as np
 import astropy.constants as const
 
+
 def Mc(m1, m2):
     M = m1 + m2
     return (m1 * m2)**(3/5) / M**(1/5)
+
 
 def Dmid_mchirp(m1_det, m2_det, cte):
     """
@@ -21,16 +23,16 @@ def Dmid_mchirp(m1_det, m2_det, cte):
     Parameters
     ----------
     m1_det : detector frame mass1, float or 1D array
-    m2_det: detector frame mass2, float or 1D array
+    m2_det : detector frame mass2, float or 1D array
     cte : parameter that we will be optimizing, float
     
     Returns
     -------
-    Dmid(m1,m2) in the detector's frame
-
+    Dmid(m1, m2) in the detector frame
     """
     Mc_det = Mc(m1_det, m2_det)
     return cte * Mc_det**(5/6) 
+
 
 def Dmid_mchirp_expansion(m1_det, m2_det, params):
     """
@@ -40,23 +42,28 @@ def Dmid_mchirp_expansion(m1_det, m2_det, params):
     Parameters
     ----------
     m1_det : detector frame mass1, float or 1D array
-    m2_det: detector frame mass2, float or 1D array
+    m2_det : detector frame mass2, float or 1D array
     params : parameters that we will be optimizing, 1D array
     
     Returns
     -------
-    Dmid(m1,m2) in the detector's frame
-
+    Dmid(m1, m2) in the detector frame
     """
-    cte , a_20, a_01, a_21, a_30, a_10 = params
+    cte, a_20, a_01, a_21, a_30, a_10 = params
     
     M = m1_det + m2_det
     eta = m1_det * m2_det / M**2
     Mc_det = Mc(m1_det, m2_det)
     
-    pol = cte *(1+ a_20 * M**2  + a_01 * (1 - 4*eta) + a_21 * M**2 * (1 - 4*eta)  + a_30 * M**3 + a_10 * M )
+    pol = cte * (1
+                 + a_20 * M**2
+                 + a_01 * (1 - 4*eta)
+                 + a_21 * M**2 * (1 - 4*eta)
+                 + a_30 * M**3
+                 + a_10 * M)
     
     return pol * Mc_det**(5/6)
+
 
 def Dmid_mchirp_expansion_asqrt(m1_det, m2_det, params):
     """
@@ -66,23 +73,28 @@ def Dmid_mchirp_expansion_asqrt(m1_det, m2_det, params):
     Parameters
     ----------
     m1_det : detector frame mass1, float or 1D array
-    m2_det: detector frame mass2, float or 1D array
+    m2_det : detector frame mass2, float or 1D array
     params : parameters that we will be optimizing, 1D array
     
     Returns
     -------
-    Dmid(m1,m2) in the detector's frame
-
+    Dmid(m1, m2) in the detector's frame
     """
-    cte , a_20, a_01, a_21, a_30, a_sqrt = params
+    cte, a_20, a_01, a_21, a_30, a_sqrt = params
     
     M = m1_det + m2_det
     eta = m1_det * m2_det / M**2
     Mc_det = Mc(m1_det, m2_det)
     
-    pol = cte *(1+ a_20 * M**2  + a_01 * (1 - 4*eta) + a_21 * M**2 * (1 - 4*eta)  + a_30 * M**3 + a_sqrt * M**(1/2) )
+    pol = cte * (1
+                 + a_20 * M**2
+                 + a_01 * (1 - 4*eta)
+                 + a_21 * M**2 * (1 - 4*eta)
+                 + a_30 * M**3
+                 + a_sqrt * M**(1/2))
     
     return pol * Mc_det**(5/6) 
+
 
 def Dmid_mchirp_expansion_a11(m1_det, m2_det, params):
     """
@@ -92,13 +104,12 @@ def Dmid_mchirp_expansion_a11(m1_det, m2_det, params):
     Parameters
     ----------
     m1_det : detector frame mass1, float or 1D array
-    m2_det: detector frame mass2, float or 1D array
+    m2_det : detector frame mass2, float or 1D array
     params : parameters that we will be optimizing, 1D array
     
     Returns
     -------
-    Dmid(m1,m2) in the detector's frame
-
+    Dmid(m1, m2) in the detector frame
     """ 
     cte , a_20, a_01, a_21, a_30, a_10, a_11 = params
     
@@ -106,7 +117,13 @@ def Dmid_mchirp_expansion_a11(m1_det, m2_det, params):
     eta = m1_det * m2_det / M**2
     Mc_det = Mc(m1_det, m2_det)
     
-    pol = cte *(1+ a_20 * M**2  + a_01 * (1 - 4*eta) + a_21 * M**2 * (1 - 4*eta)  + a_30 * M**3 + a_10 * M + a_11 * M * (1 - 4*eta))
+    pol = cte * (1
+                 + a_20 * M**2
+                 + a_01 * (1 - 4*eta)
+                 + a_21 * M**2 * (1 - 4*eta)
+                 + a_30 * M**3
+                 + a_10 * M
+                 + a_11 * M * (1 - 4*eta))
     
     return pol * Mc_det**(5/6)
 
@@ -124,17 +141,21 @@ def Dmid_mchirp_power(m1_det, m2_det, params):
     Returns
     -------
     Dmid(m1,m2) in the detector's frame
-
     """
-    cte , a_20, a_01, a_21, a_30, power_param = params
+    cte, a_20, a_01, a_21, a_30, power_param = params
     
     M = m1_det + m2_det
     eta = m1_det * m2_det / M**2
     Mc_det = Mc(m1_det, m2_det)
     
-    pol = cte *(1+ a_20 * M**2 / 2 + a_01 * (1 - 4*eta) + a_21 * M**2 * (1 - 4*eta) / 2 + a_30 * M**3 )
+    pol = cte * (1
+                 + a_20 * M**2 / 2
+                 + a_01 * (1 - 4*eta)
+                 + a_21 * M**2 * (1 - 4*eta) / 2
+                 + a_30 * M**3 )
     
-    return pol * Mc_det**((5+power_param)/6)
+    return pol * Mc_det**((5 + power_param)/6)
+
 
 def Dmid_mchirp_expansion_exp(m1_det, m2_det, params):
     """
@@ -144,23 +165,29 @@ def Dmid_mchirp_expansion_exp(m1_det, m2_det, params):
     Parameters
     ----------
     m1_det : detector frame mass1, float or 1D array
-    m2_det: detector frame mass2, float or 1D array
+    m2_det : detector frame mass2, float or 1D array
     params : parameters that we will be optimizing, 1D array
     
     Returns
     -------
-    Dmid(m1,m2) in the detector's frame
-
+    Dmid(m1, m2) in the detector frame
     """
-    cte , a_20, a_01, a_21, a_30, a_10, a_11, Mstar = params
+    cte, a_20, a_01, a_21, a_30, a_10, a_11, Mstar = params
     
     M = m1_det + m2_det
     eta = m1_det * m2_det / M**2
     Mc_det = Mc(m1_det, m2_det)
     
-    pol = cte *(1+ a_20 * M**2  + a_01 * (1 - 4*eta) + a_21 * M**2 * (1 - 4*eta)  + a_30 * M**3 + a_10 * M + a_11 * M * (1 - 4*eta))
+    pol = cte * (1
+                 + a_20 * M**2
+                 + a_01 * (1 - 4*eta)
+                 + a_21 * M**2 * (1 - 4*eta)
+                 + a_30 * M**3
+                 + a_10 * M
+                 + a_11 * M * (1 - 4*eta))
     
-    return pol * Mc_det**(5/6) * np.exp(-M/Mstar)
+    return pol * Mc_det**(5/6) * np.exp(-M / Mstar)
+
 
 def Dmid_mchirp_expansion_noa30(m1_det, m2_det, params):
     """
@@ -170,24 +197,29 @@ def Dmid_mchirp_expansion_noa30(m1_det, m2_det, params):
     Parameters
     ----------
     m1_det : detector frame mass1, float or 1D array
-    m2_det: detector frame mass2, float or 1D array
+    m2_det : detector frame mass2, float or 1D array
     params : parameters that we will be optimizing, 1D array
     
     Returns
     -------
-    Dmid(m1,m2) in the detector's frame
-
+    Dmid(m1, m2) in the detector frame
     """
-    cte , a_20, a_01, a_21, a_10, a_11 = params
+    cte, a_20, a_01, a_21, a_10, a_11 = params
 
     M = m1_det + m2_det
     eta = m1_det * m2_det / M**2
     
     Mc_det = Mc(m1_det, m2_det)
     
-    pol = cte *(1+ a_20 * M**2  + a_01 * (1 - 4*eta) + a_21 * M**2 * (1 - 4*eta) + a_10 * M + a_11 * M * (1 - 4*eta))
+    pol = cte * (1
+                 + a_20 * M**2
+                 + a_01 * (1 - 4*eta)
+                 + a_21 * M**2 * (1 - 4*eta)
+                 + a_10 * M
+                 + a_11 * M * (1 - 4*eta))
     
     return pol * Mc_det**(5/6)
+
 
 def emax_exp(m1_det, m2_det, params):
     """
@@ -197,17 +229,17 @@ def emax_exp(m1_det, m2_det, params):
     Parameters
     ----------
     m1_det : detector frame mass1, float or 1D array
-    m2_det: detector frame mass2, float or 1D array
+    m2_det : detector frame mass2, float or 1D array
     params : parameters that we will be optimizing, 1D array
 
     Returns
     -------
     emax(m1, m2) in the detector frame
-
     """
     Mtot = m1_det + m2_det
     b_0, b_1, b_2 = params
     return 1 - np.exp(b_0 + b_1 * Mtot + b_2 * Mtot**2)
+
 
 def emax_sigmoid(m1_det, m2_det, params):
     """
@@ -217,19 +249,19 @@ def emax_sigmoid(m1_det, m2_det, params):
     Parameters
     ----------
     m1_det : detector frame mass1, float or 1D array
-    m2_det: detector frame mass2, float or 1D array
+    m2_det : detector frame mass2, float or 1D array
     params : parameters that we will be optimizing, 1D array
 
     Returns
     -------
     emax(m1, m2) in the detector frame
-
     """
     Mtot = m1_det + m2_det
     b_0, k, M_0 = params
     L = 1 - np.exp(b_0)
     return L / (1 + np.exp(k * (Mtot - M_0)))
 
+    
 def emax_sigmoid_nolog(m1_det, m2_det, params):
     """
     maximum search sensitivity (emax) as a function of the masses
@@ -238,17 +270,17 @@ def emax_sigmoid_nolog(m1_det, m2_det, params):
     Parameters
     ----------
     m1_det : detector frame mass1, float or 1D array
-    m2_det: detector frame mass2, float or 1D array
+    m2_det : detector frame mass2, float or 1D array
     params : parameters that we will be optimizing, 1D array
 
     Returns
     -------
     emax(m1, m2) in the detector frame
-
     """
     Mtot = m1_det + m2_det
     b_0, b_1, b_2 = params
     return 1 / (1 + np.exp(b_0 + b_1 * Mtot + b_2 * Mtot**2))
+
 
 def emax_gaussian(m1_det, m2_det, params):
     """
@@ -258,17 +290,17 @@ def emax_gaussian(m1_det, m2_det, params):
     Parameters
     ----------
     m1_det : detector frame mass1, float or 1D array
-    m2_det: detector frame mass2, float or 1D array
+    m2_det : detector frame mass2, float or 1D array
     params : parameters that we will be optimizing, 1D array
 
     Returns
     -------
     emax(m1, m2) in the detector frame
-
     """
     Mtot = m1_det + m2_det
     b_0, b_1, muM, sigmaM = params
-    return (1 - b_0) * (1 - (b_1 * np.exp(-(np.log(Mtot) - np.log(muM))**2 / (2 *sigmaM**2))))
+    return (1 - b_0) * \
+           (1 - (b_1 * np.exp(-(np.log(Mtot) - np.log(muM))**2 / (2 * sigmaM**2))))
 
 
 def Dmid_mchirp_fdmid(m1_det, m2_det, params):
