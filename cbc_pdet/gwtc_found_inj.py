@@ -40,13 +40,10 @@ class Found_injections:
         selected from the options of emax_fun, dmid_fun and alpha_vary. The method that finds the file is 
         self.get_ini_values()
         '''
-        # assert isinstance(ini_files, list) or isinstance(ini_files, np.ndarray),\
-
-        assert isinstance(thr_far, float) or isinstance(thr_far, int),\
-        "Argument (thr_far) must be a float or an integer."
-        
-        assert isinstance(thr_snr, float) or isinstance(thr_snr, int),\
-        "Argument (thr_snr) must be a float or an integer."
+        assert isinstance(thr_far, float) or isinstance(thr_far, int), \
+          "Argument (thr_far) must be a float or an integer."
+        assert isinstance(thr_snr, float) or isinstance(thr_snr, int), \
+          "Argument (thr_snr) must be a float or an integer."
         
         self.thr_far = thr_far
         self.thr_snr = thr_snr
@@ -84,11 +81,11 @@ class Found_injections:
         
         self.runs = ['o1', 'o2', 'o3']
         
-        #coincident analysis (two or three detectors operating) observing time of O3
-        self.coincident_time_o3 = 0.75435365296528 #years
+        # Coincident analysis (two or three detectors operating) observing time of O3
+        self.coincident_time_o3 = 0.75435365296528  # years
         
-        #total observing time of each run (O3 is different from above because O3 looked at single detector time too)
-        self.obs_time = {'o1' : 0.1331507, 'o2' : 0.323288, 'o3' : 0.91101} #years
+        # Total observing time of each run (O3 is different from above because O3 looked at single detector time too)
+        self.obs_time = {'o1' : 0.1331507, 'o2' : 0.323288, 'o3' : 0.91101}  # years
         self.total_obs_time = np.sum(list(self.obs_time.values()))
         self.prop_obs_time = np.array([self.obs_time[i]/self.total_obs_time for i in self.runs])
         
@@ -126,32 +123,29 @@ class Found_injections:
                                    'emax_gaussian': sigmoid_names + ['b_0', 'b_1', 'muM', 'sigmaM'],
                                     None : sigmoid_names,
                                   }
-       # self.obs_run = {}
-        
+
         self.sets = {}
         
-        
     def make_folders(self, run, sources):
-        
+
         if isinstance(sources, str):
             each_source = [source.strip() for source in sources.split(',')] 
-            
+
         sources_folder = "_".join(sorted(each_source)) 
-        
+
         try:
             os.mkdir(f'{run}')
         except OSError as e:
             if e.errno != errno.EEXIST:
                 raise
-        
+
         try:
             os.mkdir(f'{run}/{sources_folder}')
         except OSError as e:
             if e.errno != errno.EEXIST:
                 raise
-                
+
         if self.alpha_vary is not None:
-            
             path = f'{run}/{sources_folder}/alpha_vary'
             try:
                 os.mkdir(f'{run}/{sources_folder}/alpha_vary')
@@ -160,27 +154,26 @@ class Found_injections:
                     raise
         else:
             path = f'{run}/{sources_folder}'
-                
+
         try:
             os.mkdir(path + f'/{self.dmid_fun}')
         except OSError as e:
             if e.errno != errno.EEXIST:
                 raise
-                
+
         try:
             os.mkdir(path + f'/{self.dmid_fun}/{self.emax_fun}')
         except OSError as e:
             if e.errno != errno.EEXIST:
                 raise
-                
+
         return
         
     def read_o1o2_set(self, run_dataset, source = 'bbh'):
         
         assert run_dataset =='o1' or run_dataset == 'o2', "Argument (run_dataset) must be 'o1' or 'o2'."
-        
-        assert source =='bbh' or source == 'bns' or source == 'nsbh' or source == 'imbh',\
-        "Argument (source) must be 'bbh' or 'bns' or 'nsbh' or 'imbh'. "
+        assert source =='bbh' or source == 'bns' or source == 'nsbh' or source == 'imbh', \
+          "Argument (source) must be 'bbh' or 'bns' or 'nsbh' or 'imbh'. "
         
         try:
             file = h5py.File(f'{os.path.dirname(__file__)}/{run_dataset}-{source}-IMRPhenomXPHMpseudoFourPN.hdf5', 'r')
@@ -233,7 +226,6 @@ class Found_injections:
         return
        
     def read_o3_set(self, source):
-        
         try:
             file = h5py.File(f'{os.path.dirname(__file__)}/endo3_{source}pop-LIGO-T2100113-v12.hdf5', 'r')
         except:
@@ -241,27 +233,26 @@ class Found_injections:
                                 of cbc_pdet, in the folder where o123_class_found_inj_general.py is. \
                                 It can be downloaded from https://zenodo.org/records/7890437')
         
-        assert source =='bbh' or source == 'bns' or source == 'nsbh' or source == 'imbh',\
-        "Argument (source) must be 'bbh' or 'bns' or 'nsbh' or 'imbh'. "
-        
-        
+        assert source == 'bbh' or source == 'bns' or source == 'nsbh' or source == 'imbh', \
+          "Argument (source) must be 'bbh' or 'bns' or 'nsbh' or 'imbh'. "
+            
         self.sets[source] = {}
         
-        #Total number of generated injections
+        # Total number of generated injections
         self.sets[source]['Ntotal'] = file.attrs['total_generated'] 
         
-        #Mass 1 and mass 2 values in the source frame in solar units
+        # Mass 1 and mass 2 values in the source frame in solar units
         self.sets[source]['m1'] = file["injections/mass1_source"][:]
         self.sets[source]['m2'] = file["injections/mass2_source"][:]
         
-        #Redshift and luminosity distance [Mpc] values 
+        # Redshift and luminosity distance [Mpc] values 
         self.sets[source]['z'] = file["injections/redshift"][:]
         self.sets[source]['dL'] = file["injections/distance"][:]
       
-        #Joint mass sampling pdf (probability density function) values, p(m1,m2)
+        # Joint mass sampling pdf (probability density function) values, p(m1,m2)
         self.sets[source]['m_pdf'] = file["injections/mass1_source_mass2_source_sampling_pdf"][:]
         
-        #Redshift sampling pdf values, p(z), corresponding to a redshift defined by a flat Lambda-Cold Dark Matter cosmology
+        # Redshift sampling pdf values, p(z), corresponding to a redshift defined by a flat Lambda-Cold Dark Matter cosmology
         self.sets[source]['z_pdf'] = file["injections/redshift_sampling_pdf"][:]
         
         self.sets[source]['s1x'] = file["injections/spin1x"][:]
@@ -272,10 +263,7 @@ class Found_injections:
         self.sets[source]['s2y'] = file["injections/spin2y"][:]
         self.sets[source]['s2z'] = file["injections/spin2z"][:]
         
-        #self.max_s1 = file.attrs['max_spin1'] 
-        #self.max_s2 = file.attrs['max_spin2']
-        
-        #False alarm rate statistics from each pipeline
+        # False alarm rate statistics from each pipeline
         self.sets[source]['far_pbbh'] = file["injections/far_pycbc_bbh"][:]
         self.sets[source]['far_gstlal'] = file["injections/far_gstlal"][:]
         self.sets[source]['far_mbta'] = file["injections/far_mbta"][:]
@@ -287,7 +275,7 @@ class Found_injections:
         found_mbta = self.sets[source]['far_mbta'] <= self.thr_far
         found_pfull = self.sets[source]['far_pfull'] <= self.thr_far
 
-        #indexes of the found injections
+        # Indices of the found injections
         self.sets[source]['found_any'] = found_pbbh | found_gstlal | found_mbta | found_pfull
         print(f'Found inj in o3 set and {source} sources: ', self.sets[source]['found_any'] .sum())  
         
@@ -298,10 +286,10 @@ class Found_injections:
         
         source_data = self.sets[source].copy()
         
-        #Luminosity distance sampling pdf values, p(dL), computed for a flat Lambda-Cold Dark Matter cosmology from the z_pdf values
+        # Luminosity distance sampling pdf values, p(dL), computed for a flat Lambda-Cold Dark Matter cosmology from the z_pdf values
         self.sets[source]['dL_pdf'] = source_data['z_pdf']/ fits.dL_derivative(source_data['z'], source_data['dL'], self.cosmo)
         
-        #total mass (m1+m2)
+        # Total mass (m1+m2)
         Mtot_source = source_data['m1'] + source_data['m2']
         oneplusz = 1 + source_data['z']
         self.sets[source]['m1_det'] = source_data['m1'] * oneplusz
@@ -309,60 +297,57 @@ class Found_injections:
         self.sets[source]['Mtot'] = Mtot_source
         self.sets[source]['Mtot_det'] = Mtot_source * oneplusz
         
-        #mass chirp
+        # Chirp mass
         Mc = fits.Mc(source_data['m1'], source_data['m2'])
         self.sets[source]['Mc'] = Mc
         self.sets[source]['Mc_det'] = Mc * oneplusz
         
-        #eta aka symmetric mass ratio
+        # Eta aka symmetric mass ratio
         mu = (source_data['m1'] * source_data['m2']) / Mtot_source
         self.sets[source]['eta'] = mu / Mtot_source
         self.sets[source]['q'] = source_data['m2'] / source_data['m1']
         
-        #spin amplitude
+        # Spin amplitude
         self.sets[source]['a1'] = np.sqrt(source_data['s1x']**2 + source_data['s1y']**2 + source_data['s1z']**2)
         self.sets[source]['a2'] = np.sqrt(source_data['s2x']**2 + source_data['s2y']**2 + source_data['s2z']**2)
         
         a1_max = np.max(self.sets[source]['a1'])
         a2_max = np.max(self.sets[source]['a2'])
-        
         self.sets[source]['a1_max'] = a1_max
         self.sets[source]['a2_max'] = a2_max
         
-        self.sets[source]['s1z_pdf'] = np.log(a1_max / np.abs(source_data['s1z'])) / (2*a1_max)
-        self.sets[source]['s2z_pdf'] = np.log(a2_max / np.abs(source_data['s2z'])) / (2*a2_max)
+        self.sets[source]['s1z_pdf'] = np.log(a1_max / np.abs(source_data['s1z'])) / (2 * a1_max)
+        self.sets[source]['s2z_pdf'] = np.log(a2_max / np.abs(source_data['s2z'])) / (2 * a2_max)
         
-        # a1v = np.array([self.s1x , self.s1y , self.s1z])
-        # a2v = np.array([self.s1x , self.s1y , self.s1z])
-        
-        self.sets[source]['chi_eff'] = (source_data['s1z'] * source_data['m1'] + source_data['s2z']* source_data['m2']) / (Mtot_source)
-        
+        self.sets[source]['chi_eff'] = (source_data['s1z'] * source_data['m1'] + source_data['s2z'] * source_data['m2']) \
+                                        / (Mtot_source)
+
         max_index = np.argmax(source_data['dL'])
         self.sets[source]['dLmax'] = source_data['dL'][max_index]
         self.sets[source]['zmax'] = np.max(source_data['z'])
-        
+
         index = np.random.choice(np.arange(len(source_data['dL'])), 200, replace=False)
         if max_index not in index:
             index = np.insert(index, -1, max_index)
-            
+
         try_dL = source_data['dL'][index]
         try_dLpdf = self.sets[source]['dL_pdf'][index]
-    
-        #we add 0 value
+
+        # Add a value at 0 for interpolation
         inter_dL = np.insert(try_dL, 0, 0, axis=0)
         inter_dLpdf = np.insert(try_dLpdf, 0, 0, axis=0)
         self.sets[source]['interp_dL_pdf'] = interpolate.interp1d(inter_dL, inter_dLpdf)
-        
+
         try_z = source_data['z'][index]
         inter_z = np.insert(try_z, 0, 0, axis=0)
-        
-        #add a value for self.zmax
+
+        # Add a value for self.zmax
         new_dL = np.insert(inter_dL, -1, self.sets[source]['dLmax'], axis=0)
         new_z = np.insert(inter_z, -1, self.sets[source]['zmax'], axis=0)
-        
+
         self.sets[source]['interp_z'] = interpolate.interp1d(new_dL, new_z)
-        
-        #for 03 injections
+
+        # Distributions for 03 injections
         if source == 'bbh':
             self.sets[source]['mmin'] = 2.
             self.sets[source]['mmax'] = 100.
@@ -396,9 +381,10 @@ class Found_injections:
     def load_all_inj_sets(self, run_dataset, sources):
         
         if isinstance(sources, str):
-            each_source = [source.strip() for source in sources.split(',')] 
+            each_source = [source.strip() for source in sources.split(',')]
+
         [self.load_inj_set(run_dataset, source) for source in each_source]
-        
+
         self.Ntotal = sum(self.sets[source]['Ntotal'] for source in each_source)
         self.dL = np.concatenate([self.sets[source]['dL'] for source in each_source])
         self.z = np.concatenate([self.sets[source]['z'] for source in each_source])
@@ -443,25 +429,23 @@ class Found_injections:
         -------
         None
         '''
-        assert run_fit =='o1' or run_fit == 'o2' or run_fit == 'o3',\
-        "Argument (run_fit) must be 'o1' or 'o2' or 'o3'. "
+        assert run_fit =='o1' or run_fit == 'o2' or run_fit == 'o3', \
+          "Argument (run_fit) must be 'o1' or 'o2' or 'o3'. "
         
         if isinstance(sources, str):
            each_source = [source.strip() for source in sources.split(',')] 
            
         sources_folder = "_".join(sorted(each_source)) 
        
-        
-        if not rescale_o3: # get separate independent fit files
+        if not rescale_o3:  # Get separate independent fit files
              run_fit_touse = run_fit
-            
-        else: #rescale o1 and o2
+        else:  # Rescale o1 and o2
             run_fit_touse = 'o3'
 
         try:
             path = f'{os.path.dirname(__file__)}/{run_fit_touse}/{sources_folder}/' + self.path
-            self.dmid_params = np.loadtxt( path + '/joint_fit_dmid.dat')[-1, :-1]
-            self.shape_params = np.loadtxt( path + '/joint_fit_shape.dat')[-1, :-1]
+            self.dmid_params = np.loadtxt(path + '/joint_fit_dmid.dat')[-1, :-1]
+            self.shape_params = np.loadtxt(path + '/joint_fit_shape.dat')[-1, :-1]
         except:
             raise RuntimeError('ERROR in self.get_opt_params: There are not such files because there is not a fit yet with these options.')
     
@@ -481,21 +465,19 @@ class Found_injections:
         shape_ini_values : 1D array. Initial values for the shape optiization
         
         '''
-        
         if self.alpha_vary is None:
-            path = f'{os.path.dirname(__file__)}/ini_values/{self.dmid_fun}' if self.emax_fun is None else f'{os.path.dirname(__file__)}/ini_values/{self.dmid_fun}_{self.emax_fun}'
-            
+            path = f'{os.path.dirname(__file__)}/ini_values/{self.dmid_fun}' if self.emax_fun is None \
+                else f'{os.path.dirname(__file__)}/ini_values/{self.dmid_fun}_{self.emax_fun}'
         else: 
-            path = f'{os.path.dirname(__file__)}/ini_values/alpha_vary_{self.dmid_fun}' if self.emax_fun is None else f'{os.path.dirname(__file__)}/ini_values/alpha_vary_{self.dmid_fun}_{self.emax_fun}'
-            
-        
+            path = f'{os.path.dirname(__file__)}/ini_values/alpha_vary_{self.dmid_fun}' if self.emax_fun is None \
+                else f'{os.path.dirname(__file__)}/ini_values/alpha_vary_{self.dmid_fun}_{self.emax_fun}'
+
         try:
             dmid_ini_values = np.loadtxt( path + '_dmid.dat')
             shape_ini_values = np.loadtxt( path + '_shape.dat')
-            
         except:
             raise RuntimeError('ERROR in self.get_ini_values: Files not found. Please create .dat files with the initial param guesses for this fit.')
-    
+
         return dmid_ini_values, shape_ini_values
     
     def get_shape_params(self):
@@ -513,7 +495,7 @@ class Found_injections:
             emax_params = np.copy(self.shape_params[2:]) if self.alpha_vary is None else np.copy(self.shape_params[3:])
             gamma, delta = np.copy(self.shape_params[:2])
             alpha = 2.05 if self.alpha_vary is None else np.copy(self.shape_params[2])
-            
+
         else:
             gamma, delta, emax_params = np.copy(self.shape_params[:3])
             alpha = 2.05 if self.alpha_vary is None else np.copy(self.shape_params[3])
@@ -525,7 +507,7 @@ class Found_injections:
         
         return
     
-    def sigmoid(self, dL, dLmid, emax , gamma , delta , alpha = 2.05):
+    def sigmoid(self, dL, dLmid, emax, gamma, delta, alpha = 2.05):
         """
         Sigmoid function used to estimate the probability of detection of CBC events
 
@@ -540,7 +522,7 @@ class Found_injections:
 
         Returns
         -------
-        array of detection probability.
+        Array of detection probability.
         """
         frac = dL / dLmid
         denom = 1. + frac ** alpha * \
@@ -560,21 +542,17 @@ class Found_injections:
         -------
         float or array
         """
-        # if m2 > m1:
-        #   return 0
-        
-        mmin = self.mmin ; mmax = self.mmax
+        mmin = self.mmin; mmax = self.mmax
         alpha = self.pow_m1 ; beta = self.pow_m2
         
         m1_norm = (1. + alpha) / (mmax ** (1. + alpha) - mmin ** (1. + alpha))
         m2_norm = (1. + beta) / (m1 ** (1. + beta) - mmin ** (1. + beta))
         
         return m1**alpha * m2**beta * m1_norm * m2_norm * np.heaviside(m1 - m2, 1)
-    
+
     def apply_dmid_mtotal_max(self, dmid_values, Mtot_det, max_mtot = None):
         '''
         not actually using this at this point, for the recommended functions (i.e the default) it's not necessary
-
         '''
         max_mtot = max_mtot if max_mtot != None else Mtot_max
         #return np.putmask(dmid_values, Mtot_det > max_mtot, 0.001)
@@ -584,7 +562,7 @@ class Found_injections:
                 return 0.001  # Return the modified single float
             else:
                 return dmid_values  # Return the original value if condition is not met
-    
+
         # If dmid_values is an array, apply the condition across the array
         dmid_values[Mtot_det > max_mtot] = 0.001
 
@@ -614,39 +592,26 @@ class Found_injections:
         if self.dmid_fun in self.spin_functions:
             dmid_values = self.dmid(m1_det, m2_det, chi_eff, dmid_params)
         else: 
-            dmid_values = self.dmid(m1_det, m2_det, dmid_params)
-            
+            dmid_values = self.dmid(m1_det, m2_det, dmid_params)   
         
         if self.emax_fun is None and self.alpha_vary is None:
-
             gamma, delta, emax = shape_params[0], shape_params[1], shape_params[2]
-            
             Nexp = np.sum(self.sigmoid(dL, dmid_values, emax, gamma, delta))
             
-            
         elif self.emax_fun is None and self.alpha_vary is not None:
-            
             gamma, delta, emax, alpha = shape_params[0], shape_params[1], shape_params[2], shape_params[3]
-            
             Nexp = np.sum(self.sigmoid(dL, dmid_values, emax, gamma, delta, alpha))
         
-        
         elif self.emax_fun is not None and self.alpha_vary is None:
-            
             gamma, delta = shape_params[0], shape_params[1]
             emax_params = shape_params[2:]
-            
             emax_values = self.emax(m1_det, m2_det, emax_params)
-            
             Nexp = np.sum(self.sigmoid(dL, dmid_values, emax_values, gamma, delta))
             
-        else:
-            
+        else:  
             gamma, delta, alpha = shape_params[0], shape_params[1], shape_params[2]
             emax_params = shape_params[3:]
-            
             emax_values = self.emax(m1_det, m2_det, emax_params)
-            
             Nexp = np.sum(self.sigmoid(dL, dmid_values, emax_values, gamma, delta, alpha))
         
         return Nexp
@@ -705,8 +670,7 @@ class Found_injections:
             sigmoid_args = emax_values, gamma, delta, alpha
 
         pdet = self.sigmoid(dL, dmid_values, *sigmoid_args)
-        return pdet * pdfs * source_data['Ntotal'] # lambda
-
+        return pdet * pdfs * source_data['Ntotal']  # lambda
     
     def logL_dmid(self, dmid_params, shape_params, source):
         """
@@ -721,7 +685,8 @@ class Found_injections:
         -------
         float 
         """
-        lnL = -self.Nexp(dmid_params, shape_params, source) + np.sum(np.log(self.lamda(dmid_params, shape_params, source)))
+        lnL = -self.Nexp(dmid_params, shape_params, source) + \
+            np.sum(np.log(self.lamda(dmid_params, shape_params, source)))
         return lnL
     
     def logL_shape(self, dmid_params, shape_params, source):
@@ -737,8 +702,8 @@ class Found_injections:
         -------
         float 
         """
-         
-        lnL = -self.Nexp(dmid_params, shape_params, source) + np.sum(np.log(self.lamda(dmid_params, shape_params, source)))
+        lnL = -self.Nexp(dmid_params, shape_params, source) + \
+            np.sum(np.log(self.lamda(dmid_params, shape_params, source)))
         return lnL
     
     def total_logL_dmid(self, dmid_params, shape_params, sources):
@@ -838,8 +803,7 @@ class Found_injections:
         Returns
         -------
         None.
-        '''
-        
+        '''   
         if isinstance(sources, str):
             each_source = [source.strip() for source in sources.split(',')] 
             
@@ -867,6 +831,7 @@ class Found_injections:
             params_emax = None if self.emax_fun is None else np.copy(self.shape_params[3:])
         
         for i in range(0, 10000):
+            # Alternate optimizing for d_mid and shape parameters, saving at each iteration
             
             dmid_params, maxL_1 = self.MLE_dmid(methods, sources)
             all_dmid_params = np.vstack([all_dmid_params, dmid_params])
@@ -951,21 +916,34 @@ class Found_injections:
         stat : float, statistic from the KStest 
         pvalue : float, pvalue from the KStest 
         '''
-        
         if isinstance(sources, str):
             each_source = [source.strip() for source in sources.split(',')] 
-        
+
         sources_folder = "_".join(sorted(each_source)) 
+        self.make_folders(run_fit, sources_folder)
         
         self.get_opt_params(run_fit, sources)
         
-        self.make_folders(run_fit, sources_folder)
-        
         emax_dic = {None: 'cmds', 'emax_exp' : 'emax_exp_cmds', 'emax_sigmoid' : 'emax_sigmoid_cmds'}
         
-        dic = {'dL': self.dL, 'z': self.z, 'Mc': self.Mc, 'Mtot': self.Mtot, 'eta': self.eta, 'Mc_det': self.Mc_det, 'Mtot_det': self.Mtot_det, 'chi_eff': self.chi_eff}
-        path = f'{run_fit}/{sources_folder}/{self.dmid_fun}' if self.alpha_vary is None else f'{run_fit}/{sources_folder}/alpha_vary/{self.dmid_fun}'
-        names_plotting = {'dL': r'$d_L$', 'z': r'$z$', 'Mc': r'$\mathcal{M}$', 'Mtot': r'$M$', 'eta': r'$\eta$', 'Mc_det': r'$\mathcal{M}_z$', 'Mtot_det': r'$M_z$', 'chi_eff': r'$\chi_{eff}$'}
+        dic = {'dL': self.dL,
+               'z': self.z,
+               'Mc': self.Mc,
+               'Mtot': self.Mtot,
+               'eta': self.eta,
+               'Mc_det': self.Mc_det,
+               'Mtot_det': self.Mtot_det,
+               'chi_eff': self.chi_eff}
+        path = f'{run_fit}/{sources_folder}/{self.dmid_fun}' if self.alpha_vary is None \
+            else f'{run_fit}/{sources_folder}/alpha_vary/{self.dmid_fun}'
+        names_plotting = {'dL': r'$d_L$',
+                          'z': r'$z$',
+                          'Mc': r'$\mathcal{M}$',
+                          'Mtot': r'$M$',
+                          'eta': r'$\eta$',
+                          'Mc_det': r'$\mathcal{M}_z$',
+                          'Mtot_det': r'$M_z$',
+                          'chi_eff': r'$\chi_{eff}$'}
         
         try:
             os.mkdir(path + f'/{emax_dic[self.emax_fun]}')
@@ -1019,14 +997,14 @@ class Found_injections:
         
         # KS test
         if ks: 
-            pdet_wheighted = cmd / np.sum(pdet)
+            pdet_weighted = cmd / np.sum(pdet)
             def cdf(x):
                 idxs = np.searchsorted(varo, x, side='right')
-                return np.where(idxs == 0, 0, pdet_wheighted[idxs - 1])
+                return np.where(idxs == 0, 0, pdet_weighted[idxs - 1])
                 
             stat, pvalue = kstest(var_foundo, cdf)
             print(f'{var} KStest : statistic = %s , pvalue = %s' %(stat, pvalue))    
-        #return stat, pvalue
+
         return
 
     def binned_cumulative_dist(self, run_dataset, run_fit, sources, nbins, var_cmd, var_binned, ks = False):
@@ -1050,8 +1028,7 @@ class Found_injections:
         Returns
         -------
         None
-        '''
-        
+        '''        
         if isinstance(sources, str):
             each_source = [source.strip() for source in sources.split(',')] 
         
@@ -1199,10 +1176,10 @@ class Found_injections:
                 chi_eff_params.append(popt)
             
             if ks: 
-                pdet_wheighted = cmd / np.sum(pdet)
+                pdet_weighted = cmd / np.sum(pdet)
                 def cdf(x):
                     idxs = np.searchsorted(varo, x, side='right')
-                    return np.where(idxs == 0, 0, pdet_wheighted[idxs - 1])
+                    return np.where(idxs == 0, 0, pdet_weighted[idxs - 1])
                     
                 stat, pvalue = kstest(found_inj_inbin_sorted, cdf)
                 print(f'{var_cmd} KStest in {i} bin: statistic = %s, pvalue = %s' % (stat, pvalue))
@@ -1237,28 +1214,28 @@ class Found_injections:
         '''
         self.get_opt_params(run_fit, sources, rescale_o3) 
         self.load_inj_set(run_fit, 'bbh')
-        
-        #we compute some values of dl for some z to make later an interpolator
+
+        # We compute some values of dl for some z to make later an interpolator
         if self.zinterp_VT is None:
             fun_A = lambda t : np.sqrt(self.cosmo.Om0 * (1 + t)**3 + 1 - self.cosmo.Om0)
             quad_fun_A = lambda t: 1/fun_A(t)
-            
+
             z = np.linspace(0.002,1.9, 30)
             z0 = np.insert(z, 0, 0, axis = 0)
             dL = np.array([(const.c.value*1e-3 / self.cosmo.H0.value) * (1 + i) * integrate.quad(quad_fun_A, 0, i)[0] for i in z0])
-            
+
             self.zinterp_VT = interpolate.interp1d(dL, z0)
-        
+
         m1_det = lambda dL_int : m1 * (1 + self.zinterp_VT(dL_int))
         m2_det = lambda dL_int : m2 * (1 + self.zinterp_VT(dL_int))
-        
+
         if self.dmid_fun in self.spin_functions:
             dmid = lambda dL_int : self.dmid(m1_det(dL_int), m2_det(dL_int), chieff, self.dmid_params)
         else: 
             dmid = lambda dL_int : self.dmid(m1_det(dL_int), m2_det(dL_int), self.dmid_params)
-                
+
         emax_params, gamma, delta, alpha = self.get_shape_params()
-        
+
         if self.emax_fun is not None:
             emax = lambda dL_int : self.emax(m1_det(dL_int), m2_det(dL_int), emax_params)
             quad_fun = lambda dL_int : self.sigmoid(dL_int, dmid(dL_int), emax(dL_int), gamma, delta, alpha) \
@@ -1267,20 +1244,20 @@ class Found_injections:
             emax = np.copy(emax_params)
             quad_fun = lambda dL_int : self.sigmoid(dL_int, dmid(dL_int), emax, gamma, delta, alpha) \
                        * self.sets['bbh']['interp_dL_pdf'](dL_int)
-            
+
         pdet = integrate.quad(quad_fun, 0, self.sets['bbh']['dLmax'])[0]
 
         if self.Vtot is None:
             # NB the factor of 1/(1+z) for time dilation in the signal rate 
             vquad = lambda z_int : 4 * np.pi * self.cosmo.differential_comoving_volume(z_int).value / (1 + z_int)
             self.Vtot = integrate.quad(vquad, 0, self.sets['bbh']['zmax'])[0]
-        
+
         return pdet * self.Vtot
     
     def total_sensitive_volume(self, m1, m2, chieff=0., rescale_o3=True):
 
         '''
-        total sensitive volume computed with the fractions of o1, o2 and o3 observing times and the o1, o2 rescaled fit
+        Total sensitive volume computed with the fractions of o1, o2 and o3 observing times and the o1, o2 rescaled fit
         Vtot = V1 * t1_frac + V2 * t2_frac + V3 * t3_frac
 
         Parameters
@@ -1316,29 +1293,29 @@ class Found_injections:
         float. Rescaled constant d0
         '''
         assert run_dataset =='o1' or run_dataset == 'o2', "Argument (run_dataset) must be 'o1' or 'o2'."
-        
+
         try:
             self.load_all_inj_sets(run_dataset, 'bbh')
             Nfound = self.found_any.sum()
-            
+    
             self.get_opt_params(run_fit, 'bbh', rescale_o3 = False) #we always want 'o3' fit
-            
+    
             dmid_params = np.copy(self.dmid_params)
             dmid_params[0] = 1.
-            
+    
             if self.dmid_fun in self.spin_functions:
                 dmid_values = self.dmid(self.m1_det, self.m2_det, self.chi_eff, dmid_params)
             else: 
                 dmid_values = self.dmid(self.m1_det, self.m2_det, dmid_params)
             #self.apply_dmid_mtotal_max(dmid_values, mtot_det)
-            
+
             emax_params, gamma, delta, alpha = self.get_shape_params()
-            
+
             if self.emax_fun is not None:
                 emax = self.emax(self.m1_det, self.m2_det, emax_params)  
             else:
                 emax = np.copy(emax_params)
-            
+
             def find_root(x):
                 new_dmid_values = x * dmid_values
                 #self.apply_dmid_mtotal_max(new_dmid_values, mtot_det)
@@ -1346,14 +1323,14 @@ class Found_injections:
                 frac = self.dL / ( new_dmid_values)
                 denom = 1. + frac ** alpha * \
                         np.exp(gamma* (frac - 1.) + delta * (frac**2 - 1.))
-                        
+      
                 return  np.nansum(emax / denom)  -  Nfound
-            
+
             d0 = fsolve(find_root, [50])  # rescaled Dmid cte (it has units of Dmid !!)
             self.load_all_inj_sets('o3', 'bbh')
             print('Current injection file loaded is o3, to be taken into account.')
             return d0
-        
+
         except:
             d0 = {'o1' : np.loadtxt(f'{os.path.dirname(__file__)}/d0.dat')[0], 'o2' : np.loadtxt(f'{os.path.dirname(__file__)}/d0.dat')[1]}
             print('Something went wrong computing the cte, using the d0.dat file that already exists instead.')
@@ -1374,9 +1351,9 @@ class Found_injections:
         '''
         self.load_all_inj_sets(run_dataset, 'bbh')
         Nfound = self.found_any.sum()
-        
+
         self.get_opt_params(run_fit, 'bbh')
-        
+
         dmid_params = np.copy(self.dmid_params)
         dmid_params[0] = 1.
 
@@ -1385,31 +1362,30 @@ class Found_injections:
         else: 
             dmid_values = self.dmid(self.m1_det, self.m2_det, dmid_params)
         #self.apply_dmid_mtotal_max(dmid_values, mtot_det)
-        
+
         emax_params, gamma, delta, alpha = self.get_shape_params()
-        
+
         if self.emax_fun is not None:
             emax = self.emax(self.m1_det, self.m2_det, emax_params)
-            
         else:
             emax = np.copy(emax_params)
-        
+
         def manual_found_inj(x):
             frac = self.dL / ( x * dmid_values)
             denom = 1. + frac ** alpha * \
                     np.exp(gamma* (frac - 1.) + delta * (frac**2 - 1.))
             return np.sum( emax / denom )
-        
+
         o1_inj = manual_found_inj(self.find_dmid_cte_found_inj(run_dataset ='o1', run_fit = run_fit))
         o2_inj = manual_found_inj(self.find_dmid_cte_found_inj(run_dataset ='o2', run_fit = run_fit))
         o3_inj = Nfound
-        
+
         frac1 = o1_inj / o3_inj
         frac2 = o2_inj / o3_inj
-        
+
         pred_rates = { 'o1' : frac1 * self.det_rates['o3'], 'o2' : frac2 * self.det_rates['o3'] }
         pred_nev = { 'o1' : pred_rates['o1'] * self.obs_time['o1'], 'o2' : pred_rates['o2'] * self.obs_time['o2'] }
-        
+
         return pred_nev
     
     def run_pdet(self, dL, m1_det, m2_det, chieff = 0., run='o3', sources='bbh', rescale_o3 = True):
@@ -1429,23 +1405,23 @@ class Found_injections:
         pdet_i : probability of detection of a merger with masses m1, m2 and at a distance dL.
         """
         self.get_opt_params(run, sources, rescale_o3) 
-        
+
         if self.dmid_fun in self.spin_functions:
             dmid_values = self.dmid(m1_det, m2_det, chieff, self.dmid_params)
         else: 
             dmid_values = self.dmid(m1_det, m2_det, self.dmid_params)
-            
+
         #self.apply_dmid_mtotal_max(np.array(dmid_values), mtot_det)
-        
+
         emax_params, gamma, delta, alpha = self.get_shape_params()
-        
+
         if self.emax_fun is not None:
             emax = self.emax(m1_det, m2_det, emax_params)
         else:
             emax = np.copy(emax_params)
-            
+
         pdet_i = self.sigmoid(dL, dmid_values, emax , gamma , delta , alpha)
-        
+
         return pdet_i
     
     def total_pdet(self, dL, m1_det, m2_det, chieff = 0., sources='bbh', rescale_o3 = True):
@@ -1465,32 +1441,32 @@ class Found_injections:
         pdet : total prob of detection
         '''        
         pdet = np.zeros(len(np.atleast_1d(dL)))
-        
+
         for run, prop in zip(self.runs, self.prop_obs_time):
             pdet_i = self.run_pdet(dL, m1_det, m2_det, chieff, run, sources, rescale_o3) 
             pdet += pdet_i * prop
-            
+
         return pdet
-    
+
     def bootstrap_resampling(self, n_boots, run_dataset, sources):
         if isinstance(sources, str):
             each_source = [source.strip() for source in sources.split(',')] 
-            
+
         sources_folder = "_".join(sorted(each_source)) 
-        
+
         self.make_folders(run_dataset, sources_folder)
-        
+
         [self.load_inj_set(run_dataset, source) for source in each_source]
-        
+
         all_params = np.zeros([1, len(np.atleast_1d(self.dmid_params)) + len(np.atleast_1d(self.shape_params))])
-        
+
         for i in range(n_boots):
             for source in each_source:
                 self.load_inj_set(run_dataset, source)
-                
+
                 total = len(self.sets[source]['dL'])
                 boots = np.random.choice(np.arange(total), total, replace=True)
-                
+
                 self.sets[source]['m1'] = self.sets[source]['m1'][boots]
                 self.sets[source]['m2 ']= self.sets[source]['m2'][boots]
                 self.sets[source]['z'] = self.sets[source]['z'][boots]
@@ -1505,7 +1481,7 @@ class Found_injections:
                 self.sets[source]['m_pdf'] = self.sets[source]['m_pdf'][boots]
                 self.sets[source]['z_pdf'] = self.sets[source]['z_pdf'][boots]
                 self.sets[source]['dL_pdf'] = self.sets[source]['dL_pdf'][boots]
-    
+
                 self.sets[source]['s1x'] = self.sets[source]['s1x'][boots]
                 self.sets[source]['s1y'] = self.sets[source]['s1y'][boots]
                 self.sets[source]['s1z'] = self.sets[source]['s1z'][boots]
@@ -1514,30 +1490,29 @@ class Found_injections:
                 self.sets[source]['s2z'] = self.sets[source]['s2z'][boots]
                 self.sets[source]['s1z_pdf'] = self.sets[source]['s1z_pdf'][boots]
                 self.sets[source]['s2z_pdf'] = self.sets[source]['s2z_pdf'][boots]
-    
+
                 self.sets[source]['a1'] = self.sets[source]['a1'][boots]
                 self.sets[source]['a2'] = self.sets[source]['a2'][boots]
                 self.sets[source]['chi_eff'] = self.sets[source]['chi_eff'][boots]
-                
+
                 self.sets[source]['found_any'] = self.sets[source]['found_any'][boots]
 
             opt_params_shape, opt_params_dmid = self.joint_MLE(run_dataset, sources, bootstrap=True)
             print(i, 'n boots', opt_params_shape, opt_params_dmid)
             all_params = np.vstack([all_params, np.hstack((opt_params_shape, opt_params_dmid))])
-        
+
         header = f'{self.shape_params_names[self.emax_fun]}, {self.dmid_params_names[self.dmid_fun]}'
         path = f'{run_dataset}/{sources_folder}/' + self.path
         name_file = path + f'/{n_boots}_boots_opt_params.dat'
         np.savetxt(name_file, all_params, header=header, fmt='%s')
-        
+
         return
     
     def evaluate(self, dL, m1_det, m2_det, chi_eff, dmid_params, emax_params, gamma, delta):
-        
+
         dmid_values = self.dmid(m1_det, m2_det, chi_eff, dmid_params)
         emax_values = self.emax(m1_det, m2_det, emax_params)
-        
-        pdet = self.sigmoid(dL, dmid_values, emax_values, gamma, delta)
-        
-        return pdet
 
+        pdet = self.sigmoid(dL, dmid_values, emax_values, gamma, delta)
+
+        return pdet
