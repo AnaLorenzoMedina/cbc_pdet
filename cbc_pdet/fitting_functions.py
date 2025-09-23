@@ -270,10 +270,8 @@ def emax_gaussian(m1_det, m2_det, params):
     """
     Mtot = m1_det + m2_det
     b_0, b_1, muM, sigmaM = params
-    return (1 - b_0) * 
-        (1 - (b_1 * np.exp(-(np.log(Mtot) - np.log(muM))**2 / (2 * sigmaM**2))
-             )
-        )
+    logM_gaussian = np.exp(-(np.log(Mtot) - np.log(muM))**2 / (2 * sigmaM**2))
+    return (1 - b_0) * (1 - (b_1 * logM_gaussian))
 
 
 def Dmid_mchirp_fdmid(m1_det, m2_det, params):
