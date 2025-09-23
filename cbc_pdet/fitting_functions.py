@@ -11,7 +11,8 @@ import astropy.constants as const
 
 def Mc(m1, m2):
     M = m1 + m2
-    return (m1 * m2)**(3/5) / M**(1/5)
+    # (m_1 m_2)^(3/5) / M^(1/5)
+    return (m1 * m2)**0.6 / M**0.2
 
 
 def Dmid_mchirp(m1_det, m2_det, cte):
@@ -90,7 +91,7 @@ def Dmid_mchirp_expansion_asqrt(m1_det, m2_det, params):
                  + a_01 * (1 - 4*eta)
                  + a_21 * M**2 * (1 - 4*eta)
                  + a_30 * M**3
-                 + a_sqrt * M**(1/2))
+                 + a_sqrt * M**0.5)
     
     return pol * Mc_det**(5/6) 
 
@@ -400,7 +401,7 @@ def Dmid_mchirp_mixture_logspin_corr(m1_det, m2_det, chi_eff, params):
             + a_21 * M**2 * (1 - 4*eta)
     f_as = (c_01 + c_11 * M + d_11 * np.log(M)) * chi_eff
     
-    return  D0 * Mc_det**(5/6) * f_M * np.exp(f_eta) * np.exp(f_as)
+    return D0 * Mc_det**(5/6) * f_M * np.exp(f_eta) * np.exp(f_as)
 
 
 def dL_derivative(z, dL, cosmo):
