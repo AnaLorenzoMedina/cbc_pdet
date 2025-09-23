@@ -88,16 +88,22 @@ class Found_injections:
         self.obs_time = {'o1' : 0.1331507, 'o2' : 0.323288, 'o3' : 0.91101}  # years
         self.total_obs_time = np.sum(list(self.obs_time.values()))
         self.prop_obs_time = np.array([self.obs_time[i]/self.total_obs_time for i in self.runs])
-        
+
+        # Number of BBH with FAR < 1/yr
         self.obs_nevents = {'o1': 3, 'o2': 7, 'o3': 59}
         
         self.det_rates = {i : self.obs_nevents[i] / self.obs_time[i] for i in self.runs}
         
         self.dmid_params_names = {'Dmid_mchirp': 'cte', 
-                                  'Dmid_mchirp_expansion_noa30': ['cte', 'a20', 'a01', 'a21', 'a10','a11'],
-                                  'Dmid_mchirp_fdmid': ['cte', 'a20', 'a01', 'a21', 'a10','a11'], 
-                                  'Dmid_mchirp_fdmid_fspin': ['cte', 'a20', 'a01', 'a21', 'a10','a11', 'c1', 'c11'],
-                                  'Dmid_mchirp_mixture_logspin_corr': ['D0', 'B', 'C' , 'mu', 'sigma', 'a_01', 'a_11', 'a_21', 'c_01', 'c_11', 'd_11', 'L'],}
+                                  'Dmid_mchirp_expansion_noa30': 
+                                      ['cte', 'a20', 'a01', 'a21', 'a10', 'a11'],
+                                  'Dmid_mchirp_fdmid':
+                                      ['cte', 'a20', 'a01', 'a21', 'a10', 'a11'], 
+                                  'Dmid_mchirp_fdmid_fspin':
+                                      ['cte', 'a20', 'a01', 'a21', 'a10', 'a11', 'c1', 'c11'],
+                                  'Dmid_mchirp_mixture_logspin_corr':
+                                      ['D0', 'B', 'C' , 'mu', 'sigma', 'a_01', 'a_11', 'a_21', 'c_01', 'c_11', 'd_11', 'L'],
+                                 }
         
         self.spin_functions = ['Dmid_mchirp_fdmid_fspin', 'Dmid_mchirp_mixture_logspin_corr']
         
@@ -109,7 +115,7 @@ class Found_injections:
         if self.alpha_vary is not None:
             sigmoid_names.append('alpha')
         
-        self.shape_params_names = {'emax_exp' :  sigmoid_names + ['b_0, b_1, b_2'],
+        self.shape_params_names = {'emax_exp' : sigmoid_names + ['b_0, b_1, b_2'],
                                    'emax_sigmoid' : sigmoid_names + ['b_0, k, M_0'],
                                    'emax_sigmoid_nolog' : sigmoid_names + ['b_0, b_1, b_2'],
                                    'emax_gaussian': sigmoid_names + ['b_0', 'b_1', 'muM', 'sigmaM'],
