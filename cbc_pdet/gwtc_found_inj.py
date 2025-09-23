@@ -672,7 +672,7 @@ class Found_injections:
         pdet = self.sigmoid(dL, dmid_values, *sigmoid_args)
         return pdet * pdfs * source_data['Ntotal']  # lambda
     
-    def logL_dmid(self, dmid_params, shape_params, source):
+    def logL(self, dmid_params, shape_params, source):
         """
         log likelihood of the expected density of found injections
 
@@ -689,46 +689,17 @@ class Found_injections:
             np.sum(np.log(self.lamda(dmid_params, shape_params, source)))
         return lnL
     
-    def logL_shape(self, dmid_params, shape_params, source):
-        """
-        log likelihood of the expected density of found injections
-
-        Parameters
-        ----------
-        dmid_params : parameters of the Dmid function, 1D array
-        shape_params : gamma, delta and emax params, 1D array
-        
-        Returns
-        -------
-        float 
-        """
-        lnL = -self.Nexp(dmid_params, shape_params, source) + \
-            np.sum(np.log(self.lamda(dmid_params, shape_params, source)))
-        return lnL
-    
-    def total_logL_dmid(self, dmid_params, shape_params, sources):
+    def total_logL(self, dmid_params, shape_params, sources):
        
        if isinstance(sources, str):
            each_source = [source.strip() for source in sources.split(',')]
            
        try: 
-           tot_lnL = sum(self.logL_dmid(dmid_params, shape_params, source) for source in each_source)
+           tot_lnL = sum(self.logL(dmid_params, shape_params, source) for source in each_source)
            return tot_lnL
            
        except KeyError as e:
            raise ValueError(f'Unknown source type: {e.args[0]}')
-           
-    def total_logL_shape(self, dmid_params, shape_params, sources):
-        
-        if isinstance(sources, str):
-            each_source = [source.strip() for source in sources.split(',')]
-            
-        try: 
-            tot_lnL = sum(self.logL_shape(dmid_params, shape_params, source) for source in each_source)
-            return tot_lnL
-        
-        except KeyError as e:
-            raise ValueError(f'Unknown source type: {e.args[0]}')
     
     def MLE_dmid(self, methods, sources):
         """
@@ -746,7 +717,7 @@ class Found_injections:
         """
         dmid_params_guess = np.copy(self.dmid_params)
         
-        res = opt.minimize(fun=lambda in_param: -self.total_logL_dmid(in_param, self.shape_params, sources), 
+        res = opt.minimize(fun=lambda in_param: -self.total_logL(in_param, self.shape_params, sources), 
                            x0=np.array(dmid_params_guess), 
                            args=(), 
                            method=methods)
@@ -777,7 +748,7 @@ class Found_injections:
             all_bounds[2] = (0, 1) #b0
             all_bounds[3] = (0, 1) #b1
         
-        res = opt.minimize(fun=lambda in_param: -self.total_logL_shape(self.dmid_params, in_param, sources), 
+        res = opt.minimize(fun=lambda in_param: -self.total_logL(self.dmid_params, in_param, sources), 
                            x0=np.array(shape_params_guess), 
                            args=(), 
                            method=methods,

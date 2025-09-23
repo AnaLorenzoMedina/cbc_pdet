@@ -270,10 +270,9 @@ def emax_gaussian(m1_det, m2_det, params):
     """
     Mtot = m1_det + m2_det
     b_0, b_1, muM, sigmaM = params
-    return (1 - b_0) * 
-        (1 - (b_1 * np.exp(-(np.log(Mtot) - np.log(muM))**2 / (2 * sigmaM**2))
-             )
-        )
+    logM_gaussian = np.exp(-(np.log(Mtot) - np.log(muM))**2 / (2 * sigmaM**2))
+    return (1 - b_0) * (1 - (b_1 * logM_gaussian))
+
 
 
 def Dmid_mchirp_fdmid(m1_det, m2_det, params):
@@ -396,9 +395,9 @@ def Dmid_mchirp_mixture_logspin_corr(m1_det, m2_det, chi_eff, params):
     fgauss = np.exp(-(np.log(M) - np.log(mu))**2 / (2 * sigma**2))
     f_M = fexp + C * fgauss
     
-    f_eta = a_01 * (1 - 4*eta)
+    f_eta = (a_01 * (1 - 4*eta)
             + a_11 * M * (1 - 4*eta)
-            + a_21 * M**2 * (1 - 4*eta)
+            + a_21 * M**2 * (1 - 4*eta))
     f_as = (c_01 + c_11 * M + d_11 * np.log(M)) * chi_eff
     
     return D0 * Mc_det**(5/6) * f_M * np.exp(f_eta) * np.exp(f_as)
