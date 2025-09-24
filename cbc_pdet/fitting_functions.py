@@ -24,7 +24,7 @@ def Dmid_mchirp(m1_det, m2_det, D0):
     ----------
     m1_det : detector frame mass1, float or 1D array
     m2_det : detector frame mass2, float or 1D array
-    cte : parameter that we will be optimizing, float
+    D0 : parameter that we will be optimizing, float
     
     Returns
     -------
