@@ -15,7 +15,7 @@ def Mc(m1, m2):
     return (m1 * m2)**0.6 / M**0.2
 
 
-def Dmid_mchirp(m1_det, m2_det, cte):
+def Dmid_mchirp(m1_det, m2_det, D0):
     """
     Dmid values (distance where Pdet = 0.5) as a function of the masses 
     in the detector frame (our first guess)
@@ -31,7 +31,7 @@ def Dmid_mchirp(m1_det, m2_det, cte):
     Dmid(m1, m2) in the detector frame
     """
     Mc_det = Mc(m1_det, m2_det)
-    return cte * Mc_det**(5/6) 
+    return D0 * Mc_det**(5/6) 
 
 
 def Dmid_mchirp_expansion_noa30(m1_det, m2_det, params):
@@ -50,14 +50,14 @@ def Dmid_mchirp_expansion_noa30(m1_det, m2_det, params):
     -------
     Dmid(m1, m2) in the detector frame
     """
-    cte, a_20, a_01, a_21, a_10, a_11 = params
+    D0, a_20, a_01, a_21, a_10, a_11 = params
 
     M = m1_det + m2_det
     eta = m1_det * m2_det / M**2
     
     Mc_det = Mc(m1_det, m2_det)
     
-    pol = cte * (1
+    pol = D0 * (1
                  + a_20 * M**2
                  + a_01 * (1 - 4*eta)
                  + a_21 * M**2 * (1 - 4*eta)

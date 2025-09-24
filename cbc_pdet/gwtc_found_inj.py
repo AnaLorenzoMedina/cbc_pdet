@@ -94,13 +94,13 @@ class Found_injections:
         
         self.det_rates = {i : self.obs_nevents[i] / self.obs_time[i] for i in self.runs}
         
-        self.dmid_params_names = {'Dmid_mchirp': 'cte', 
+        self.dmid_params_names = {'Dmid_mchirp': 'D0', 
                                   'Dmid_mchirp_expansion_noa30': 
-                                      ['cte', 'a20', 'a01', 'a21', 'a10', 'a11'],
+                                      ['D0', 'a20', 'a01', 'a21', 'a10', 'a11'],
                                   'Dmid_mchirp_fdmid':
-                                      ['cte', 'a20', 'a01', 'a21', 'a10', 'a11'], 
+                                      ['D0', 'a20', 'a01', 'a21', 'a10', 'a11'], 
                                   'Dmid_mchirp_fdmid_fspin':
-                                      ['cte', 'a20', 'a01', 'a21', 'a10', 'a11', 'c1', 'c11'],
+                                      ['D0', 'a20', 'a01', 'a21', 'a10', 'a11', 'c1', 'c11'],
                                   'Dmid_mchirp_mixture_logspin_corr':
                                       ['D0', 'B', 'C' , 'mu', 'sigma', 'a_01', 'a_11', 'a_21', 'c_01', 'c_11', 'd_11', 'L'],
                                  }
