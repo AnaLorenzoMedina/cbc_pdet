@@ -37,7 +37,8 @@ def Dmid_mchirp(m1_det, m2_det, cte):
 def Dmid_mchirp_expansion_noa30(m1_det, m2_det, params):
     """
     Dmid values (distance where Pdet = 0.5) as a function of the masses 
-    in the detector frame 
+    in the detector frame.  Used to describe the selection function in
+    https://arxiv.org/abs/2310.03074 
 
     Parameters
     ----------
@@ -146,7 +147,6 @@ def emax_gaussian(m1_det, m2_det, params):
     b_0, b_1, muM, sigmaM = params
     logM_gaussian = np.exp(-(np.log(Mtot) - np.log(muM))**2 / (2 * sigmaM**2))
     return (1 - b_0) * (1 - (b_1 * logM_gaussian))
-
 
 
 def Dmid_mchirp_fdmid(m1_det, m2_det, params):
