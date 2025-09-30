@@ -63,6 +63,10 @@ class Found_injections:
         self.Vtot = None  # Slot for total comoving volume up to max z
         self.zinterp_VT = None # Slot for interpolator of z given dL for comoving volume
         
+        self.dataset = None
+        self.current_pdet = {} #slot for pdet in the optimization
+        self.joint_pdfs = {} #slot for pdfs in the optimization
+        
         self.dmid_ini_values, self.shape_ini_values = ini_files if ini_files is not None else self.get_ini_values()
         self.dmid_params = self.dmid_ini_values
         self.shape_params = self.shape_ini_values
@@ -79,19 +83,18 @@ class Found_injections:
         else:
             self.path = path
         
-        self.runs = ['o1', 'o2', 'o3']
+        self.runs = ['o1', 'o2', 'o3', 'o4']
         
         # Coincident analysis (two or three detectors operating) observing time of O3
         self.coincident_time_o3 = 0.75435365296528  # years
         
         # Total observing time of each run (O3 is different from above because O3 looked at single detector time too)
-        self.obs_time = {'o1' : 0.1331507, 'o2' : 0.323288, 'o3' : 0.91101}  # years
+        self.obs_time = {'o1' : 0.1331507, 'o2' : 0.323288, 'o3' : 0.91101, 'o4' : 0.75564681724846}  # years
         self.total_obs_time = np.sum(list(self.obs_time.values()))
         self.prop_obs_time = np.array([self.obs_time[i]/self.total_obs_time for i in self.runs])
-
-        # Number of BBH with FAR < 1/yr
-        self.obs_nevents = {'o1': 3, 'o2': 7, 'o3': 59}
         
+        self.obs_nevents = {'o1': 3, 'o2': 7, 'o3': 59, 'o4': 87}
+
         self.det_rates = {i : self.obs_nevents[i] / self.obs_time[i] for i in self.runs}
         
         self.dmid_params_names = {'Dmid_mchirp': 'D0', 
@@ -278,10 +281,89 @@ class Found_injections:
         print(f'Found inj in o3 set and {source} sources: ', self.sets[source]['found_any'] .sum())  
         
         return
+    
+    def read_o4_set(self, source = 'all'):
+       
+       try:
+           file = h5py.File(f'{os.path.dirname(__file__)}/samples-rpo4a_v2_20250220153231UTC-1366933504-23846400.hdf', 'r')
+       except:
+           raise RuntimeError('File with the injection set not found. Please add it to your installation \
+                               of cbc_pdet, in the folder where gwtc_found_inj.py is.')
+                               
+       assert source == 'all', "Argument (source) must be 'all'. " 
+
+       self.sets[source] = {}
+       
+       # Total number of generated injections
+       self.sets[source]['Ntotal'] = file.attrs['total_generated'] 
+       
+       # Mass 1 and mass 2 values in the source frame in solar units
+       self.sets[source]['m1'] = file['events'][:]['mass1_source']
+       self.sets[source]['m2'] = file['events'][:]['mass2_source']
+       
+       # Redshift and luminosity distance [Mpc] values 
+       self.sets[source]['z'] = file['events'][:]['z']
+       self.sets[source]['dL'] = file['events'][:]['luminosity_distance']
+     
+       # Joint mass sampling pdf (probability density function) values, p(m1,m2)
+       self.sets[source]['m1_pdf'] = np.exp(file["events"][:]["lnpdraw_mass1_source"])
+       self.sets[source]['m2_pdf'] = np.exp(file["events"][:]["lnpdraw_mass2_source_GIVEN_mass1_source"])
+       self.sets[source]['m_pdf'] = self.sets[source]['m1_pdf'] * self.sets[source]['m2_pdf']
+       
+       # Redshift sampling pdf values, p(z), corresponding to a redshift defined by a flat Lambda-Cold Dark Matter cosmology
+       self.sets[source]['z_pdf'] = np.exp(file["events"][:]["lnpdraw_z"])
+       
+       self.sets[source]['s1x'] = file["events"][:]["spin1x"]
+       self.sets[source]['s1y'] = file["events"][:]["spin1y"]
+       self.sets[source]['s1z'] = file["events"][:]["spin1z"]
+       
+       self.sets[source]['s2x'] = file["events"][:]["spin2x"]
+       self.sets[source]['s2y'] = file["events"][:]["spin2y"]
+       self.sets[source]['s2z'] = file["events"][:]["spin2z"]
+       
+       self.sets[source]['a1'] = file["events"][:]["spin1_magnitude"]
+       self.sets[source]['a2'] = file["events"][:]["spin2_magnitude"]
+       self.sets[source]['theta1'] = file['events'][:]['spin1_polar_angle']
+       self.sets[source]['theta2'] = file['events'][:]['spin2_polar_angle']
+       
+       self.sets[source]['a1_pdf'] = np.exp(file["events"][:]["lnpdraw_spin1_magnitude"])
+       self.sets[source]['a2_pdf'] = np.exp(file["events"][:]["lnpdraw_spin2_magnitude"])
+       self.sets[source]['theta1_pdf'] = np.exp(file['events'][:]['lnpdraw_spin1_polar_angle'])
+       self.sets[source]['theta2_pdf'] = np.exp(file['events'][:]['lnpdraw_spin2_polar_angle'])
+       
+       self.sets[source]['chi_eff'] = file["events"][:]["chi_eff"]
+       
+       # False alarm rate statistics from each pipeline
+       self.sets[source]['far_pbbh'] = file["events"][:]["pycbc_far"]
+       self.sets[source]['far_gstlal'] = file["events"][:]["gstlal_far"]
+       self.sets[source]['far_mbta'] = file["events"][:]["mbta_far"]
+       self.sets[source]['far_cwb'] = file["events"][:]["cwb-bbh_far"]
+       self.sets[source]['snr'] = file["events"][:]["snr_net"]
+       
+       found_pbbh = self.sets[source]['far_pbbh'] <= self.thr_far
+       found_gstlal = self.sets[source]['far_gstlal'] <= self.thr_far
+       found_mbta = self.sets[source]['far_mbta'] <= self.thr_far
+       found_cwb = self.sets[source]['far_cwb'] <= self.thr_far
+       
+       # indexes of the found injections
+       self.sets[source]['found_any'] = found_pbbh | found_gstlal | found_mbta | found_cwb
+       print('Found inj in o4 set: ', self.sets[source]['found_any'] .sum())  
+       
+       return       
         
-    def load_inj_set(self, run_dataset, source):
-        self.read_o3_set(source) if run_dataset == 'o3' else self.read_o1o2_set(run_dataset)
+    def load_inj_set(self, run_dataset, source = 'all'):
         
+        if run_dataset == 'o3':
+            self.read_o3_set() 
+        
+        elif run_dataset == 'o4':
+            self.read_o4_set()
+            source = 'all'
+        
+        else:
+            self.read_o1o2_set(run_dataset)
+        
+        self.dataset = run_dataset
         source_data = self.sets[source].copy()
         
         # Luminosity distance sampling pdf values, p(dL), computed for a flat Lambda-Cold Dark Matter cosmology from the z_pdf values
@@ -373,7 +455,27 @@ class Found_injections:
             
             self.sets[source]['pow_m1'] = -1.
             self.sets[source]['pow_m2'] = -1.
-        
+            
+        if self.dmid_fun in self.spin_functions:
+            
+            if self.dataset == 'o4':
+                self.joint_pdfs[source] = source_data['m_pdf'] * self.sets[source]['dL_pdf'] * source_data['a1_pdf'] * source_data['a2_pdf'] * source_data['theta1_pdf'] * source_data['theta2_pdf']
+            
+            else:
+                self.sets[source]['a1'] = np.sqrt(source_data['s1x']**2 + source_data['s1y']**2 + source_data['s1z']**2)
+                self.sets[source]['a2'] = np.sqrt(source_data['s2x']**2 + source_data['s2y']**2 + source_data['s2z']**2)
+                
+                self.sets[source]['a1_max'] = np.max(source_data['a1'])
+                self.sets[source]['a2_max'] = np.max(source_data['a2'])
+                
+                self.sets[source]['s1z_pdf'] = np.log(self.sets[source]['a1_max'] / np.abs(source_data['s1z'])) / (2*self.sets[source]['a1_max'])
+                self.sets[source]['s2z_pdf'] = np.log(self.sets[source]['a2_max'] / np.abs(source_data['s2z'])) / (2*self.sets[source]['a2_max'])
+                
+                self.joint_pdfs[source] = source_data['m_pdf'] * source_data['dL_pdf'] * source_data['s1z_pdf'] * source_data['s2z_pdf']
+            
+        else: 
+            self.joint_pdfs[source] = source_data['m_pdf'] * self.sets[source]['dL_pdf']
+        print('finished loading inj set')
         return
     
     def load_all_inj_sets(self, run_dataset, sources):
@@ -427,15 +529,15 @@ class Found_injections:
         -------
         None
         '''
-        assert run_fit =='o1' or run_fit == 'o2' or run_fit == 'o3', \
-          "Argument (run_fit) must be 'o1' or 'o2' or 'o3'. "
+        assert run_fit =='o1' or run_fit == 'o2' or run_fit == 'o3' or run_fit == 'o4',\
+        "Argument (run_fit) must be 'o1' or 'o2' or 'o3' or 'o4'. "
         
         if isinstance(sources, str):
            each_source = [source.strip() for source in sources.split(',')] 
            
         sources_folder = "_".join(sorted(each_source)) 
        
-        if not rescale_o3:  # Get separate independent fit files
+        if not rescale_o3 or run_fit == 'o4': # get separate independent fit files
              run_fit_touse = run_fit
         else:  # Rescale o1 and o2
             run_fit_touse = 'o3'
@@ -447,7 +549,7 @@ class Found_injections:
         except:
             raise RuntimeError('ERROR in self.get_opt_params: There are not such files because there is not a fit yet with these options.')
     
-        if rescale_o3 and run_fit != 'o3':
+        if rescale_o3 and run_fit != 'o3' and run_fit != 'o4':
             d0 = self.find_dmid_cte_found_inj(run_fit, 'o3')
             self.dmid_params[0] = d0
             
@@ -594,24 +696,28 @@ class Found_injections:
         
         if self.emax_fun is None and self.alpha_vary is None:
             gamma, delta, emax = shape_params[0], shape_params[1], shape_params[2]
-            Nexp = np.sum(self.sigmoid(dL, dmid_values, emax, gamma, delta))
+            sigmoid_args = emax, gamma, delta
             
         elif self.emax_fun is None and self.alpha_vary is not None:
             gamma, delta, emax, alpha = shape_params[0], shape_params[1], shape_params[2], shape_params[3]
-            Nexp = np.sum(self.sigmoid(dL, dmid_values, emax, gamma, delta, alpha))
+            sigmoid_args = emax, gamma, delta, alpha
         
         elif self.emax_fun is not None and self.alpha_vary is None:
             gamma, delta = shape_params[0], shape_params[1]
             emax_params = shape_params[2:]
             emax_values = self.emax(m1_det, m2_det, emax_params)
-            Nexp = np.sum(self.sigmoid(dL, dmid_values, emax_values, gamma, delta))
+            sigmoid_args = emax_values, gamma, delta
             
         else:  
             gamma, delta, alpha = shape_params[0], shape_params[1], shape_params[2]
             emax_params = shape_params[3:]
             emax_values = self.emax(m1_det, m2_det, emax_params)
-            Nexp = np.sum(self.sigmoid(dL, dmid_values, emax_values, gamma, delta, alpha))
+            sigmoid_args = emax_values, gamma, delta, alpha
         
+        self.current_pdet[source] = self.sigmoid(dL, dmid_values, *sigmoid_args)
+        Nexp = np.sum(self.current_pdet[source])
+        return Nexp
+    
         return Nexp
         
     def lamda(self, dmid_params, shape_params, source):
@@ -629,45 +735,47 @@ class Found_injections:
         """
         source_data = self.sets[source].copy()
         
-        dL = source_data['dL'][source_data['found_any']]
-        dL_pdf = source_data['dL_pdf'][source_data['found_any']]
-        m_pdf = source_data['m_pdf'][source_data['found_any']]
-        m1_det = source_data['m1_det'][source_data['found_any']]
-        m2_det = source_data['m2_det'][source_data['found_any']]
-        chieff = source_data['chi_eff'][source_data['found_any']]
-        s1z_pdf = source_data['s1z_pdf'][source_data['found_any']]
-        s2z_pdf = source_data['s2z_pdf'][source_data['found_any']]
+        found = source_data['found_any']
+        pdfs = self.joint_pdfs[source][found]
         
-        if self.dmid_fun in self.spin_functions:
-            dmid_values = self.dmid(m1_det, m2_det, chieff, dmid_params)
-            pdfs = m_pdf * dL_pdf * s1z_pdf * s2z_pdf
-        else: 
-            dmid_values = self.dmid(m1_det, m2_det, dmid_params)
-            pdfs = m_pdf * dL_pdf
+        if source in self.current_pdet:
+            pdet = self.current_pdet[source][found]
             
-        #self.apply_dmid_mtotal_max(dmid_values, mtot_det)
-        
-        if self.emax_fun is None and self.alpha_vary is None:
-            gamma, delta, emax = shape_params[0], shape_params[1], shape_params[2]
-            sigmoid_args = emax, gamma, delta
-            
-        elif self.emax_fun is None and self.alpha_vary is not None:
-            gamma, delta, emax, alpha = shape_params[0], shape_params[1], shape_params[2], shape_params[3]
-            sigmoid_args = emax, gamma, delta, alpha
-
-        elif self.emax_fun is not None and self.alpha_vary is None:
-            gamma, delta = shape_params[0], shape_params[1]
-            emax_params = shape_params[2:]
-            emax_values = self.emax(m1_det, m2_det, emax_params)
-            sigmoid_args = emax_values, gamma, delta
-
         else:
-            gamma, delta, alpha = shape_params[0], shape_params[1], shape_params[2]
-            emax_params = shape_params[3:]
-            emax_values = self.emax(m1_det, m2_det, emax_params)
-            sigmoid_args = emax_values, gamma, delta, alpha
-
-        pdet = self.sigmoid(dL, dmid_values, *sigmoid_args)
+            dL = source_data['dL'][found]
+            m1_det = source_data['m1_det'][found]
+            m2_det = source_data['m2_det'][found]
+            chieff = source_data['chi_eff'][found]
+        
+            if self.dmid_fun in self.spin_functions:
+                dmid_values = self.dmid(m1_det, m2_det, chieff, dmid_params)
+            else: 
+                dmid_values = self.dmid(m1_det, m2_det, dmid_params)
+                
+            #self.apply_dmid_mtotal_max(dmid_values, mtot_det)
+            
+            if self.emax_fun is None and self.alpha_vary is None:
+                gamma, delta, emax = shape_params[0], shape_params[1], shape_params[2]
+                sigmoid_args = emax, gamma, delta
+                
+            elif self.emax_fun is None and self.alpha_vary is not None:
+                gamma, delta, emax, alpha = shape_params[0], shape_params[1], shape_params[2], shape_params[3]
+                sigmoid_args = emax, gamma, delta, alpha
+    
+            elif self.emax_fun is not None and self.alpha_vary is None:
+                gamma, delta = shape_params[0], shape_params[1]
+                emax_params = shape_params[2:]
+                emax_values = self.emax(m1_det, m2_det, emax_params)
+                sigmoid_args = emax_values, gamma, delta
+    
+            else:
+                gamma, delta, alpha = shape_params[0], shape_params[1], shape_params[2]
+                emax_params = shape_params[3:]
+                emax_values = self.emax(m1_det, m2_det, emax_params)
+                sigmoid_args = emax_values, gamma, delta, alpha
+    
+            pdet = self.sigmoid(dL, dmid_values, *sigmoid_args)
+            
         return pdet * pdfs * source_data['Ntotal']  # lambda
     
     def logL(self, dmid_params, shape_params, source):
@@ -1163,7 +1271,7 @@ class Found_injections:
             np.savetxt(name_mid, mid_values, header = '0, 1, 2, 3, 4', fmt='%s')
         return
     
-    def sensitive_volume(self, run_fit, sources, m1, m2, chieff=0., rescale_o3=True):
+    def sensitive_volume(self, run_fit, m1, m2, chieff=0., sources='bbh', rescale_o3=True):
         '''
         Sensitive volume for a merger with given masses (m1 and m2), computed from the fit to whichever observed run we want.
         Integrated within the total range of redshift available in the injection's dataset.
@@ -1181,8 +1289,9 @@ class Found_injections:
         -------
         pdet * Vtot : float. Sensitive volume
         '''
-        self.get_opt_params(run_fit, sources, rescale_o3) 
-        self.load_inj_set(run_fit, 'bbh')
+        self.get_opt_params(run_fit, 'all', rescale_o3) if run_fit == 'o4' else self.get_opt_params(run_fit, sources, rescale_o3)
+        source_interp_dL_pdf = 'all' if run_fit == 'o4' else 'bbh'
+        self.load_inj_set(run_fit, source_interp_dL_pdf)
 
         # We compute some values of dl for some z to make later an interpolator
         if self.zinterp_VT is None:
@@ -1208,26 +1317,26 @@ class Found_injections:
         if self.emax_fun is not None:
             emax = lambda dL_int : self.emax(m1_det(dL_int), m2_det(dL_int), emax_params)
             quad_fun = lambda dL_int : self.sigmoid(dL_int, dmid(dL_int), emax(dL_int), gamma, delta, alpha) \
-                       * self.sets['bbh']['interp_dL_pdf'](dL_int)
+                       * self.sets[source_interp_dL_pdf]['interp_dL_pdf'](dL_int)
         else:
             emax = np.copy(emax_params)
             quad_fun = lambda dL_int : self.sigmoid(dL_int, dmid(dL_int), emax, gamma, delta, alpha) \
-                       * self.sets['bbh']['interp_dL_pdf'](dL_int)
+                       * self.sets[source_interp_dL_pdf]['interp_dL_pdf'](dL_int)
 
-        pdet = integrate.quad(quad_fun, 0, self.sets['bbh']['dLmax'])[0]
+        pdet = integrate.quad(quad_fun, 0, self.sets[source_interp_dL_pdf]['dLmax'])[0]
 
         if self.Vtot is None:
             # NB the factor of 1/(1+z) for time dilation in the signal rate 
             vquad = lambda z_int : 4 * np.pi * self.cosmo.differential_comoving_volume(z_int).value / (1 + z_int)
-            self.Vtot = integrate.quad(vquad, 0, self.sets['bbh']['zmax'])[0]
+            self.Vtot = integrate.quad(vquad, 0, self.sets[source_interp_dL_pdf]['zmax'])[0]
 
         return pdet * self.Vtot
     
-    def total_sensitive_volume(self, m1, m2, chieff=0., rescale_o3=True):
+    def total_sensitive_volume(self, m1, m2, chieff=0., sources='bbh', rescale_o3=True):
 
         '''
-        Total sensitive volume computed with the fractions of o1, o2 and o3 observing times and the o1, o2 rescaled fit
-        Vtot = V1 * t1_frac + V2 * t2_frac + V3 * t3_frac
+        Total sensitive volume computed with the fractions of o1, o2, o3 and o4a observing times and the o1, o2 rescaled fit
+        Vtot = V1 * t1_frac + V2 * t2_frac + V3 * t3_frac + V4 * t4_frac
 
         Parameters
         ----------
@@ -1241,9 +1350,10 @@ class Found_injections:
         -------
         Vtot : float. Total sensitive volume
         '''
+        print('Using ')
         Vtot = 0
         for run in self.runs:
-            Vi = self.sensitive_volume(run, m1, m2, chieff, rescale_o3)
+            Vi = self.sensitive_volume(run, m1, m2, chieff, sources, rescale_o3)
             Vtot += Vi * self.obs_time[run]
         
         return Vtot
