@@ -21,7 +21,7 @@ alpha_vary = None
 
 #o4 opt params
 ini_files = [[83.016, 0.00314, 0.74181, 218.2316, 0.8756, -0.5712, -0.003573, 1.3588e-06, -0.09229, 0.00121, 0.0766, -0.09137], [-1.3639, 0.378, 0.188, 0.99999, 3239.7326, 1.604237]]
-data = Found_injections(dmid_fun, emax_fun, ini_files) #initialise class
+data = Found_injections(dmid_fun, emax_fun) #initialise class
 
 #set these two variables for the results 
 run_fit = 'o4'   #the fit you want the optimal parameters from (in case you want to use o3 fit with o2 dataset, for example)

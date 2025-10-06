@@ -66,6 +66,7 @@ class Found_injections:
         self.dataset = None
         self.current_pdet = {} #slot for pdet in the optimization
         self.joint_pdfs = {} #slot for pdfs in the optimization
+        self.load_all_injections = False
         
         self.dmid_ini_values, self.shape_ini_values = ini_files if ini_files is not None else self.get_ini_values()
         self.dmid_params = self.dmid_ini_values
@@ -513,6 +514,8 @@ class Found_injections:
         self.m_pdf = np.concatenate([self.sets[source]['m_pdf'] for source in each_source])
         self.s1z_pdf = np.concatenate([self.sets[source]['s1z_pdf'] for source in each_source])
         self.s2z_pdf = np.concatenate([self.sets[source]['s2z_pdf'] for source in each_source])
+        
+        self.load_all_injections = True
         
         return
         
@@ -1000,8 +1003,10 @@ class Found_injections:
         self.make_folders(run_fit, sources_folder)
         
         self.get_opt_params(run_fit, sources)
+        if not self.load_all_injections:
+            self.load_all_inj_sets(run_dataset, sources)
         
-        emax_dic = {None: 'cmds', 'emax_exp' : 'emax_exp_cmds', 'emax_sigmoid' : 'emax_sigmoid_cmds'}
+        emax_dic = {None: 'cmds', 'emax_exp' : 'emax_exp_cmds', 'emax_sigmoid' : 'emax_sigmoid_cmds', 'emax_gaussian' : 'emax_gaussian_cmds'}
         
         dic = {'dL': self.dL,
                'z': self.z,
@@ -1027,8 +1032,6 @@ class Found_injections:
         except OSError as e:
             if e.errno != errno.EEXIST:
                 raise
-                
-        self.load_all_inj_sets(run_dataset, sources)
                 
         # Cumulative distribution over the desired variable
         indexo = np.argsort(dic[var])
@@ -1111,11 +1114,12 @@ class Found_injections:
         
         sources_folder = "_".join(sorted(each_source)) 
         
-        self.load_all_inj_sets(run_dataset, sources)
         self.get_opt_params(run_fit, sources)
         self.make_folders(run_fit, sources_folder)
+        if not self.load_all_injections:
+            self.load_all_inj_sets(run_dataset, sources)
         
-        emax_dic = {None: 'cmds', 'emax_exp' : 'emax_exp_cmds', 'emax_sigmoid' : 'emax_sigmoid_cmds'}
+        emax_dic = {None: 'cmds', 'emax_exp' : 'emax_exp_cmds', 'emax_sigmoid' : 'emax_sigmoid_cmds', 'emax_gaussian' : 'emax_gaussian_cmds'}
         path = f'{run_fit}/{sources_folder}/{self.dmid_fun}' if self.alpha_vary is None else f'{run_fit}/{sources_folder}/alpha_vary/{self.dmid_fun}'
         
         try:
