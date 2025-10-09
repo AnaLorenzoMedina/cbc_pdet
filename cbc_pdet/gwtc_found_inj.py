@@ -31,7 +31,7 @@ class Found_injections:
     considering a signal as detected when FAR <= 1.
     """
 
-    def __init__(self, dmid_fun = 'Dmid_mchirp_fdmid_fspin', emax_fun = 'emax_exp', alpha_vary = None, ini_files = None, thr_far = 1, thr_snr = 10, cosmo_parameters = None):
+    def __init__(self, dmid_fun = 'Dmid_mchirp_fdmid_fspin', emax_fun = 'emax_exp', alpha_vary = None, ini_files = None, thr_far = 1, thr_snr = 10, runs = ['o1', 'o2', 'o3', 'o4'], cosmo_parameters = None):
         '''
         Argument ini_files must be a list or a numpy array with two elements
         The first one contains the dmid initial values and the second one the shape initial values 
@@ -44,6 +44,15 @@ class Found_injections:
           "Argument (thr_far) must be a float or an integer."
         assert isinstance(thr_snr, float) or isinstance(thr_snr, int), \
           "Argument (thr_snr) must be a float or an integer."
+        if isinstance(runs, str):
+            runs = [runs]
+        assert isinstance(runs, list) or isinstance(runs, tuple),\
+          "Argument (runs) must be a list, tuple or string."
+          
+        allowed_runs = {'o1', 'o2', 'o3', 'o4'}
+        assert all(r in allowed_runs for r in runs), \
+            f"Invalid run(s) in {runs}. Allowed: {allowed_runs}"
+        self.runs = runs
         
         self.thr_far = thr_far
         self.thr_snr = thr_snr
@@ -83,8 +92,6 @@ class Found_injections:
             
         else:
             self.path = path
-        
-        self.runs = ['o1', 'o2', 'o3', 'o4']
         
         # Coincident analysis (two or three detectors operating) observing time of O3
         self.coincident_time_o3 = 0.75435365296528  # years
@@ -1354,7 +1361,6 @@ class Found_injections:
         -------
         Vtot : float. Total sensitive volume
         '''
-        print('Using ')
         Vtot = 0
         for run in self.runs:
             Vi = self.sensitive_volume(run, m1, m2, chieff, sources, rescale_o3)
@@ -1507,7 +1513,7 @@ class Found_injections:
 
         return pdet_i
     
-    def total_pdet(self, dL, m1_det, m2_det, chieff = 0., sources='bbh', rescale_o3 = True):
+    def total_pdet(self, dL, m1_det, m2_det, chieff = 0., sources='bbh', o4_run=False,rescale_o3 = True):
         '''
         total prob of detection, a combination of the prob of detection with o1, o2 and o3 proportions
 
