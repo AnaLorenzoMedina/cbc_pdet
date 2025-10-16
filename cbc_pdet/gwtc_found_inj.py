@@ -31,7 +31,7 @@ class Found_injections:
     considering a signal as detected when FAR <= 1.
     """
 
-    def __init__(self, dmid_fun = 'Dmid_mchirp_fdmid_fspin', emax_fun = 'emax_exp', alpha_vary = None, ini_files = None, thr_far = 1, thr_snr = 10, runs = ['o1', 'o2', 'o3', 'o4'], cosmo_parameters = None):
+    def __init__(self, dmid_fun = 'Dmid_mchirp_mixture_logspin_corr', emax_fun = 'emax_gaussian', alpha_vary = None, ini_files = None, thr_far = 1, thr_snr = 10, runs = ['o1', 'o2', 'o3', 'o4'], cosmo_parameters = None):
         '''
         Argument ini_files must be a list or a numpy array with two elements
         The first one contains the dmid initial values and the second one the shape initial values 
@@ -97,9 +97,10 @@ class Found_injections:
         self.coincident_time_o3 = 0.75435365296528  # years
         
         # Total observing time of each run (O3 is different from above because O3 looked at single detector time too)
-        self.obs_time = {'o1' : 0.1331507, 'o2' : 0.323288, 'o3' : 0.91101, 'o4' : 0.75564681724846}  # years
+        all_obs_time = {'o1' : 0.1331507, 'o2' : 0.323288, 'o3' : 0.91101, 'o4' : 0.75564681724846}  # years
+        self.obs_time = {i: all_obs_time[i] for i in self.runs}
         self.total_obs_time = np.sum(list(self.obs_time.values()))
-        self.prop_obs_time = np.array([self.obs_time[i]/self.total_obs_time for i in self.runs])
+        self.prop_obs_time = {i: self.obs_time[i]/self.total_obs_time for i in self.runs}
         
         self.obs_nevents = {'o1': 3, 'o2': 7, 'o3': 59, 'o4': 87}
 
@@ -1513,7 +1514,7 @@ class Found_injections:
 
         return pdet_i
     
-    def total_pdet(self, dL, m1_det, m2_det, chieff = 0., sources='bbh', o4_run=False,rescale_o3 = True):
+    def total_pdet(self, dL, m1_det, m2_det, chieff = 0., sources='bbh', rescale_o3 = True):
         '''
         total prob of detection, a combination of the prob of detection with o1, o2 and o3 proportions
 
@@ -1522,7 +1523,6 @@ class Found_injections:
         dL : float. luminosity distance [Mpc]
         m1_det : float. Mass 1 in the detector's frame masses
         m2_det : float. Mass 2 in the detector's frame masses
-        run : str. observing run from which we want the fit. Must be 'o1', 'o2' or 'o3'
         rescale_o3 : True or False, optional. The default is True. If True, we iuse the rescaled fit for o1 and o2. If False, the direct fit.
 
         Returns

@@ -15,8 +15,8 @@ from .gwtc_found_inj import Found_injections
 class PdetEstimation():
     def __init__(self, method_dict=None, cosmo_parameters=None):
         
-        if method_dict is None:  # Current defaults use a fit on O3 injections
-            method_dict = {'observing_run': 'o3', 'sources': 'bbh', 'dmid_fun': 'Dmid_mchirp_fdmid_fspin', 'emax_fun': 'emax_exp'}        
+        if method_dict is None:  # Current defaults use a fit on O4a injections
+            method_dict = {'observing_run': 'o4', 'sources': 'all', 'dmid_fun': 'Dmid_mchirp_mixture_logspin_corr', 'emax_fun': 'emax_gaussian'}        
         self.run = method_dict.pop('observing_run')
         self.sources = method_dict.pop('sources')
 
@@ -194,11 +194,13 @@ class PdetEstimation():
                 dC_Mpc = p_dict['comoving_distance'] * u.Mpc
                 p_dict['redshift'] = z_at_value(self.fit.cosmo.luminosity_distance, dC_Mpc).value
             
+            print('Converting redshift to luminosity distance, since d_lum was not provided')
             p_dict['d_lum'] = self.fit.cosmo.luminosity_distance(p_dict['redshift']).value
 
         if 'mass1_det' not in p_dict and 'mass2_det' not in p_dict:
             if 'redshift' not in p_dict:
                 # Convert luminosity distance to Mpc astropy units
+                print('Converting luminosity distance to redshift, since redshift was not provided')
                 dL_Mpc = p_dict['d_lum'] * u.Mpc
                 p_dict['redshift'] = z_at_value(self.fit.cosmo.luminosity_distance, dL_Mpc).value
 
