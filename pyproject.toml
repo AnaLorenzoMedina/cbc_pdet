@@ -12,7 +12,7 @@ packages = ['cbc_pdet']
 
 [project]
 name = "cbc_pdet"
-version = "1.0.0"
+version = "1.1.0"
 authors = [
   { name="Ana Lorenzo-Medina", email="analorenzo.medina@usc.es" },
   {name = "Thomas Dent", email = "thomas.dent@usc.es"},
