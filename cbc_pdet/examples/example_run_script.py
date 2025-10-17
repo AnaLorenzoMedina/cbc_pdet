@@ -13,14 +13,12 @@ from cbc_pdet.gwtc_found_inj import Found_injections
 #set the ini variables, dmid_fun is the function you are using for dmid, 
 #emax_fun is the function for emax (max search efficiency)
 
-dmid_fun = 'Dmid_mchirp_mixture_logspin_corr' #the final one including spins effect
+#functions for O4a and O3 all sources
+dmid_fun = 'Dmid_mchirp_mixture_logspin_corr'
 emax_fun = 'emax_gaussian'
-#dmid_fun = 'Dmid_mchirp_fdmid_fspin' #the final one including spins effect
-#emax_fun = 'emax_exp'
 alpha_vary = None
 
 #o4 opt params
-ini_files = [[83.016, 0.00314, 0.74181, 218.2316, 0.8756, -0.5712, -0.003573, 1.3588e-06, -0.09229, 0.00121, 0.0766, -0.09137], [-1.3639, 0.378, 0.188, 0.99999, 3239.7326, 1.604237]]
 data = Found_injections(dmid_fun, emax_fun) #initialise class
 
 #set these two variables for the results 
@@ -32,16 +30,15 @@ sources = 'all'
 data.make_folders(run_fit, sources)
 
 #%%
+#load all injection sets separately
 if isinstance(sources, str):
     each_source = [source.strip() for source in sources.split(',')] 
 
-#load all injection sets separately
 [data.load_inj_set(run_dataset, source) for source in each_source]
 
 #load the injection sets together
 data.load_all_inj_sets(run_dataset, sources)
 #%%
-
 #run the fit 
 data.joint_MLE(run_dataset, sources)
 #%%
