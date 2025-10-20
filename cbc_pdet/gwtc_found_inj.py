@@ -135,6 +135,7 @@ class Found_injections:
                                   }
 
         self.sets = {}
+        self.d0 = None #slot fot d0 cte in case it's used later
         
     def make_folders(self, run, sources):
 
@@ -363,7 +364,7 @@ class Found_injections:
     def load_inj_set(self, run_dataset, source = 'all'):
         
         if run_dataset == 'o3':
-            self.read_o3_set() 
+            self.read_o3_set(source) 
         
         elif run_dataset == 'o4':
             self.read_o4_set()
@@ -371,6 +372,7 @@ class Found_injections:
         
         else:
             self.read_o1o2_set(run_dataset)
+            source = 'bbh'
         
         self.dataset = run_dataset
         source_data = self.sets[source].copy()
@@ -402,6 +404,7 @@ class Found_injections:
         
         a1_max = np.max(self.sets[source]['a1'])
         a2_max = np.max(self.sets[source]['a2'])
+        
         self.sets[source]['a1_max'] = a1_max
         self.sets[source]['a2_max'] = a2_max
         
@@ -471,16 +474,16 @@ class Found_injections:
                 self.joint_pdfs[source] = source_data['m_pdf'] * self.sets[source]['dL_pdf'] * source_data['a1_pdf'] * source_data['a2_pdf'] * source_data['theta1_pdf'] * source_data['theta2_pdf']
             
             else:
-                self.sets[source]['a1'] = np.sqrt(source_data['s1x']**2 + source_data['s1y']**2 + source_data['s1z']**2)
-                self.sets[source]['a2'] = np.sqrt(source_data['s2x']**2 + source_data['s2y']**2 + source_data['s2z']**2)
+                # self.sets[source]['a1'] = np.sqrt(source_data['s1x']**2 + source_data['s1y']**2 + source_data['s1z']**2)
+                # self.sets[source]['a2'] = np.sqrt(source_data['s2x']**2 + source_data['s2y']**2 + source_data['s2z']**2)
                 
-                self.sets[source]['a1_max'] = np.max(source_data['a1'])
-                self.sets[source]['a2_max'] = np.max(source_data['a2'])
+                # self.sets[source]['a1_max'] = np.max(self.sets[source]['a1'])
+                # self.sets[source]['a2_max'] = np.max(self.sets[source]['a2'])
                 
-                self.sets[source]['s1z_pdf'] = np.log(self.sets[source]['a1_max'] / np.abs(source_data['s1z'])) / (2*self.sets[source]['a1_max'])
-                self.sets[source]['s2z_pdf'] = np.log(self.sets[source]['a2_max'] / np.abs(source_data['s2z'])) / (2*self.sets[source]['a2_max'])
+                # self.sets[source]['s1z_pdf'] = np.log(self.sets[source]['a1_max'] / np.abs(source_data['s1z'])) / (2*self.sets[source]['a1_max'])
+                # self.sets[source]['s2z_pdf'] = np.log(self.sets[source]['a2_max'] / np.abs(source_data['s2z'])) / (2*self.sets[source]['a2_max'])
                 
-                self.joint_pdfs[source] = source_data['m_pdf'] * source_data['dL_pdf'] * source_data['s1z_pdf'] * source_data['s2z_pdf']
+                self.joint_pdfs[source] = source_data['m_pdf'] * self.sets[source]['dL_pdf'] * self.sets[source]['s1z_pdf'] * self.sets[source]['s2z_pdf']
             
         else: 
             self.joint_pdfs[source] = source_data['m_pdf'] * self.sets[source]['dL_pdf']
@@ -561,7 +564,10 @@ class Found_injections:
             raise RuntimeError('ERROR in self.get_opt_params: There are not such files because there is not a fit yet with these options.')
     
         if rescale_o3 and run_fit != 'o3' and run_fit != 'o4':
-            d0 = self.find_dmid_cte_found_inj(run_fit, 'o3')
+            if not self.d0:
+                d0 = self.find_dmid_cte_found_inj(run_fit, 'o3')
+            else:
+                d0 = self.d0[run_fit]
             self.dmid_params[0] = d0
             
         return
@@ -1385,6 +1391,14 @@ class Found_injections:
         assert run_dataset =='o1' or run_dataset == 'o2', "Argument (run_dataset) must be 'o1' or 'o2'."
 
         try:
+            d_dict = np.load(f'{os.path.dirname(__file__)}/d0.npy', allow_pickle='TRUE').item()
+            d0 = {'o1' : d_dict[self.dmid_fun]['o1'], 'o2' : d_dict[self.dmid_fun]['o2']}
+            self.d0 = d0
+            #print(f'Using the d0.dat file that already exists, from the {self.dmid_fun} fit.')
+            #print(f'D0 scaled for {run_dataset} from o3: {d0[run_dataset]}')
+            return d0[run_dataset]
+        
+        except:
             self.load_all_inj_sets(run_dataset, 'bbh')
             Nfound = self.found_any.sum()
     
@@ -1398,14 +1412,14 @@ class Found_injections:
             else: 
                 dmid_values = self.dmid(self.m1_det, self.m2_det, dmid_params)
             #self.apply_dmid_mtotal_max(dmid_values, mtot_det)
-
+    
             emax_params, gamma, delta, alpha = self.get_shape_params()
-
+    
             if self.emax_fun is not None:
                 emax = self.emax(self.m1_det, self.m2_det, emax_params)  
             else:
                 emax = np.copy(emax_params)
-
+    
             def find_root(x):
                 new_dmid_values = x * dmid_values
                 #self.apply_dmid_mtotal_max(new_dmid_values, mtot_det)
@@ -1415,16 +1429,14 @@ class Found_injections:
                         np.exp(gamma* (frac - 1.) + delta * (frac**2 - 1.))
       
                 return  np.nansum(emax / denom)  -  Nfound
-
+    
             d0 = fsolve(find_root, [50])  # rescaled Dmid cte (it has units of Dmid !!)
             self.load_all_inj_sets('o3', 'bbh')
-            print('Current injection file loaded is o3, to be taken into account.')
+            #print(f'D0 scaled for {run_dataset} from o3: {d0}')
+            #print('Current injection file loaded is o3, to be taken into account.')
             return d0
+           
 
-        except:
-            d0 = {'o1' : np.loadtxt(f'{os.path.dirname(__file__)}/d0.dat')[0], 'o2' : np.loadtxt(f'{os.path.dirname(__file__)}/d0.dat')[1]}
-            print('Something went wrong computing the cte, using the d0.dat file that already exists instead.')
-            return d0[run_dataset]
 
     def predicted_events(self, run_fit = 'o3', run_dataset='o3'):
         '''
@@ -1514,7 +1526,7 @@ class Found_injections:
 
         return pdet_i
     
-    def total_pdet(self, dL, m1_det, m2_det, chieff = 0., sources='bbh', rescale_o3 = True):
+    def total_pdet(self, dL, m1_det, m2_det, chieff = 0., o3_sources='bbh', rescale_o3 = True):
         '''
         total prob of detection, a combination of the prob of detection with o1, o2 and o3 proportions
 
@@ -1530,10 +1542,11 @@ class Found_injections:
         pdet : total prob of detection
         '''        
         pdet = np.zeros(len(np.atleast_1d(dL)))
-
-        for run, prop in zip(self.runs, self.prop_obs_time):
-            pdet_i = self.run_pdet(dL, m1_det, m2_det, chieff, run, sources, rescale_o3) 
-            pdet += pdet_i * prop
+        
+        sources = {'o1':'bbh', 'o2':'bbh', 'o3': o3_sources, 'o4':'all'}
+        for run in self.runs:
+            pdet_i = self.run_pdet(dL, m1_det, m2_det, chieff, run, sources[run], rescale_o3) 
+            pdet += pdet_i * self.prop_obs_time[run]
 
         return pdet
 

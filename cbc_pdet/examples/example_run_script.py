@@ -9,6 +9,7 @@ Created on Fri Oct 25 12:42:57 2024
 #example script on how to initialise the class 
 import cbc_pdet 
 from cbc_pdet.gwtc_found_inj import Found_injections
+import numpy as np
 
 #set the ini variables, dmid_fun is the function you are using for dmid, 
 #emax_fun is the function for emax (max search efficiency)
@@ -47,10 +48,10 @@ data.get_opt_params(run_fit, sources)
 
 #compute pdet for some luminosity distance, masses and spins values (effective spin)
 
-dL = 100 #Mpc
-m1_det = 60 #solar masses in the detector's frame
-m2_det = 45 #solar masses in the detector's frame
-chieff = 0.75
+dL = np.array([100, 1000]) #Mpc
+m1_det = np.array([60, 20]) #solar masses in the detector's frame
+m2_det = np.array([45, 10]) #solar masses in the detector's frame
+chieff = np.array([0.75, 0.1])
 
 
 #dmid values
@@ -74,4 +75,6 @@ pdet2 = data.run_pdet(dL, m1_det, m2_det, chieff, run_fit, sources)
 #you can check both methods return the same value :)
 print(pdet1, pdet2)
 
+pdet_total = data.total_pdet(dL, m1_det, m2_det, chieff)
+print('total pdet:', pdet_total)
 
