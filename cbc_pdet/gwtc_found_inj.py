@@ -530,8 +530,8 @@ class Found_injections:
         
         return
         
-    
-    def get_opt_params(self, run_fit, sources, rescale_o3 = True):
+
+    def get_opt_params(self, run_fit, sources, rescale_o3=True):
         '''
         Sets self.dmid_params and self.shape_params as a class attribute (optimal values from some previous fit).
 
@@ -541,23 +541,24 @@ class Found_injections:
         sources : str or list with the types of sources you want. Must be 'bbh' for o1 and o2, \
                  'nsbh' 'bns' 'imbh' or 'bbh' for o3 (or a combination of them) and 'all' for o4
 
+        sources : str or ?
+
         Returns
         -------
         None
         '''
         assert run_fit =='o1' or run_fit == 'o2' or run_fit == 'o3' or run_fit == 'o4',\
-        "Argument (run_fit) must be 'o1' or 'o2' or 'o3' or 'o4'. "
-        
+        "Argument (run_fit) must be 'o1' or 'o2' or 'o3' or 'o4'."
+
         if isinstance(sources, str):
-           each_source = [source.strip() for source in sources.split(',')] 
-           
+           each_source = [source.strip() for source in sources.split(',')]
         else:
-            each_source = sources
-           
-        sources_folder = "_".join(sorted(each_source)) 
-       
+           each_source = sources  # List of strings
+
+        sources_folder = "_".join(sorted(each_source))
+
         if not rescale_o3 or run_fit == 'o4': # get separate independent fit files
-             run_fit_touse = run_fit
+            run_fit_touse = run_fit
         else:  # Rescale o1 and o2
             run_fit_touse = 'o3'
 
@@ -567,16 +568,16 @@ class Found_injections:
             self.shape_params = np.loadtxt(path + '/joint_fit_shape.dat')[-1, :-1]
         except:
             raise RuntimeError('ERROR in self.get_opt_params: There are not such files because there is not a fit yet with these options.')
-    
+
         if rescale_o3 and run_fit != 'o3' and run_fit != 'o4':
             if not self.d0:
                 d0 = self.find_dmid_cte_found_inj(run_fit, 'o3')
             else:
                 d0 = self.d0[run_fit]
             self.dmid_params[0] = d0
-            
+
         return
-    
+
     def get_ini_values(self):
         '''
         Gets the dmid and shape initial params for a new optimization
@@ -1329,7 +1330,7 @@ class Found_injections:
         -------
         pdet * Vtot : float. Sensitive volume
         '''
-        self.get_opt_params(run_fit, rescale_o3)
+        self.get_opt_params(run_fit, 'all', rescale_o3) if run_fit == 'o4' else self.get_opt_params(run_fit, sources, rescale_o3)
 
         if hasattr(self, 'interp_z'):  # z-dL interpolator derived from injection set
             m1_det = lambda dL_int : m1 * (1 + self.interp_z(dL_int))
