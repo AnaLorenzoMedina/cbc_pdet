@@ -1320,7 +1320,8 @@ class Found_injections:
         m2 : float. Mass 2 (source)
         chieff : float. Effective spin. The default is 0, If you use a fit that includes a dependence on chieff in the dmid function
                 (it has to be on the list of spin functions), it will use chieff. if not, it won't be used for anything.
-        zmax : maximum redshift for cosmological calculation, if an injection set is not loaded: 3.1 is just larger than any O4 injection
+        zmax : float. Maximum redshift for cosmological calculation, if an injection set is not loaded:
+               3.1 is just larger than any O4 injection
         sources : str or list with the types of sources you want. Must be 'bbh' for o1 and o2, \
                  'nsbh' 'bns' 'imbh' or 'bbh' for o3 (or a combination of them) and 'all' for o4
         rescale_o3 : True or False, optional. The default is True. If True, we use the rescaled fit for o1 and o2. If False, the direct fit.
@@ -1378,31 +1379,31 @@ class Found_injections:
 
         return pdet * self.Vtot
 
-    def total_sensitive_volume(self, m1, m2, chieff=0., sources='bbh', rescale_o3=True):
-
+    def total_sensitive_vt(self, m1, m2, chieff=0., zmax=3.1, sources='bbh', rescale_o3=True):
         '''
-        Total sensitive volume computed with the fractions of o1, o2, o3 and o4a observing times and the o1, o2 rescaled fit
-        Vtot = V1 * t1_frac + V2 * t2_frac + V3 * t3_frac + V4 * t4_frac
+        Total sensitive VT computed with the o1, o2, o3 and o4a observing times (as specified by self.runs) and the o1, o2 rescaled fit
+        Vtot = V1 * t1 + V2 * t2 + V3 * t3 + V4 * t4
 
         Parameters
         ----------
-        m1 : float. Mass 1 
+        m1 : float. Mass 1
         m2 : float. Mass 2
         chieff : float. Effective spin. The default is 0, If you use a fit that includes a dependence on chieff in the dmid function 
                 (it has to be on the list of spin functions), it will use chieff. if not, it won't be used for anything.
+        zmax : float. Maximum redshift for cosmological calculations
         sources : str or list with the types of sources you want. Must be 'bbh' for o1 and o2, \
                  'nsbh' 'bns' 'imbh' or 'bbh' for o3 (or a combination of them) and 'all' for o4
         rescale_o3 : True or False, optional. The default is True. If True, we use the rescaled fit for o1 and o2. If False, the direct fit.
 
         Returns
         -------
-        Vtot : float. Total sensitive volume
+        Vtot : float. Total sensitive volume - time
         '''
         Vtot = 0
         for run in self.runs:
             Vi = self.sensitive_volume(run, m1, m2, chieff, sources, rescale_o3)
             Vtot += Vi * self.obs_time[run]
-        
+
         return Vtot
     
     def find_dmid_cte_found_inj(self, run_dataset, run_fit='o3'):
