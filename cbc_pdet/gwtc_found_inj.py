@@ -540,17 +540,15 @@ class Found_injections:
         Parameters
         ----------
         run_fit : str. Observing run from which we want to use the fit. Must be 'o1', 'o2', 'o3' or 'o4'.
-        sources : str or list with the types of sources you want. Must be 'bbh' for o1 and o2, \
+        sources : str or list of str with the types of sources you want. Must be 'bbh' for o1 and o2,
                  'nsbh' 'bns' 'imbh' or 'bbh' for o3 (or a combination of them) and 'all' for o4
-
-        sources : str or ?
 
         Returns
         -------
         None
         '''
-        assert run_fit =='o1' or run_fit == 'o2' or run_fit == 'o3' or run_fit == 'o4',\
-        "Argument (run_fit) must be 'o1' or 'o2' or 'o3' or 'o4'."
+        assert run_fit in ['o1', 'o2', 'o3', 'o4'], \
+            "Argument run_fit must be 'o1' or 'o2' or 'o3' or 'o4'."
 
         if isinstance(sources, str):
            each_source = [source.strip() for source in sources.split(',')]
@@ -558,8 +556,8 @@ class Found_injections:
            each_source = sources  # List of strings
 
         sources_folder = "_".join(sorted(each_source))
-
-        if not rescale_o3 or run_fit == 'o4': # get separate independent fit files
+       
+        if not rescale_o3 or run_fit == 'o4':  # get separate independent fit files
             run_fit_touse = run_fit
         else:  # Rescale o1 and o2
             run_fit_touse = 'o3'
