@@ -1308,7 +1308,7 @@ class Found_injections:
             np.savetxt(name_mid, mid_values, header = '0, 1, 2, 3, 4', fmt='%s')
         return
 
-    def sensitive_volume(self, run_fit, m1, m2, chieff=0., zmax=1.9, sources='bbh', rescale_o3=True):
+    def sensitive_volume(self, run_fit, m1, m2, chieff=0., zmax=3.1, sources='bbh', rescale_o3=True):
         '''
         Sensitive volume for a merger with given masses (m1 and m2), computed from the fit to whichever observed run we want.
         Integrated within the total range of redshift available in the injection's dataset.
@@ -1320,6 +1320,7 @@ class Found_injections:
         m2 : float. Mass 2 (source)
         chieff : float. Effective spin. The default is 0, If you use a fit that includes a dependence on chieff in the dmid function
                 (it has to be on the list of spin functions), it will use chieff. if not, it won't be used for anything.
+        zmax : maximum redshift for cosmological calculation, if an injection set is not loaded: 3.1 is just larger than any O4 injection
         sources : str or list with the types of sources you want. Must be 'bbh' for o1 and o2, \
                  'nsbh' 'bns' 'imbh' or 'bbh' for o3 (or a combination of them) and 'all' for o4
         rescale_o3 : True or False, optional. The default is True. If True, we use the rescaled fit for o1 and o2. If False, the direct fit.
@@ -1329,11 +1330,12 @@ class Found_injections:
         pdet * Vtot : float. Sensitive volume
         '''
         self.get_opt_params(run_fit, 'all', rescale_o3) if run_fit == 'o4' else self.get_opt_params(run_fit, sources, rescale_o3)
+        # Reference inj set for interpolating cosmology quantities
         source_interp_dL_pdf = 'all' if run_fit == 'o4' else 'bbh'
 
-        if hasattr(self, 'interp_z'):  # z-dL interpolator derived from injection set
-            m1_det = lambda dL_int : m1 * (1 + self.interp_z(dL_int))
-            m2_det = lambda dL_int : m2 * (1 + self.interp_z(dL_int))
+        if 'interp_z' in self.sets[source_interp_dL_pdf]:  # Interpolator derived from injection set
+            m1_det = lambda dL_int : m1 * (1 + self.sets[source_interp_dL_pdf]['interp_z'](dL_int))
+            m2_det = lambda dL_int : m2 * (1 + self.sets[source_interp_dL_pdf]['interp_z'](dL_int))
 
         else:  # We compute some values of dl for some z to make an interpolator
             if self.zinterp_VT is None:
@@ -1343,7 +1345,6 @@ class Found_injections:
                 z = np.linspace(0.002, zmax, 100)
                 z0 = np.insert(z, 0, 0, axis=0)
                 dL = np.array([(const.c.value*1e-3 / self.cosmo.H0.value) * (1 + i) * integrate.quad(quad_fun_A, 0, i)[0] for i in z0])
-
                 self.zinterp_VT = interpolate.interp1d(dL, z0)
 
             if self.sets[sources]['dLmax'] is None:
@@ -1368,12 +1369,12 @@ class Found_injections:
             quad_fun = lambda dL_int : self.sigmoid(dL_int, dmid(dL_int), emax, gamma, delta, alpha) \
                        * self.sets[source_interp_dL_pdf]['interp_dL_pdf'](dL_int)
 
-        pdet = integrate.quad(quad_fun, 0, self.sets[sources]['dLmax'])[0]
+        pdet = integrate.quad(quad_fun, 0, self.sets[source_interp_dL_pdf]['dLmax'])[0]
 
         if self.Vtot is None:
             # NB the factor of 1/(1+z) for time dilation in the signal rate
             vquad = lambda z_int : 4 * np.pi * self.cosmo.differential_comoving_volume(z_int).value / (1 + z_int)
-            self.Vtot = integrate.quad(vquad, 0, self.zmax)[0]
+            self.Vtot = integrate.quad(vquad, 0, self.sets[source_interp_dL_pdf]['zmax'])[0]
 
         return pdet * self.Vtot
 
