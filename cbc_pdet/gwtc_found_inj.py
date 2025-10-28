@@ -68,7 +68,7 @@ class Found_injections:
             
         cosmology_class = getattr(astropy.cosmology, cosmo_parameters.pop('name'))
         self.cosmo = cosmology_class(**cosmo_parameters)
-
+     
         self.Vtot = None  # Slot for total comoving volume up to max z
         self.zinterp_VT = None # Slot for interpolator of z given dL for comoving volume
         
@@ -376,9 +376,9 @@ class Found_injections:
         
         self.dataset = run_dataset
         source_data = self.sets[source].copy()
-        
+
         # Luminosity distance sampling pdf values, p(dL), computed for a flat Lambda-Cold Dark Matter cosmology from the z_pdf values
-        self.sets[source]['dL_pdf'] = source_data['z_pdf']/ fits.dL_derivative(source_data['z'], source_data['dL'], self.cosmo)
+        self.sets[source]['dL_pdf'] = source_data['z_pdf'] / fits.dL_derivative(source_data['z'], source_data['dL'], self.cosmo)
         
         # Total mass (m1+m2)
         Mtot_source = source_data['m1'] + source_data['m2']
@@ -488,6 +488,8 @@ class Found_injections:
         else: 
             self.joint_pdfs[source] = source_data['m_pdf'] * self.sets[source]['dL_pdf']
         print('finished loading inj set')
+        del source_data  # Free up memory
+
         return
     
     def load_all_inj_sets(self, run_dataset, sources):
@@ -741,10 +743,9 @@ class Found_injections:
         
         self.current_pdet[source] = self.sigmoid(dL, dmid_values, *sigmoid_args)
         Nexp = np.sum(self.current_pdet[source])
+
         return Nexp
-    
-        return Nexp
-        
+
     def lamda(self, dmid_params, shape_params, source):
         """
         Number density at found injections, aka lambda(D, m1, m2)
@@ -1309,11 +1310,10 @@ class Found_injections:
             np.savetxt(name_mid, mid_values, header = '0, 1, 2, 3, 4', fmt='%s')
         return
 
-    def sensitive_volume(self, run_fit, m1, m2, chieff=0., zmax=1.9, rescale_o3=True):
+    def sensitive_volume(self, run_fit, m1, m2, chieff=0., zmax=1.9, sources='bbh', rescale_o3=True):
         '''
         Sensitive volume for a merger with given masses (m1 and m2), computed from the fit to whichever observed run we want.
         Integrated within the total range of redshift available in the injection's dataset.
-        In order to use this method on its own, you need to have a injection set loaded.
 
         Parameters
         ----------
@@ -1331,12 +1331,13 @@ class Found_injections:
         pdet * Vtot : float. Sensitive volume
         '''
         self.get_opt_params(run_fit, 'all', rescale_o3) if run_fit == 'o4' else self.get_opt_params(run_fit, sources, rescale_o3)
+        source_interp_dL_pdf = 'all' if run_fit == 'o4' else 'bbh'
 
         if hasattr(self, 'interp_z'):  # z-dL interpolator derived from injection set
             m1_det = lambda dL_int : m1 * (1 + self.interp_z(dL_int))
             m2_det = lambda dL_int : m2 * (1 + self.interp_z(dL_int))
 
-        else: # We compute some values of dl for some z to make an interpolator
+        else:  # We compute some values of dl for some z to make an interpolator
             if self.zinterp_VT is None:
                 fun_A = lambda t : np.sqrt(self.cosmo.Om0 * (1 + t)**3 + 1 - self.cosmo.Om0)
                 quad_fun_A = lambda t: 1/fun_A(t)
@@ -1346,8 +1347,9 @@ class Found_injections:
                 dL = np.array([(const.c.value*1e-3 / self.cosmo.H0.value) * (1 + i) * integrate.quad(quad_fun_A, 0, i)[0] for i in z0])
 
                 self.zinterp_VT = interpolate.interp1d(dL, z0)
-            if self.dLmax is None:
-                self.dLmax = dL.max()
+
+            if self.sets[sources]['dLmax'] is None:
+                self.sets[sources]['dLmax'] = dL.max()
 
             m1_det = lambda dL_int : m1 * (1 + self.zinterp_VT(dL_int))
             m2_det = lambda dL_int : m2 * (1 + self.zinterp_VT(dL_int))
@@ -1362,13 +1364,13 @@ class Found_injections:
         if self.emax_fun is not None:
             emax = lambda dL_int : self.emax(m1_det(dL_int), m2_det(dL_int), emax_params)
             quad_fun = lambda dL_int : self.sigmoid(dL_int, dmid(dL_int), emax(dL_int), gamma, delta, alpha) \
-                       * self.interp_dL_pdf(dL_int)
+                       * self.sets[source_interp_dL_pdf]['interp_dL_pdf'](dL_int)
         else:
             emax = np.copy(emax_params)
             quad_fun = lambda dL_int : self.sigmoid(dL_int, dmid(dL_int), emax, gamma, delta, alpha) \
-                       * self.interp_dL_pdf(dL_int)
+                       * self.sets[source_interp_dL_pdf]['interp_dL_pdf'](dL_int)
 
-        pdet = integrate.quad(quad_fun, 0, self.dLmax)[0]
+        pdet = integrate.quad(quad_fun, 0, self.sets[sources]['dLmax'])[0]
 
         if self.Vtot is None:
             # NB the factor of 1/(1+z) for time dilation in the signal rate
