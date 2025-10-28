@@ -28,9 +28,9 @@ from cbc_pdet.gwtc_found_inj import Found_injections
 
 plt.close('all')
 
-run_fit = 'o3'
-run_dataset = 'o3'
-sources = 'bbh, bns, nsbh'
+run_fit = 'o4'
+run_dataset = 'o4'
+sources = 'all'
 
 
 #dmid_fun = 'Dmid_mchirp_fdmid'
@@ -39,6 +39,8 @@ emax_fun = 'emax_gaussian'
 alpha_vary = None
 
 data = Found_injections(dmid_fun, emax_fun, alpha_vary)
+
+#%%
 
 if isinstance(sources, str):
     each_source = [source.strip() for source in sources.split(',')] 
@@ -747,6 +749,8 @@ c_01 = dmid_params[:,8]
 c_11 = dmid_params[:,9] 
 d_11 = dmid_params[:,10] 
 L = dmid_params[:,11] 
+
+#%%
 
 
 eta = np.linspace(min(data.eta), max(data.eta), 500)

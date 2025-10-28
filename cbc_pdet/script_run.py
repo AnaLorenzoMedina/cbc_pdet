@@ -536,7 +536,7 @@ plt.savefig(name, format='pdf', dpi=150, bbox_inches="tight")
 
 #%%
 
-data.bootstrap_resampling(100, 'o3', 'o3')
+data.bootstrap_resampling(100, 'o4', sources)
 
 #%%
 import matplotlib as mpl
