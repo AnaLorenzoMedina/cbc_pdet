@@ -24,16 +24,16 @@ os.chdir(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 sys.path.append('../')
 
 # Import the class from the module
-from o123_class_found_inj_general import Found_injections
+from cbc_pdet.gwtc_found_inj import Found_injections
 
 
 
 
 plt.close('all')
 
-run_fit = 'o3'
-run_dataset = 'o3'
-sources = 'bbh, bns, nsbh'
+run_fit = 'o4'
+run_dataset = 'o4'
+sources = 'all'
 #sources = 'imbh'
 #sources = 'bbh'
 
@@ -84,9 +84,10 @@ ini_files_imbh = [[8.71047422e+01, -7.24775437e-06, -3.94322637e-01,  4.73292056
                    3.62306966e-04, -1.15754512e-02,  2.04977352e-01,  1.90820585e-03 ], 
                   [-8.18965437e-01,  2.77526065e-01, -4.51593709e+00,  1, 2e-02]]
 
+ini_files_spin_log = [[99.70, 0.00237, 0.696, 202.94, 1.052,-0.567, -0.00348, 8.332e-07, -0.1235, 0.00108, 0.086, 0 ], [-1.378, 0.3825, 0.2025, 0.999, 2491.30475, 1.412 ]]
 
 #ini_files = ini_files_4_sources
-data = Found_injections(dmid_fun, emax_fun, alpha_vary, ini_files = ini_files_4_sources)
+data = Found_injections(dmid_fun, emax_fun, alpha_vary, ini_files_spin_log)
 
 if isinstance(sources, str):
     each_source = [source.strip() for source in sources.split(',')] 
@@ -97,14 +98,14 @@ path = f'{run_dataset}/{sources_folder}/' + data.path
 
 data.make_folders(run_fit, sources)
 
-#data.load_inj_set(run_dataset, source)
+[data.load_inj_set(run_dataset, source) for source in each_source]
 #data.get_opt_params(run_fit)
 #81.7746046336622 -8.091776490302833e-06 -0.4444955581608646 9.016393698238174e-06 0.0009175736469746053 -0.003975600149591415 0.16487147248641948 0.0020706799396616876 -2.994036429373754e-07 -340801.1469014259
 #-0.9695926056697535 0.3238884595756078 -5.8534140256510625 0.023685941008609972 -2.7957506633390077e-05 -340802.9348490275ye
 
 #%% 
 
-data.joint_MLE(run_dataset, run_fit, sources)
+data.joint_MLE(run_dataset, sources)
 
 #%%
 [data.load_inj_set(run_dataset, source) for source in each_source]
@@ -139,6 +140,7 @@ mtot_det = data.Mtot_det
 dmid_values = data.dmid(m1_det, m2_det, data.dmid_params)
 data.apply_dmid_mtotal_max(dmid_values, mtot_det)
 data.set_shape_params()
+emax_values = 
 '''
 
 pdet = data.run_pdet(data.dL, m1_det, m2_det, 'o3')
@@ -381,8 +383,8 @@ cbar = plt.colorbar(im)
 cbar.ax.tick_params(labelsize=15)
 cbar.set_label(r'$\varepsilon_\mathrm{max}$', fontsize=24)
 plt.show()
-plt.savefig( path + '/pdet_o3_emax.png')
-name = path + '/pdet_o3_emax.pdf'
+plt.savefig( path + f'/pdet_{run_fit}_emax.png')
+name = path + f'/pdet_{run_fit}_emax.pdf'
 plt.savefig(name, format='pdf', dpi=300, bbox_inches="tight")
 
 #%%
@@ -399,7 +401,7 @@ cbar = plt.colorbar(im)
 cbar.ax.tick_params(labelsize=15)
 cbar.set_label(r'$\varepsilon_\mathrm{max}$', fontsize=24)
 plt.show()
-plt.savefig( path + '/pdet_o3_emax.png')
+plt.savefig( path + f'/pdet_{run_fit}_emax.png')
 name = path + '/t_pdet_o3_emax.pdf'
 plt.savefig(name, format='pdf', dpi=300, bbox_inches="tight", transparent = True)
 
@@ -482,7 +484,7 @@ emax = data.emax(m1det, m2det, data.emax_params)
 
 plt.figure(figsize=(7,4.8))
 plt.plot(mtot, emax, '-')
-#plt.ylim(0, 1.2)
+#plt.xlim(0, 500)
 plt.xlabel(r'$M_z [M_{\odot}]$', fontsize=24)
 plt.ylabel(r'$\varepsilon_\mathrm{max}$', fontsize=24)
 plt.yticks(fontsize=15)
@@ -492,7 +494,7 @@ plt.savefig(name, format='pdf', dpi=300, bbox_inches="tight")
 
 #%%
 plt.figure(figsize=(7,6))
-im = plt.scatter(Mc_det_all, dmid_values_all, c=chi_eff_all, s=1, rasterized=True)
+im = plt.scatter(data.Mc_det, dmid_values, c=data.chi_eff, s=1, rasterized=True)
 cbar = plt.colorbar(im)
 cbar.set_label(r'$\chi_\mathrm{eff}$', fontsize=24)
 cbar.ax.tick_params(labelsize=15)

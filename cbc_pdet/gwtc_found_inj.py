@@ -226,7 +226,7 @@ class Found_injections:
         self.sets[source]['s2y'] = file["events"]["spin2y"][:]
         self.sets[source]['s2z'] = file["events"]["spin2z"][:]
         
-        self.sets[source]['chieff_d']= file["events"]["chi_eff"][:]
+        self.sets[source]['chi_eff']= file["events"]["chi_eff"][:]
         
         # SNR
         self.sets[source]['snr'] = file["events"]["snr_net"][:]
@@ -399,22 +399,10 @@ class Found_injections:
         mu = (source_data['m1'] * source_data['m2']) / Mtot_source
         self.sets[source]['eta'] = mu / Mtot_source
         self.sets[source]['q'] = source_data['m2'] / source_data['m1']
-
-        # Spin amplitude
-        self.sets[source]['a1'] = np.sqrt(source_data['s1x']**2 + source_data['s1y']**2 + source_data['s1z']**2)
-        self.sets[source]['a2'] = np.sqrt(source_data['s2x']**2 + source_data['s2y']**2 + source_data['s2z']**2)
-
-        a1_max = np.max(self.sets[source]['a1'])
-        a2_max = np.max(self.sets[source]['a2'])
-
-        self.sets[source]['a1_max'] = a1_max
-        self.sets[source]['a2_max'] = a2_max
-
-        self.sets[source]['s1z_pdf'] = np.log(a1_max / np.abs(source_data['s1z'])) / (2 * a1_max)
-        self.sets[source]['s2z_pdf'] = np.log(a2_max / np.abs(source_data['s2z'])) / (2 * a2_max)
-
-        self.sets[source]['chi_eff'] = (source_data['s1z'] * source_data['m1'] + source_data['s2z'] * source_data['m2']) \
-                                        / (Mtot_source)
+        
+        if 'chi_eff' not in self.sets[source]:
+            self.sets[source]['chi_eff'] = (source_data['s1z'] * source_data['m1'] + source_data['s2z'] * source_data['m2']) \
+                                            / Mtot_source
 
         max_index = np.argmax(source_data['dL'])
         self.sets[source]['dLmax'] = source_data['dL'][max_index]
@@ -476,15 +464,19 @@ class Found_injections:
                 self.joint_pdfs[source] = source_data['m_pdf'] * self.sets[source]['dL_pdf'] * source_data['a1_pdf'] * source_data['a2_pdf'] * source_data['theta1_pdf'] * source_data['theta2_pdf']
             
             else:
-                # self.sets[source]['a1'] = np.sqrt(source_data['s1x']**2 + source_data['s1y']**2 + source_data['s1z']**2)
-                # self.sets[source]['a2'] = np.sqrt(source_data['s2x']**2 + source_data['s2y']**2 + source_data['s2z']**2)
-                
-                # self.sets[source]['a1_max'] = np.max(self.sets[source]['a1'])
-                # self.sets[source]['a2_max'] = np.max(self.sets[source]['a2'])
-                
-                # self.sets[source]['s1z_pdf'] = np.log(self.sets[source]['a1_max'] / np.abs(source_data['s1z'])) / (2*self.sets[source]['a1_max'])
-                # self.sets[source]['s2z_pdf'] = np.log(self.sets[source]['a2_max'] / np.abs(source_data['s2z'])) / (2*self.sets[source]['a2_max'])
-                
+                # Spin amplitude
+                self.sets[source]['a1'] = np.sqrt(source_data['s1x']**2 + source_data['s1y']**2 + source_data['s1z']**2)
+                self.sets[source]['a2'] = np.sqrt(source_data['s2x']**2 + source_data['s2y']**2 + source_data['s2z']**2)
+
+                a1_max = np.max(self.sets[source]['a1'])
+                a2_max = np.max(self.sets[source]['a2'])
+        
+                self.sets[source]['a1_max'] = a1_max
+                self.sets[source]['a2_max'] = a2_max
+        
+                self.sets[source]['s1z_pdf'] = np.log(a1_max / np.abs(source_data['s1z'])) / (2 * a1_max)
+                self.sets[source]['s2z_pdf'] = np.log(a2_max / np.abs(source_data['s2z'])) / (2 * a2_max)
+
                 self.joint_pdfs[source] = source_data['m_pdf'] * self.sets[source]['dL_pdf'] * self.sets[source]['s1z_pdf'] * self.sets[source]['s2z_pdf']
             
         else: 
@@ -527,9 +519,10 @@ class Found_injections:
         self.dL_pdf = np.concatenate([self.sets[source]['dL_pdf'] for source in each_source])
         self.z_pdf = np.concatenate([self.sets[source]['z_pdf'] for source in each_source])
         self.m_pdf = np.concatenate([self.sets[source]['m_pdf'] for source in each_source])
-        self.s1z_pdf = np.concatenate([self.sets[source]['s1z_pdf'] for source in each_source])
-        self.s2z_pdf = np.concatenate([self.sets[source]['s2z_pdf'] for source in each_source])
-        
+        if run_dataset != 'o4':
+            self.s1z_pdf = np.concatenate([self.sets[source]['s1z_pdf'] for source in each_source])
+            self.s2z_pdf = np.concatenate([self.sets[source]['s2z_pdf'] for source in each_source])
+            
         self.load_all_injections = True
         
         return
