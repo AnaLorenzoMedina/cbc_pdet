@@ -1416,10 +1416,10 @@ class Found_injections:
         assert run_dataset =='o1' or run_dataset == 'o2', "Argument (run_dataset) must be 'o1' or 'o2'."
 
         try:
-            d_dict = np.load(f'{os.path.dirname(__file__)}/d0.npy', allow_pickle='TRUE').item()
+            d_dict = np.load(f'{os.path.dirname(__file__)}/d0.npy', allow_pickle=True).item()
             d0 = {'o1' : d_dict[self.dmid_fun]['o1'], 'o2' : d_dict[self.dmid_fun]['o2']}
             self.d0 = d0
-            #print(f'Using the d0.dat file that already exists, from the {self.dmid_fun} fit.')
+            print(f'Using the d0.dat file that already exists, from the {self.dmid_fun} fit.')
             #print(f'D0 scaled for {run_dataset} from o3: {d0[run_dataset]}')
             return d0[run_dataset]
         
@@ -1623,11 +1623,7 @@ class Found_injections:
                 self.sets[source]['s2x'] = self.sets[source]['s2x'][boots]
                 self.sets[source]['s2y'] = self.sets[source]['s2y'][boots]
                 self.sets[source]['s2z'] = self.sets[source]['s2z'][boots]
-                self.sets[source]['s1z_pdf'] = self.sets[source]['s1z_pdf'][boots]
-                self.sets[source]['s2z_pdf'] = self.sets[source]['s2z_pdf'][boots]
-
-                self.sets[source]['a1'] = self.sets[source]['a1'][boots]
-                self.sets[source]['a2'] = self.sets[source]['a2'][boots]
+                    
                 self.sets[source]['chi_eff'] = self.sets[source]['chi_eff'][boots]
 
                 self.sets[source]['found_any'] = self.sets[source]['found_any'][boots]
