@@ -13,7 +13,9 @@ from astropy.cosmology.funcs import z_at_value
 from .gwtc_found_inj import Found_injections
 
 class PdetEstimation():
-    def __init__(self, method_dict=None, cosmo_parameters=None):
+    def __init__(self, method_dict=None, cosmo_parameters=None, override_redshift=False):
+        #add option allow independent redshift or not
+        # user_option_override_redshift = True or False
         
         if method_dict is None:  # Current defaults use a fit on O4a injections
             method_dict = {'observing_run': 'o4', 'sources': 'all', 'dmid_fun': 'Dmid_mchirp_mixture_logspin_corr', 'emax_fun': 'emax_gaussian'}        
@@ -59,8 +61,11 @@ class PdetEstimation():
         if len(found_params) == 0:
             raise RuntimeError(f"Missing distance parameter. Requires one of: {self.allowed_distance_params}")
         
-        if len(found_params) > 1:
+        if len(found_params) > 1 and self.override_redshift == False:
             raise RuntimeError(f"Too many distance parameters provided: {found_params}. Requires exactly one.")
+            
+        if len(found_params)> 2:
+            raise RuntimeError(f"Too many distance parameters provided: {found_params}. Requires one or two.")
 
 
     def check_masses(self, pdict):

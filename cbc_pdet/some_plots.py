@@ -33,14 +33,14 @@ run_dataset = 'o4'
 sources = 'all'
 
 
-#dmid_fun = 'Dmid_mchirp_fdmid'
+#dmid_fun = 'Dmid_mchirp_fdmid_fspin'
 dmid_fun = 'Dmid_mchirp_mixture_logspin_corr'
 emax_fun = 'emax_gaussian'
 alpha_vary = None
 
 data = Found_injections(dmid_fun, emax_fun, alpha_vary)
 
-#%%
+
 
 if isinstance(sources, str):
     each_source = [source.strip() for source in sources.split(',')] 
@@ -50,7 +50,7 @@ sources_folder = "_".join(sorted(each_source))
 path = f'{run_dataset}/{sources_folder}/' + data.path
 
 data.make_folders(run_fit, sources)
-
+#%%
 data.load_all_inj_sets(run_dataset, sources)
 data.get_opt_params(run_fit, sources)
 data.set_shape_params()
@@ -315,8 +315,8 @@ ax.plot(1, 0, ">k", transform=ax.get_yaxis_transform(), clip_on=False)
 plt.savefig('plots/pdet_real.pdf', format='pdf', dpi=300, bbox_inches="tight")
 
 #%%
-run_dataset = 'o3'   
-data.load_inj_set(run_dataset)
+#run_dataset = 'o3'   
+data.load_all_inj_sets(run_dataset, sources)
 
 m1_det = data.m1 * (1 + data.z)
 m2_det = data.m2 * (1 + data.z)
@@ -327,6 +327,7 @@ dmid_values = data.dmid(m1_det, m2_det, data.chi_eff, data.dmid_params)
 data.apply_dmid_mtotal_max(dmid_values, mtot_det)
 #total_pdet = data.total_pdet(data.dL, m1_det, m2_det)
 data.set_shape_params()
+emax_values = data.emax(m1_det, m2_det, data.emax_params)
 
 #%%
 plt.figure(figsize=(7,6))
@@ -363,7 +364,6 @@ data = Found_injections(dmid_fun, emax_fun, alpha_vary)
 path = f'{run_dataset}/' + data.path
 data.load_inj_set(run_dataset)
 data.get_opt_params(run_fit)
-
 m1_det = data.m1 * (1 + data.z)
 m2_det = data.m2 * (1 + data.z)
 mtot_det = m1_det + m2_det 
@@ -435,6 +435,7 @@ emax = data.emax(m1det, m2det, data.emax_params)
 plt.figure(figsize=(7,4.8))
 plt.plot(mtot, emax, '-')
 plt.ylim(0, 1.2)
+plt.xlim(-20, 550)
 plt.xlabel(r'$M_z [M_{\odot}]$', fontsize=24)
 plt.ylabel(r'$\varepsilon_\mathrm{max}$', fontsize=24)
 plt.yticks(fontsize=15)
@@ -455,6 +456,7 @@ emax = data.emax(m1det, m2det, data.emax_params)
 plt.figure()
 plt.scatter(mtot, emax, s=1)
 plt.ylim(0, 2)
+plt.xlim(-20, 550)
 #plt.semilogx()
 plt.grid()
 plt.xlabel(r'$M_z [M_{\odot}]$', fontsize=15)
@@ -623,7 +625,7 @@ dmid_params = params_data[:, 6:]
 gamma = params_data[:,:1]
 delta = params_data[:,1:2]
 
-data.load_all_inj_sets('o3', sources)
+data.load_all_inj_sets('o4', sources)
 m1_det = data.m1 * (1 + data.z)
 m2_det = data.m2 * (1 + data.z)
 mtot_det = m1_det + m2_det 
@@ -668,7 +670,7 @@ for i in range(len(dmid_values)):
 plt.xlabel(r'$d_L / d_\mathrm{mid}$', fontsize = 15)
 plt.ylabel(r'$P_\mathrm{det}$', fontsize = 15)
 plt.title(r'$m_{1z} = 50 M_{\odot}$, $m_{2z} = 45 M_{\odot}$, $\chi_\mathrm{eff} = 0.75$')
-name = path + f'/{nboots}_boots_pdet_o3.pdf'
+name = path + f'/{nboots}_boots_pdet_o4.pdf'
 plt.savefig(name, format='pdf', dpi=150, bbox_inches="tight")
 
 #%%
@@ -829,9 +831,9 @@ plt.savefig(name, format='pdf', dpi=150, bbox_inches="tight")
 #chieff 
 #dmid vs chieff various Mz
 chieff = np.linspace(min(data.chi_eff), max(data.chi_eff), 500)
-M_values = [20, 50, 150, 250, 450]
+M_values = [30, 150, 250, 450, 900]
 colors = ['#9467bd', '#1f77b4', '#ff7f0e', '#2ca02c', '#e78ac3']
-labels = [r'$M_z = 20 \, M_{\odot}$', r'$M_z = 50  \, M_{\odot}$', r'$M_z = 150 \, M_{\odot}$', r'$M_z = 250 \, M_{\odot}$', r'$M_z = 450 \, M_{\odot}$']
+labels = [r'$M_z = 30 \, M_{\odot}$', r'$M_z = 150  \, M_{\odot}$', r'$M_z = 250 \, M_{\odot}$', r'$M_z = 450 \, M_{\odot}$', r'$M_z = 900 \, M_{\odot}$']
 
 plt.figure()
 
@@ -1079,10 +1081,80 @@ plt.xlabel('z')
 plt.legend()
 plt.savefig('plots/dL_derivative.png', format='png', dpi=300, bbox_inches="tight")
 
+#%%
+file =h5py.File('endo3_bbhpop-LIGO-T2100113-v12.hdf5', 'r')
+m1 = data.m1
+joint_pdf = file['injections/mass1_source_mass2_source_sampling_pdf'][:]
+
+p = joint_pdf / joint_pdf.sum()
+
+idx = np.random.choice(len(p), size=10000000, p=p)
+
+m1_sample = data.m1[idx]
+m2_sample = data.m2[idx]
+
+p_z = file['injections/redshift_sampling_pdf'][:]
+pz = p_z / p_z.sum()
+
+z_idx = np.random.choice(len(pz), size=10000000, p=pz)
+z_sample = data.z[z_idx]
+dl_sample = data.dL[z_idx]
+
+p_s1z = data.s1z_pdf
+p_s2z = data.s2z_pdf
+
+ps1 = p_s1z / p_s1z.sum()
+ps2 = p_s2z / p_s2z.sum()
 
 
+s1_idx = np.random.choice(len(ps1), size=10000000, p=ps1)
+s2_idx = np.random.choice(len(ps2), size=10000000, p=ps2)
+s1z_sample = data.s1z[s1_idx]
+s2z_sample = data.s2z[s2_idx]
+
+chi_sample = (m1_sample * s1z_sample + m1_sample * s2z_sample) / (m1_sample + m2_sample)
+
+m1_det = m1_sample * (1 + z_sample)
+m2_det = m2_sample * (1 + z_sample)
+
+mtot_det = m1_det + m2_det
+
+dmid_values = data.dmid(m1_det, m2_det, chi_sample, data.dmid_params)
+emax_values = data.emax(m1_det, m2_det, data.emax_params)
+pdet = data.sigmoid(dl_sample,dmid_values, emax_values, data.gamma, data.delta)
 
 
+u = np.random.rand(len(m1_sample))
+detected = u < pdet
+
+plt.figure()
+plt.hist(m1_sample, bins=50, weights=pdet, histtype='step', color='k', density=True)
+plt.hist(m1[data.found_any], bins=50, alpha=0.5, density=True)
+plt.hist(m1_sample, bins=50, histtype='step', linestyle='dotted', color='k' , density=True)
+#plt.semilogy()
+plt.ylim(0, 0.05)
+
+#%%
+plt.figure()
+im=plt.scatter(m1, pdet, c=data.z, cmap='viridis_r')
+cbar = plt.colorbar(im)
+cbar.set_label(r'$z$')
+#%%
+order=np.argsort(pdet)
+plt.figure()
+im=plt.scatter(m1[order], data.z[order], c=pdet[order], cmap='viridis')
+cbar = plt.colorbar(im)
+cbar.set_label(r'$Pdet$')
+
+#%%
+pdet = data.sigmoid(data.dL,dmid_values, emax_values, data.gamma, data.delta)
+
+plt.figure()
+plt.plot(data.z, pdet, '.')
+
+#%%
+plt.figure()
+plt.plot(data.z, data.dL, '.')
 
 
 #%%

@@ -13,15 +13,16 @@ import h5py
 from matplotlib import rc
 import sys
 import os
+import time
 
 
 # Save the current working directory
 original_working_directory = os.getcwd()
 
 # Change the current working directory to the parent directory
-os.chdir(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+#os.chdir(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-sys.path.append('../')
+#sys.path.append('../')
 
 # Import the class from the module
 from cbc_pdet.gwtc_found_inj import Found_injections
@@ -31,9 +32,9 @@ from cbc_pdet.gwtc_found_inj import Found_injections
 
 plt.close('all')
 
-run_fit = 'o4'
-run_dataset = 'o4'
-sources = 'all'
+run_fit = 'o3'
+run_dataset = 'o3'
+sources = 'bbh'
 #sources = 'imbh'
 #sources = 'bbh'
 
@@ -87,7 +88,7 @@ ini_files_imbh = [[8.71047422e+01, -7.24775437e-06, -3.94322637e-01,  4.73292056
 ini_files_spin_log = [[99.70, 0.00237, 0.696, 202.94, 1.052,-0.567, -0.00348, 8.332e-07, -0.1235, 0.00108, 0.086, 0 ], [-1.378, 0.3825, 0.2025, 0.999, 2491.30475, 1.412 ]]
 
 #ini_files = ini_files_4_sources
-data = Found_injections(dmid_fun, emax_fun, alpha_vary, ini_files_spin_log)
+data = Found_injections(dmid_fun, emax_fun, alpha_vary)
 
 if isinstance(sources, str):
     each_source = [source.strip() for source in sources.split(',')] 
@@ -117,12 +118,17 @@ data.set_shape_params()
 
 #%%
 
-npoints = 10000
-index = np.random.choice(np.arange(len(data.sets['bbh']['dL'])), npoints, replace=False)
-m1 = data.sets['bbh']['m1'][index]
-m2=data.sets['bbh']['m2'][index]
+npoints = 1000
+index = np.random.choice(np.arange(len(data.dL)), npoints, replace=False)
+m1 = data.m1[index]
+m2 = data.m2[index]
+#chieff = data.chi_eff[index]
 
+t1 = time.time()
 vsensitive = np.array([data.sensitive_volume(run_fit, m1[i], m2[i]) for i in range(len(m1))])
+t2 = time.time()
+t_m1 = t2 - t1
+print('method 1 took', t_m1, 's for ', npoints, ' points')
 
 plt.figure()
 plt.scatter(m1, m2, s=1, c=vsensitive/1e9, norm=LogNorm())
@@ -130,6 +136,42 @@ plt.xlabel('m1')
 plt.ylabel('m2')
 plt.colorbar(label=r'Sensitive volume [Gpc$^3$]')
 plt.savefig( path + f'/Vsensitive_{npoints}.png')
+
+#%%
+t3 = time.time()
+vsensitive_new = np.array([data.new_sensitive_volume(run_fit, m1[i], m2[i]) for i in range(len(m1))])
+t4 = time.time()
+t_m2 = t4 - t3
+print('method 2 took', t_m2, 's for ', npoints, ' points')
+
+plt.figure()
+plt.scatter(m1, m2, s=1, c=vsensitive_new/1e9, norm=LogNorm())
+plt.xlabel('m1')
+plt.ylabel('m2')
+plt.colorbar(label=r'Sensitive volume [Gpc$^3$]')
+plt.savefig( path + f'/Vsensitive_new_{npoints}.png')
+
+#%%
+plt.figure()
+plt.plot(vsensitive/1e9, vsensitive_new/1e9, '.')
+plt.loglog()
+plt.xlabel('VT old')
+plt.ylabel('VT new')
+plt.savefig( path + f'/Vsensitive_comparison_{npoints}.png')
+
+#%%
+m1_det = m1*(1+data.z[index])
+m2_det = m2*(1+data.z[index])
+chieff = np.zeros(len(m1))
+dmid = data.dmid(m1_det, m2_det, chieff, data.dmid_params)
+
+plt.figure()
+plt.plot(m1_det + m2_det, vsensitive/vsensitive_new, '.')
+plt.loglog()
+plt.xlabel('Mtot det')
+plt.ylabel('VT / VT new')
+plt.savefig( path + f'/Vsensitive_mtot_det__{npoints}.png')
+
 
 #%%
 
@@ -140,7 +182,6 @@ mtot_det = data.Mtot_det
 dmid_values = data.dmid(m1_det, m2_det, data.dmid_params)
 data.apply_dmid_mtotal_max(dmid_values, mtot_det)
 data.set_shape_params()
-emax_values = 
 '''
 
 pdet = data.run_pdet(data.dL, m1_det, m2_det, 'o3')
@@ -162,13 +203,13 @@ plt.savefig(name, format='pdf', dpi=1000, bbox_inches="tight")
 '''
 
 #%%
-data.cumulative_dist(run_dataset, run_fit, 'all', 'dL', ks=True)
-data.cumulative_dist(run_dataset, run_fit, 'all', 'Mtot', ks=True)
-data.cumulative_dist(run_dataset, run_fit, 'all', 'Mc', ks=True)
-data.cumulative_dist(run_dataset, run_fit, 'all', 'Mtot_det', ks=True)
-data.cumulative_dist(run_dataset, run_fit, 'all', 'Mc_det', ks=True)
-data.cumulative_dist(run_dataset, run_fit, 'all', 'eta', ks=True)
-data.cumulative_dist(run_dataset, run_fit, 'all', 'chi_eff', ks=True)
+data.cumulative_dist(run_dataset, run_fit, 'bbh', 'dL', ks=True)
+data.cumulative_dist(run_dataset, run_fit, 'bbh', 'Mtot', ks=True)
+data.cumulative_dist(run_dataset, run_fit, 'bbh', 'Mc', ks=True)
+data.cumulative_dist(run_dataset, run_fit, 'bbh', 'Mtot_det', ks=True)
+data.cumulative_dist(run_dataset, run_fit, 'bbh', 'Mc_det', ks=True)
+data.cumulative_dist(run_dataset, run_fit, 'bbh', 'eta', ks=True)
+data.cumulative_dist(run_dataset, run_fit, 'bbh', 'chi_eff', ks=True)
 #%%
 nbins = 5
 
@@ -443,6 +484,34 @@ cbar.set_label(r'$d_\mathrm{mid}$', fontsize=24)
 plt.savefig( path + '/m1m2det_dmid.png')
 name = path + '/m1m2det_dmid.pdf'
 plt.savefig(name, format='pdf', dpi=300, bbox_inches="tight")
+#%%
+
+pdet = data.sigmoid(data.dL,dmid_values, emax_values, data.gamma, data.delta)
+order = np.argsort(pdet)
+pdet_ordered = pdet[order] 
+m1_det_ordered = m1_det[order]
+m2_det_ordered = m2_det[order]
+
+plt.figure(figsize=(7,6))
+im = plt.scatter(m1_det_ordered, m2_det_ordered, s=1, c=pdet_ordered, rasterized=True)
+plt.loglog()
+plt.xlabel(r'$m_{1z} [M_{\odot}]$', fontsize=24)
+plt.ylabel('$m_{2z} [M_{\odot}]$', fontsize=24)
+plt.yticks(fontsize=15)
+plt.xticks(fontsize=15)
+#plt.fill_between(m1_line, m2_line_1, m2_line_2,
+#                  where=(m2_line_2 >= m2_line_1),
+#                  interpolate=True, color='orange', alpha=0.3,
+#                  label='Mtot [500, 1000] Msun')
+# #plt.plot(m1_line, m2_line_1, 'r--')
+#plt.plot(m1_line, m2_line_2, 'b--')
+
+cbar = plt.colorbar(im)
+cbar.ax.tick_params(labelsize=15)
+cbar.set_label(r'$d_\mathrm{mid}$', fontsize=24)
+name = path + '/m1m2det_pdet.pdf'
+plt.savefig(name, format='pdf', dpi=300, bbox_inches="tight")
+
 #%%
 D0 = 83.4619
 C = 0.6112

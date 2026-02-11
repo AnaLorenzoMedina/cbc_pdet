@@ -10,6 +10,7 @@ Created on Fri Oct 25 12:42:57 2024
 import cbc_pdet 
 from cbc_pdet.gwtc_found_inj import Found_injections
 import numpy as np
+import matplotlib.pyplot as plt
 
 #set the ini variables, dmid_fun is the function you are using for dmid, 
 #emax_fun is the function for emax (max search efficiency)
@@ -36,7 +37,7 @@ if isinstance(sources, str):
     each_source = [source.strip() for source in sources.split(',')] 
 
 [data.load_inj_set(run_dataset, source) for source in each_source]
-
+#%%
 #load the injection sets together
 data.load_all_inj_sets(run_dataset, sources)
 #%%
