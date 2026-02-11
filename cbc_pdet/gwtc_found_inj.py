@@ -1342,7 +1342,6 @@ class Found_injections:
                 z0 = np.insert(z_inter, 0, 0, axis=0)
                 dL = np.array([(const.c.value*1e-3 / self.cosmo.H0.value) * (1 + i) * integrate.quad(quad_fun_A, 0, i)[0] for i in z0])
                 self.zinterp_VT = interpolate.interp1d(dL, z0)
-                self.zinterp_VT = np.interp(dL, z0)
 
             if self.sets[sources]['dLmax'] is None:
                 self.sets[sources]['dLmax'] = dL.max()

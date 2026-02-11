@@ -82,20 +82,19 @@ def sensitive_volume(run_fit, m1, m2, dl_test, chieff=0., sources='all', zmax=3.
         z = lambda dL_int : data.sets[source_interp_dL_pdf]['interp_z'](dL_int)
         
     else:  # We compute some values of dl for some z to make an interpolator
-        if data.zinterp_VT is None:
+        if zinterp_VT is None:
             fun_A = lambda t : np.sqrt(data.cosmo.Om0 * (1 + t)**3 + 1 - data.cosmo.Om0)
             quad_fun_A = lambda t: 1/fun_A(t)
 
             z_inter = np.linspace(0.002, zmax, 100)
             z0 = np.insert(z_inter, 0, 0, axis=0)
             dL = np.array([(const.c.value*1e-3 / data.cosmo.H0.value) * (1 + i) * integrate.quad(quad_fun_A, 0, i)[0] for i in z0])
-            data.zinterp_VT = interpolate.interp1d(dL, z0)
-            data.zinterp_VT = np.interp(dL, z0)
+            zinterp_VT = interpolate.interp1d(dL, z0)
 
         if data.sets[sources]['dLmax'] is None:
             data.sets[sources]['dLmax'] = dL.max()
             
-        z = lambda dL_int : data.zinterp_VT(dL_int)
+        z = lambda dL_int : zinterp_VT(dL_int)
 
         #m1_det = lambda dL_int : m1 * (1 + data.zinterp_VT(dL_int))
         #m2_det = lambda dL_int : m2 * (1 + data.zinterp_VT(dL_int))
@@ -221,12 +220,12 @@ chieff = 0.2
 
 dl_test = np.linspace(100, max(data.dL), 100)
 
-vsensitive = np.array([data.sensitive_volume(run_fit, m1, m2, dl_test[i]) for i in range(len(dl_test))])
+vsensitive = np.array([sensitive_volume(run_fit, m1, m2, dl_test[i]) for i in range(len(dl_test))])
 
 
 #%%
 
-vsensitive_new = np.array([data.new_sensitive_volume(run_fit, m1, m2, dl_test[i]) for i in range(len(dl_test))])
+vsensitive_new = np.array([new_sensitive_volume(run_fit, m1, m2, dl_test[i]) for i in range(len(dl_test))])
 #%%
 plt.figure()
 plt.plot(dl_test, vsensitive/1e9, '.')
@@ -243,7 +242,7 @@ plt.savefig( path + '/integrand_new_dl.png')
 
 #%%
 plt.figure()
-plt.plot(vsensitive/1e9, vsensitive_new/1e9, '.')
+plt.plot(vsensitive, vsensitive_new, '.')
 plt.loglog()
 plt.xlabel('integrand old')
 plt.ylabel('integrand new')
