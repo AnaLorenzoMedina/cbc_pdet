@@ -13,9 +13,16 @@
 #.hdf data
 *.hdf
 
+#scripts
+script_run.py
+some_plots.py
+
 #plots
 *.png
 *.pdf
+
+#cdfs folders
+*_cmds/*
 
 # Icon must end with two \r
 Icon
