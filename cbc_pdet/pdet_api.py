@@ -16,7 +16,7 @@ class PdetEstimation():
     def __init__(self, method_dict=None, cosmo_parameters=None, override_redshift=False):
         
         if method_dict is None:  # Current defaults use a fit on O4a injections
-            method_dict = {'observing_run': 'o4', 'sources': 'all', 'dmid_fun': 'Dmid_mchirp_mixture_logspin_corr', 'emax_fun': 'emax_gaussian'}        
+            method_dict = {'observing_run': 'o4', 'sources': 'all', 'thr_far': 1, 'dmid_fun': 'Dmid_mchirp_mixture_logspin_corr', 'emax_fun': 'emax_gaussian'}        
         self.run = method_dict.pop('observing_run')
         self.sources = method_dict.pop('sources')
 
