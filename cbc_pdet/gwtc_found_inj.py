@@ -297,7 +297,7 @@ class Found_injections:
     def read_o4_set(self, source = 'all'):
        
         try:
-            file = h5py.File(f'{os.path.dirname(__file__)}/samples-rpo4a_v2_20250220153231UTC-1366933504-23846400.hdf', 'r')
+            file = h5py.File(f'{os.path.dirname(__file__)}/samples-rpo4a_v2_20250503133839UTC-1366933504-23846400.hdf', 'r')
         except:
             raise RuntimeError('File with the injection set not found. Please add it to your installation \
                                 of cbc_pdet, in the folder where gwtc_found_inj.py is.')
