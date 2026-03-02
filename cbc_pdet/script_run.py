@@ -32,9 +32,9 @@ from cbc_pdet.gwtc_found_inj import Found_injections
 
 plt.close('all')
 
-run_fit = 'o3'
-run_dataset = 'o3'
-sources = 'bbh'
+run_fit = 'o4'
+run_dataset = 'o4'
+sources = 'all'
 #sources = 'imbh'
 #sources = 'bbh'
 
@@ -98,7 +98,7 @@ sources_folder = "_".join(sorted(each_source))
 path = f'{run_dataset}/{sources_folder}/' + data.path
 
 data.make_folders(run_fit, sources)
-
+#%%
 [data.load_inj_set(run_dataset, source) for source in each_source]
 #data.get_opt_params(run_fit)
 #81.7746046336622 -8.091776490302833e-06 -0.4444955581608646 9.016393698238174e-06 0.0009175736469746053 -0.003975600149591415 0.16487147248641948 0.0020706799396616876 -2.994036429373754e-07 -340801.1469014259
@@ -117,15 +117,19 @@ data.get_opt_params(run_fit, sources)
 data.set_shape_params()
 
 #%%
+#len_data = 1499422
 
-npoints = 1000
+npoints = 100
 index = np.random.choice(np.arange(len(data.dL)), npoints, replace=False)
 m1 = data.m1[index]
 m2 = data.m2[index]
-#chieff = data.chi_eff[index]
-
+chieff = data.chi_eff[index]
+#m1=[30, 40]
+#m2=[20, 10]
+#chieff=[0.2, 0.7]
+#%%
 t1 = time.time()
-vsensitive = np.array([data.sensitive_volume(run_fit, m1[i], m2[i]) for i in range(len(m1))])
+vsensitive = np.array([data.sensitive_volume(run_fit, m1[i], m2[i], chieff[i]) for i in range(len(m1))])
 t2 = time.time()
 t_m1 = t2 - t1
 print('method 1 took', t_m1, 's for ', npoints, ' points')
@@ -139,7 +143,7 @@ plt.savefig( path + f'/Vsensitive_{npoints}.png')
 
 #%%
 t3 = time.time()
-vsensitive_new = np.array([data.new_sensitive_volume(run_fit, m1[i], m2[i]) for i in range(len(m1))])
+vsensitive_new = np.array([data.new_sensitive_volume(run_fit, m1[i], m2[i], chieff[i], use_injections = True) for i in range(len(m1))])
 t4 = time.time()
 t_m2 = t4 - t3
 print('method 2 took', t_m2, 's for ', npoints, ' points')
@@ -148,9 +152,49 @@ plt.figure()
 plt.scatter(m1, m2, s=1, c=vsensitive_new/1e9, norm=LogNorm())
 plt.xlabel('m1')
 plt.ylabel('m2')
-plt.colorbar(label=r'Sensitive volume [Gpc$^3$]')
-plt.savefig( path + f'/Vsensitive_new_{npoints}.png')
+plt.colorbar(label=r'Sensitive volume inj [Gpc$^3$]')
+plt.savefig( path + f'/Vsensitive_new_inj_{npoints}.png')
 
+#%%
+t5 = time.time()
+vsensitive_new2 = np.array([data.new_sensitive_volume(run_fit, m1[i], m2[i], chieff[i], use_injections = False) for i in range(len(m1))])
+t6 = time.time()
+t_m3 = t6 - t5
+print('method 2 no inj took', t_m3, 's for ', npoints, ' points')
+
+plt.figure()
+plt.scatter(m1, m2, s=1, c=vsensitive_new2/1e9, norm=LogNorm())
+plt.xlabel('m1')
+plt.ylabel('m2')
+plt.colorbar(label=r'Sensitive volume no inj [Gpc$^3$]')
+plt.savefig( path + f'/Vsensitive_new_noinj_{npoints}.png')
+#%%
+t7 = time.time()
+vsensitive_new3 = np.array([data.new_sensitive_volume(run_fit, m1[i], m2[i], chieff[i], use_injections = False, redshift_power=2) for i in range(len(m1))])
+t8 = time.time()
+t_m4 = t8 - t7
+print('method 2 no inj took', t_m4, 's for ', npoints, ' points')
+
+plt.figure()
+plt.scatter(m1, m2, s=1, c=vsensitive_new3/1e9, norm=LogNorm())
+plt.xlabel('m1')
+plt.ylabel('m2')
+plt.colorbar(label=r'Sensitive volume no inj kappa = 2[Gpc$^3$]')
+plt.savefig( path + f'/Vsensitive_new_noinj_2kappa_{npoints}.png')
+
+#%%
+t7 = time.time()
+vsensitive_new4 = np.array([data.new_sensitive_volume(run_fit, m1[i], m2[i], chieff[i], use_injections = False, redshift_power=0) for i in range(len(m1))])
+t8 = time.time()
+t_m4 = t8 - t7
+print('method 2 no inj took', t_m4, 's for ', npoints, ' points')
+
+plt.figure()
+plt.scatter(m1, m2, s=1, c=vsensitive_new4/1e9, norm=LogNorm())
+plt.xlabel('m1')
+plt.ylabel('m2')
+plt.colorbar(label=r'Sensitive volume no inj kappa = 2[Gpc$^3$]')
+plt.savefig( path + f'/Vsensitive_new_noinj_2kappa_{npoints}.png')
 #%%
 plt.figure()
 plt.plot(vsensitive/1e9, vsensitive_new/1e9, '.')
@@ -159,6 +203,23 @@ plt.xlabel('VT old')
 plt.ylabel('VT new')
 plt.savefig( path + f'/Vsensitive_comparison_{npoints}.png')
 
+#%%
+plt.figure()
+plt.plot(m1, vsensitive_new2/vsensitive_new4 , '.')
+plt.ylabel('VT inj / VT no inj')
+plt.xlabel('m1')
+plt.semilogx()
+#plt.savefig( path + '/Vsensitive_inj_noinj_ratio.png')
+
+#%%
+from scipy import interpolate
+interpolate.interp1d()
+
+#%%
+plt.figure()
+plt.plot(m1, vsensitive/1e9, '.')
+plt.xlabel('m1')
+plt.ylabel('vsensitive')
 #%%
 m1_det = m1*(1+data.z[index])
 m2_det = m2*(1+data.z[index])

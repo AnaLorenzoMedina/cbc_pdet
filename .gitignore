@@ -13,6 +13,11 @@
 #.hdf data
 *.hdf
 
+#scripts
+script_run.py
+some_plots.py
+test_VT.py
+
 #plots
 *.png
 *.pdf

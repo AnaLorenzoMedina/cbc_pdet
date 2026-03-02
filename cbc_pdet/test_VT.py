@@ -48,6 +48,7 @@ data.load_all_inj_sets(run_dataset, sources)
 data.get_opt_params(run_fit, sources)
 data.set_shape_params()
 
+
 #%%
 
 def sensitive_volume(run_fit, m1, m2, dl_test, chieff=0., sources='all', zmax=3.1, rescale_o3=True):
@@ -76,28 +77,18 @@ def sensitive_volume(run_fit, m1, m2, dl_test, chieff=0., sources='all', zmax=3.
     # Reference inj set for interpolating cosmology quantities
     source_interp_dL_pdf = 'all' if run_fit == 'o4' else 'bbh'
 
-    if 'interp_z' in data.sets[source_interp_dL_pdf]:  # Interpolator derived from injection set
-        #m1_det = lambda dL_int : m1 * (1 + data.sets[source_interp_dL_pdf]['interp_z'](dL_int))
-        #m2_det = lambda dL_int : m2 * (1 + data.sets[source_interp_dL_pdf]['interp_z'](dL_int))
-        z = lambda dL_int : data.sets[source_interp_dL_pdf]['interp_z'](dL_int)
+    fun_A = lambda t : np.sqrt(data.cosmo.Om0 * (1 + t)**3 + 1 - data.cosmo.Om0)
+    quad_fun_A = lambda t: 1/fun_A(t)
+
+    z_inter = np.linspace(0.002, zmax, 100)
+    z0 = np.insert(z_inter, 0, 0, axis=0)
+    dL = np.array([(const.c.value*1e-3 / data.cosmo.H0.value) * (1 + i) * integrate.quad(quad_fun_A, 0, i)[0] for i in z0])
+    zinterp_VT = interpolate.interp1d(dL, z0)
         
-    else:  # We compute some values of dl for some z to make an interpolator
-        if zinterp_VT is None:
-            fun_A = lambda t : np.sqrt(data.cosmo.Om0 * (1 + t)**3 + 1 - data.cosmo.Om0)
-            quad_fun_A = lambda t: 1/fun_A(t)
+    z = lambda dL_int : zinterp_VT(dL_int)
 
-            z_inter = np.linspace(0.002, zmax, 100)
-            z0 = np.insert(z_inter, 0, 0, axis=0)
-            dL = np.array([(const.c.value*1e-3 / data.cosmo.H0.value) * (1 + i) * integrate.quad(quad_fun_A, 0, i)[0] for i in z0])
-            zinterp_VT = interpolate.interp1d(dL, z0)
-
-        if data.sets[sources]['dLmax'] is None:
-            data.sets[sources]['dLmax'] = dL.max()
-            
-        z = lambda dL_int : zinterp_VT(dL_int)
-
-        #m1_det = lambda dL_int : m1 * (1 + data.zinterp_VT(dL_int))
-        #m2_det = lambda dL_int : m2 * (1 + data.zinterp_VT(dL_int))
+    #m1_det = lambda dL_int : m1 * (1 + data.zinterp_VT(dL_int))
+    #m2_det = lambda dL_int : m2 * (1 + data.zinterp_VT(dL_int))
         
     m1_det = lambda dL_int : m1 * (1 + z(dL_int))
     m2_det = lambda dL_int : m2 * (1 + z(dL_int))
@@ -122,14 +113,14 @@ def sensitive_volume(run_fit, m1, m2, dl_test, chieff=0., sources='all', zmax=3.
         #emax = 0.8
         quad_fun = lambda dL_int : data.sigmoid(dL_int, dmid(dL_int), emax, gamma, delta, alpha) \
                    * data.sets[source_interp_dL_pdf]['interp_dL_pdf'](dL_int)
-
+    '''
     pdet = integrate.quad(quad_fun, 0, data.sets[source_interp_dL_pdf]['dLmax'])[0]
 
     if data.Vtot is None:
         # NB the factor of 1/(1+z) for time dilation in the signal rate
         vquad = lambda z_int : 4 * np.pi * data.cosmo.differential_comoving_volume(z_int).value / (1 + z_int)
         data.Vtot = integrate.quad(vquad, 0, data.sets[source_interp_dL_pdf]['zmax'])[0]
-
+    '''
     #return pdet * data.Vtot
     return quad_fun(dl_test)
 
@@ -166,15 +157,23 @@ def new_sensitive_volume(run, m1, m2, dl_test, chieff=0., sources='all', zmax=3.
     z0 = np.insert(z_inter, 0, 0, axis=0)
     dL = np.array([(const.c.value*1e-3 / data.cosmo.H0.value) * (1 + i) * integrate.quad(quad_fun_A, 0, i)[0] for i in z0])
     
+    order = np.argsort(dL)
+    z0_ordered = z0[order]
+    dL_ordered = dL[order]
+    
     emax_params, gamma, delta, alpha = data.get_shape_params()
     #emax = 0.8
+    
+    order = np.argsort(data.inter_dL)
+    inter_dL_o = data.inter_dL[order]
+    inter_dLpdf_o = data.inter_dLpdf[order]
     
     def integrand_VT(dL_int):
 
         if data.sets[sources]['dLmax'] is None:
             data.sets[sources]['dLmax'] = dL.max()
 
-        z = np.interp(dL_int, dL, z0)
+        z = np.interp(dL_int, dL_ordered, z0_ordered)
             
         m1_det = m1 * (1 + z)
         m2_det = m2 * (1 + z)
@@ -191,17 +190,17 @@ def new_sensitive_volume(run, m1, m2, dl_test, chieff=0., sources='all', zmax=3.
             emax = np.copy(emax_params)
             
         integrand = data.sigmoid(dL_int, dmid, emax, gamma, delta, alpha) \
-                * np.interp(dL_int, data.inter_dL, data.inter_dLpdf)
+                * np.interp(dL_int, inter_dL_o, inter_dLpdf_o)
                 
         return integrand
-    
+    '''
     pdet_integrated = integrate.quad(integrand_VT, 0, data.sets[source_interp_dL_pdf]['dLmax'])[0]
 
     if data.Vtot is None:
         # NB the factor of 1/(1+z) for time dilation in the signal rate
         vquad = lambda z_int : 4 * np.pi * data.cosmo.differential_comoving_volume(z_int).value / (1 + z_int)
         data.Vtot = integrate.quad(vquad, 0, data.sets[source_interp_dL_pdf]['zmax'])[0]
-
+    '''
     #return pdet_integrated * data.Vtot
     return integrand_VT(dl_test)
 
@@ -217,37 +216,66 @@ m2 = data.m2[index]
 m1 = 10
 m2 = 8
 chieff = 0.2
+npoints = 100
 
-dl_test = np.linspace(100, max(data.dL), 100)
+dl_test = np.linspace(min(data.dL), max(data.dL), npoints)
 
-vsensitive = np.array([sensitive_volume(run_fit, m1, m2, dl_test[i]) for i in range(len(dl_test))])
-
+integrand = np.array([sensitive_volume(run_fit, m1, m2, dl_test[i], chieff) for i in range(len(dl_test))])
+integrand_new = np.array([new_sensitive_volume(run_fit, m1, m2, dl_test[i], chieff) for i in range(len(dl_test))])
 
 #%%
+m1 = 10
+m2 = 8
+chieff = 0.2
+npoints = 100
 
-vsensitive_new = np.array([new_sensitive_volume(run_fit, m1, m2, dl_test[i]) for i in range(len(dl_test))])
+dl_test = np.linspace(min(data.dL), max(data.dL), npoints)
+
+#integrand = np.array([data.sensitive_volume(run_fit, dl_test[i], m1, m2, chieff, test=False) for i in range(len(dl_test))])
+integrand_new_1 = np.array([data.new_sensitive_volume(run_fit, dl_test[i], m1, m2, chieff, test=False) for i in range(len(dl_test))])
+integrand_new_2 = np.array([data.new_sensitive_volume(run_fit, dl_test[i], m1, m2, chieff, test=True) for i in range(len(dl_test))])
+#%%
+integrand_new_1 = integrand_new[:,0]
+integrand_new_2 = integrand_new[:,1]
+
 #%%
 plt.figure()
-plt.plot(dl_test, vsensitive/1e9, '.')
+plt.plot(dl_test, integrand_new_1/1e9, '.')
 plt.xlabel('dl')
-plt.ylabel('integrand')
-plt.savefig( path + '/integrand_dl.png')
+plt.ylabel('VT inj')
+plt.savefig( path + '/VT_inj.png')
 #%%
 plt.figure()
-plt.plot(dl_test, vsensitive_new/1e9, '.')
-plt.xlabel('dl')
-plt.ylabel('integrand new')
-plt.savefig( path + '/integrand_new_dl.png')
-
-
-#%%
-plt.figure()
-plt.plot(vsensitive, vsensitive_new, '.')
+plt.plot(dl_test, integrand_new_2/1e9, '.')
 plt.loglog()
+plt.xlabel('dl')
+plt.ylabel('VT no inj')
+plt.savefig( path + '/VT_no_inj.png')
+
+
+#%%
+plt.figure()
+plt.plot(integrand_new_1, integrand_new_2, '.')
 plt.xlabel('integrand old')
 plt.ylabel('integrand new')
-plt.savefig( path + f'/integrand_comparison_{npoints}.png')
+#plt.savefig( path + f'/integrand_comparison_{npoints}.png')
 
+#%%
+plt.figure()
+plt.scatter(dl_test, integrand_new_1/integrand_new_2, s=7, label='ratio using inj vs no inj')
+#plt.scatter(data.dL_ordered, np.ones(len(data.dL_ordered))*0.99862, s=2, label='dL points used for interpolation')
+plt.ylabel('VT inj / VT no inj')
+plt.xlabel('dl_test')
+plt.legend()
+plt.savefig( path + '/VT_inj_noinj_ratio.png')
+
+#%%
+plt.figure()
+plt.plot(data.dL_ordered, data.z_ordered, '.')
+plt.ylabel('z for interp')
+plt.xlabel('dl for interp')
+plt.loglog()
+plt.savefig( path + '/dL_z_interpolator.png')
 #%%
 m1_det = m1*(1+data.z[index])
 m2_det = m2*(1+data.z[index])
@@ -255,12 +283,21 @@ chieff = np.zeros(len(m1))
 dmid = data.dmid(m1_det, m2_det, chieff, data.dmid_params)
 
 plt.figure()
-plt.plot(m1_det + m2_det, vsensitive/vsensitive_new, '.')
+plt.plot(m1_det + m2_det, integrand/integrand_new, '.')
 plt.loglog()
 plt.xlabel('Mtot det')
 plt.ylabel('VT / VT new')
 plt.savefig( path + f'/integrand_mtot_det__{npoints}.png')
+#%%
 
+plt.figure()
+plt.scatter(data.dL, data.dL_pdf, s=6, label='dL pdf from cosmo', rasterized=True)
+plt.scatter(data.dL, data.sets['all']['dL_pdf_inj'], s=1, label='dL pdf from injections', rasterized=True)
+plt.legend()
+plt.xlabel('dL')
+plt.ylabel('dL pdf')
+plt.loglog()
+plt.savefig( path + '/dL_pdf_comparison.png')
 #%%
 
 fun_A = lambda t : np.sqrt(data.cosmo.Om0 * (1 + t)**3 + 1 - data.cosmo.Om0)
@@ -279,6 +316,7 @@ m1_det = m1s * (1 + z)
 m2_det = m2s * (1 + z)
 
 pdet = data.run_pdet(dl_test, m1_det, m2_det, chieffs, 'o4', 'all')
+
 inter_dl_test = data.sets['all']['interp_dL_pdf'](dl_test)
 
 plt.figure()
@@ -286,6 +324,7 @@ plt.plot(dl_test, pdet, '.')
 plt.xlabel('dl')
 plt.ylabel('pdet')
 plt.savefig( path + '/pdet_dl.png')
+
 
 plt.figure()
 plt.plot(dl_test, inter_dl_test, '.')
@@ -324,3 +363,7 @@ plt.plot(dl_test, sigmoid * inter_dl_test, '.')
 plt.xlabel('dl')
 plt.ylabel('sigmoid * interp dl pdf')
 #plt.savefig( path + '/sigmoidpdf_dl.png')
+
+
+
+
