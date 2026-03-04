@@ -14,11 +14,9 @@ from .gwtc_found_inj import Found_injections
 
 class PdetEstimation():
     def __init__(self, method_dict=None, cosmo_parameters=None, override_redshift=False):
-        #add option allow independent redshift or not
-        # user_option_override_redshift = True or False
         
         if method_dict is None:  # Current defaults use a fit on O4a injections
-            method_dict = {'observing_run': 'o4', 'sources': 'all', 'dmid_fun': 'Dmid_mchirp_mixture_logspin_corr', 'emax_fun': 'emax_gaussian', 'far' : 1}        
+            method_dict = {'observing_run': 'o4', 'sources': 'all', 'thr_far' : 1, 'dmid_fun': 'Dmid_mchirp_mixture_logspin_corr', 'emax_fun': 'emax_gaussian'}        
         self.run = method_dict.pop('observing_run')
         self.sources = method_dict.pop('sources')
 
