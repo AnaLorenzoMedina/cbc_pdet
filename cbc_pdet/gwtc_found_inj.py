@@ -1333,7 +1333,6 @@ class Found_injections:
             np.savetxt(name_mid, mid_values, header = '0, 1, 2, 3, 4', fmt='%s')
         return
 
-    
     def sensitive_volume(self, run, m1, m2, chieff=0., sources='all', zmax=3.1, rescale_o3=True, use_injections = False, redshift_power = 1):
         '''
         Sensitive volume for a merger with given masses (m1 and m2), computed from the fit to whichever observed run we want.
