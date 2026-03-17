@@ -1361,8 +1361,8 @@ class Found_injections:
         source_interp_dL_pdf = 'all' if run == 'o4' else 'bbh'
             
         if self.Vtot is None:
-            # NB the factor of 1/(1+z) for time dilation in the signal rate
-            # also the factor (1+z)^kappa for the population distribution
+            # NB we combine the factor of (1+z)^-1 for time dilation in the signal
+            # rate with the factor (1+z)^kappa for the population distribution
             vquad = lambda z_int : 4 * np.pi * self.cosmo.differential_comoving_volume(z_int).value * (1 + z_int) ** (redshift_power - 1)
             self.Vtot = integrate.quad(vquad, 0, self.z_max)[0]
         
