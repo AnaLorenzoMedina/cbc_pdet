@@ -454,8 +454,6 @@ class Found_injections:
         inter_z = np.insert(try_z, 0, 0, axis=0)
 
         self.z_ordered = inter_z[order_dL]
-        
-        #for VT 
         self.dL_max = self.sets[source]['dLmax']
         self.z_max = self.sets[source]['zmax']
 
