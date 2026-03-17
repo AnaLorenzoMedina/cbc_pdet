@@ -410,7 +410,8 @@ class Found_injections:
         self.sets[source]['dLmax'] = source_data['dL'][max_index]
         self.sets[source]['zmax'] = source_data['z'][max_index]
         
-        #bins to divide total range of dL and randomly accept 40 injections in each bin for the dL_pdf interpolation
+        # Divide total range of dL into bins and randomly accept 40 injections in each bin
+        # To ensure reasonably even coverage of points for the dL_pdf interpolation
         N_bins = 10
         bins = np.linspace(source_data['dL'].min(), source_data['dL'].max(), N_bins + 1)
         selected_indices = []
