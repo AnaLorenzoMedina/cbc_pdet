@@ -69,9 +69,9 @@ class Found_injections:
         self.cosmo = cosmology_class(**cosmo_parameters)
 
         self.Vtot = None  # Slot for total comoving volume up to max z
-        self.z_ordered = None #Slot for interpolator in VT (new method)
-        self.dL_ordered = None #Slot for interpolator in VT (new method)
-        self.z_ordered_VT = None
+        self.z_ordered = None  # Slot for injection interpolator in VT
+        self.dL_ordered = None  # Slot for injection interpolator in VT
+        self.z_ordered_VT = None  # Slot for non-injection interpolator in VT
         
         self.dataset = None
         self.current_pdet = {} #slot for pdet in the optimization
