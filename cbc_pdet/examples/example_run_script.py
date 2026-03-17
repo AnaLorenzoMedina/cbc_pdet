@@ -36,6 +36,7 @@ if isinstance(sources, str):
     each_source = [source.strip() for source in sources.split(',')] 
 
 [data.load_inj_set(run_dataset, source) for source in each_source]
+
 #load the injection sets together
 data.load_all_inj_sets(run_dataset, sources)
 #%%
