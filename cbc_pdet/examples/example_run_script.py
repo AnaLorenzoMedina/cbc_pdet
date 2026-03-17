@@ -10,7 +10,6 @@ Created on Fri Oct 25 12:42:57 2024
 import cbc_pdet 
 from cbc_pdet.gwtc_found_inj import Found_injections
 import numpy as np
-import matplotlib.pyplot as plt
 
 #set the ini variables, dmid_fun is the function you are using for dmid, 
 #emax_fun is the function for emax (max search efficiency)
