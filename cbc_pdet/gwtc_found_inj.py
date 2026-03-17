@@ -1392,7 +1392,7 @@ class Found_injections:
                 self.dL_max = self.sets[source_interp_dL_pdf]['dLmax']
                 self.z_max = self.sets[source_interp_dL_pdf]['zmax']
             except:
-                raise RuntimeError('ERROR in self.sensitive_volume: there is not an injection set loaded. Run self.oad_inj_set() or use option use_injections = False.')
+                raise RuntimeError('ERROR in self.sensitive_volume: no injection set is loaded. Run self.load_inj_set(), or set the option use_injections = False.')
         
         emax_params, gamma, delta, alpha = self.get_shape_params()
         
