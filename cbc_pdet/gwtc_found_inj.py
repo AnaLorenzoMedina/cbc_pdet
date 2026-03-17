@@ -447,7 +447,6 @@ class Found_injections:
         inter_dLpdf = np.insert(try_dLpdf, 0, 0, axis=0)
         
         order_dL = np.argsort(inter_dL)
-        
         self.dL_ordered = inter_dL[order_dL]
         self.inter_dLpdf_ordered = inter_dLpdf[order_dL]
 
