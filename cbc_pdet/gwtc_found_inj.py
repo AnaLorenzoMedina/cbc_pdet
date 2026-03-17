@@ -74,8 +74,8 @@ class Found_injections:
         self.z_ordered_VT = None  # Slot for non-injection interpolator in VT
         
         self.dataset = None
-        self.current_pdet = {} #slot for pdet in the optimization
-        self.joint_pdfs = {} #slot for pdfs in the optimization
+        self.current_pdet = {} # Slot for pdet in the optimization
+        self.joint_pdfs = {} # Slot for pdfs in the optimization
         self.load_all_injections = False
         
         self.dmid_ini_values, self.shape_ini_values = ini_files if ini_files is not None else self.get_ini_values()
@@ -411,7 +411,7 @@ class Found_injections:
         self.sets[source]['dLmax'] = source_data['dL'][max_index]
         self.sets[source]['zmax'] = source_data['z'][max_index]
         
-        #weights = source_data['dL'] / np.sum(source_data['dL'])
+        #bins to divide total range of dL and randomly accept 40 injections in each bin for the dL_pdf interpolation
         N_bins = 10
         bins = np.linspace(source_data['dL'].min(), source_data['dL'].max(), N_bins + 1)
         selected_indices = []
@@ -435,7 +435,6 @@ class Found_injections:
 
         index = np.array(selected_indices)
 
-        #index = np.random.choice(np.arange(len(source_data['dL'])), 400, replace=False, p=weights)
         if max_index not in index:
             index = np.insert(index, -1, max_index)
 
