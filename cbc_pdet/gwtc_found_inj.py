@@ -382,7 +382,6 @@ class Found_injections:
         source_data = self.sets[source].copy()
 
         # Luminosity distance sampling pdf values, p(dL), computed for a flat Lambda-Cold Dark Matter cosmology from the z_pdf values
-        #self.sets[source]['dL_pdf'] = source_data['z_pdf'] / fits.dL_derivative(source_data['z'], source_data['dL'], self.cosmo)
         self.sets[source]['dL_pdf'] = source_data['z_pdf'] / source_data['dL_dz']
 
         # Total mass (m1+m2)
