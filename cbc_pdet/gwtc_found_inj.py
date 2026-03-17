@@ -7,7 +7,6 @@ Created on Mon Jan 30 11:14:27 2023
 
 import numpy as np
 import h5py
-from scipy import interpolate
 from scipy import integrate
 from scipy.stats import kstest
 import scipy.optimize as opt
@@ -70,7 +69,6 @@ class Found_injections:
         self.cosmo = cosmology_class(**cosmo_parameters)
 
         self.Vtot = None  # Slot for total comoving volume up to max z
-        self.zinterp_VT = None # Slot for interpolator of z given dL for comoving volume
         self.z_ordered = None #Slot for interpolator in VT (new method)
         self.dL_ordered = None #Slot for interpolator in VT (new method)
         self.z_ordered_VT = None
@@ -452,16 +450,11 @@ class Found_injections:
         
         self.dL_ordered = inter_dL[order_dL]
         self.inter_dLpdf_ordered = inter_dLpdf[order_dL]
-        
-        #commenting this out because now we use np.interp()
-        #self.sets[source]['interp_dL_pdf'] = interpolate.interp1d(self.dL_ordered, self.inter_dLpdf_ordered)
 
         try_z = source_data['z'][index]
         inter_z = np.insert(try_z, 0, 0, axis=0)
 
         self.z_ordered = inter_z[order_dL]
-
-        #self.sets[source]['interp_z'] = interpolate.interp1d(self.dL_ordered, self.z_ordered)
         
         #for VT 
         self.dL_max = self.sets[source]['dLmax']
