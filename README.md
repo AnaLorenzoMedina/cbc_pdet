@@ -8,12 +8,17 @@ The main branch contains  a python package with only the necessary files to run 
 In the branch legacy we have everything produced for the paper mentioned before, as well as all the extra tests and studies we performed. 
 
 If you find this code useful in your research, please consider citing our paper:
-@misc{lorenzomedina2024physicallymodelledselectionfunction,
+@article{lorenzomedina2024physicallymodelledselectionfunction,
       title={A physically modelled selection function for compact binary mergers in the LIGO-Virgo O3 run and beyond}, 
       author={Ana Lorenzo-Medina and Thomas Dent},
-      year={2024},
       eprint={2408.13383},
       archivePrefix={arXiv},
       primaryClass={gr-qc},
+      doi = "10.1088/1361-6382/ad9c0e",
+      journal = "Class. Quant. Grav.",
+      volume = "42",
+      number = "4",
+      pages = "045008",
+      year = "2025"
       url={https://arxiv.org/abs/2408.13383}, 
 }
