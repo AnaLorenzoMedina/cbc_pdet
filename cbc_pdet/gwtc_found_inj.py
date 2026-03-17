@@ -1375,7 +1375,6 @@ class Found_injections:
                 dL = np.array([(const.c.value*1e-3 / self.cosmo.H0.value) * (1 + i) * integrate.quad(quad_fun_A, 0, i)[0] for i in z0])
                 
                 order = np.argsort(dL)
-                
                 self.z_ordered_VT = z0[order]
                 self.dL_ordered_VT = dL[order]
                 
