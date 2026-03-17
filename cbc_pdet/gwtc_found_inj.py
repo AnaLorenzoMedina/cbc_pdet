@@ -1349,7 +1349,7 @@ class Found_injections:
                  'nsbh' 'bns' 'imbh' or 'bbh' for o3 (or a combination of them) and 'all' for o4
         rescale_o3 : True or False, optional. The default is True. If True, we use the rescaled fit for o1 and o2. If False, the direct fit.
         use_injections: True or False. The default is False. If True, it uses interpolated redshift and dL_pdf from the injection set. \
-                        If False, it makes its own interpolation basen on self.cosmo (cosmology used to initialise the class).
+                        If False, it makes its own interpolation based on self.cosmo (cosmology used to initialise the class).
         redshift_power: float. Default is 1. This is the power of (1+z)^kappa for the population distribution in redshift.  
 
         Returns
