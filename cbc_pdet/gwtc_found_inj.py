@@ -1342,7 +1342,7 @@ class Found_injections:
         m1 : float. Mass 1 (source)
         m2 : float. Mass 2 (source)
         chieff : float. Effective spin. The default is 0, If you use a fit that includes a dependence on chieff in the dmid function
-                (it has to be on the list of spin functions), it will use chieff. if not,t it won't be used for anything.
+                (it has to be on the list of spin functions), it will use chieff. if not, it it won't be used for anything.
         zmax : float. Maximum redshift for cosmological calculation, if an injection set is not loaded:
                3.1 is just larger than any O4 injection
         sources : str or list with the types of sources you want. Must be 'bbh' for o1 and o2, \
