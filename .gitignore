@@ -6,7 +6,6 @@
 .DS_Store
 .AppleDouble
 .LSOverride
-.vscode
 
 #.hdf5 data
 *.hdf5
@@ -15,9 +14,8 @@
 *.hdf
 
 #scripts
-*script_run.py
-*some_plots.py
-*test_VT.py
+script_run.py
+some_plots.py
 
 #plots
 *.png
