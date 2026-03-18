@@ -1329,6 +1329,14 @@ class Found_injections:
             name_mid = path + f'/{emax_dic[self.emax_fun]}/{var_binned}_bins/{var_cmd}_cmd/mid_values'
             np.savetxt(name_mid, mid_values, header = '0, 1, 2, 3, 4', fmt='%s')
         return
+    
+    def get_total_volume(self, redshift_power=1):
+        '''Total comoving volume out to self.z_max with a power law redshift evolution'''
+        # NB we combine the factor of (1+z)^-1 for time dilation in the signal
+        # rate with the factor (1+z)^kappa for the population distribution
+        vquad = lambda z_int : 4 * np.pi * self.cosmo.differential_comoving_volume(z_int).value * (1 + z_int) ** (redshift_power - 1)
+        self.Vtot = integrate.quad(vquad, 0, self.z_max)[0]
+        return
 
     def sensitive_volume(self, run, m1, m2, chieff=0., sources='all', zmax=3.1, rescale_o3=True, use_injections=False, redshift_power=1):
         '''
@@ -1358,12 +1366,6 @@ class Found_injections:
         self.get_opt_params(run, 'all') if run == 'o4' else self.get_opt_params(run, sources, rescale_o3)
         # Reference inj set for interpolating cosmology quantities
         source_interp_dL_pdf = 'all' if run == 'o4' else 'bbh'
-            
-        if self.Vtot is None:
-            # NB we combine the factor of (1+z)^-1 for time dilation in the signal
-            # rate with the factor (1+z)^kappa for the population distribution
-            vquad = lambda z_int : 4 * np.pi * self.cosmo.differential_comoving_volume(z_int).value * (1 + z_int) ** (redshift_power - 1)
-            self.Vtot = integrate.quad(vquad, 0, self.z_max)[0]
         
         if not use_injections: 
             if self.z_ordered_VT is None:
@@ -1373,6 +1375,11 @@ class Found_injections:
         
                 z0 = np.linspace(0., zmax, 400)
                 dL = np.array([(const.c.value*1e-3 / self.cosmo.H0.value) * (1 + i) * integrate.quad(quad_fun_A, 0, i)[0] for i in z0])
+                self.dL_max = dL.max()
+                self.z_max = z0.max()
+                
+                if self.Vtot is None:
+                    self.get_total_volume(redshift_power)
                 
                 order = np.argsort(dL)
                 self.z_ordered_VT = z0[order]
@@ -1380,9 +1387,6 @@ class Found_injections:
                 
                 p_z = 4 * np.pi * self.cosmo.differential_comoving_volume(self.z_ordered_VT).value * (1 + self.z_ordered_VT) ** (redshift_power - 1) / self.Vtot
                 self.p_dL_VT = p_z / fits.dL_derivative(self.z_ordered_VT, self.dL_ordered_VT, self.cosmo)
-                
-                self.dL_max = dL.max()
-                self.z_max = z0.max()
                 
         else:
             if redshift_power != 1:
@@ -1393,7 +1397,10 @@ class Found_injections:
                 self.z_max = self.sets[source_interp_dL_pdf]['zmax']
             except:
                 raise RuntimeError('ERROR in self.sensitive_volume: no injection set is loaded. Run self.load_inj_set(), or set the option use_injections = False.')
-        
+            
+            if self.Vtot is None:
+                self.get_total_volume(redshift_power)
+                
         emax_params, gamma, delta, alpha = self.get_shape_params()
         
         def integrand_VT(dL_int):
