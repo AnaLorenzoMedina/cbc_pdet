@@ -585,7 +585,6 @@ class Found_injections:
 
         try:
             path = f'{os.path.dirname(__file__)}/{run_fit_touse}/{sources_folder}/' + self.path
-            print(path)
             self.dmid_params = np.loadtxt(path + '/joint_fit_dmid.dat')[-1, :-1]
             self.shape_params = np.loadtxt(path + '/joint_fit_shape.dat')[-1, :-1]
         except:
