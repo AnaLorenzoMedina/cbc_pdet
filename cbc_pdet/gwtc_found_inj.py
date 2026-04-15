@@ -377,7 +377,7 @@ class Found_injections:
        
         return   
 
-        def draw_samples(self, source = 'all', hdfile = None, fraction = 0.1):
+    def draw_samples(self, source = 'all', hdfile = None, fraction = 0.1):
 
         if hdfile is None:
             hdfile = '/scratch/ana.lorenzo/injections/rpo4b-injections/offline-injections/samples/v1/chunks_without_cut/samples-rpo4_2024_06_v1-without-hopeless-cut_subset.hdf'
