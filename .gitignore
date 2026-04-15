@@ -8,26 +8,55 @@
 .LSOverride
 .vscode
 
-#.hdf5 data
+# .hdf5 data
 *.hdf5
 
-#.hdf data
+# .hdf data
 *.hdf
 
-#scripts
+# Nexp data
+*Nexp.dat
+
+# scripts
 *script_run.py
 *some_plots.py
 *test_VT.py
+cbc_pdet/example_run_script.py
+cbc_pdet/example_run_script_o4b.py
+cbc_pdet/example_run_script_2.py
+cbc_pdet/example_run_script_o4b_2.py
+cbc_pdet/Nexp.py
+cbc_pdet/Nexp_all.py
 
-#plots
+
+# jupyter notebooks
+*.ipynb
+*.ipynb_checkpoints
+
+# condor submits
+condor*
+submit*
+
+# bash scripts
+*sh
+
+# nohup and outputs
+nohup*
+output*
+
+# plots
 *.png
 *.pdf
 
-#cdfs folders
-*_cmds/*
+# cdfs folders
+*_cmds/
+
+# kstest data
+*.rtf
 
 # Icon must end with two \r
 Icon
+
 
 
 # Thumbnails
