@@ -1206,6 +1206,7 @@ class Found_injections:
         return
 
     def binned_cumulative_dist(self, run_dataset, run_fit, sources, nbins, var_cmd, var_binned, ks = False):
+        # FIX ME !!!!!!!!
         '''
         Saves binned cumulative distributions and prints binned KS tests for the specified variables 
 
