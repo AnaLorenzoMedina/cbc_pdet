@@ -139,7 +139,7 @@ class Found_injections:
         self.samples = {}
         self.d0 = None #slot for d0 cte in case it's used later
 
-    def make_folders(self, run, sources, old_fit = False):
+    def make_folders(self, run, sources):
 
         def make_folders(self, run, sources):
 
@@ -163,14 +163,6 @@ class Found_injections:
                 raise
         
         path = f'{run}/{sources_folder}'
-
-        if old_fit:
-            path = path + '/old'
-            try:
-                os.mkdir(path)
-            except OSError as e:
-                if e.errno != errno.EEXIST:
-                    raise
 
         if self.alpha_vary is not None:
             path = path + '/alpha_vary'
@@ -406,12 +398,12 @@ class Found_injections:
         self.samples[source]['m1_det'] = self.samples[source]['m1'] * (1 + self.samples[source]['z'])
         self.samples[source]['m2_det'] = self.samples[source]['m2'] * (1 + self.samples[source]['z'])
 
-        self.N_o4b_total = file['events']['mass1_source'].shape[0]
-        self.samples_fraction_loaded = self.samples[source]['m1'].shape[0] / self.N_o4b_total 
+        self.N_samples_total = file['events']['mass1_source'].shape[0]
+        self.samples_fraction_loaded = self.samples[source]['m1'].shape[0] / self.N_samples_total 
         print('real fraction loaded: ', self.samples_fraction_loaded)
 
         self.pre_hopeless_cut_set = True
-        print(f"Loaded {len(self.samples[source]['m1']):,} samples ({fraction*100:.00f}% of {self.N_o4b_total:,})")
+        print(f"Loaded {len(self.samples[source]['m1']):,} samples ({fraction*100:.00f}% of {self.N_samples_total:,})")
        
         return       
         
@@ -604,7 +596,7 @@ class Found_injections:
         
         return
 
-    def get_opt_params(self, run_fit, sources, rescale_o3=True, old_fit = False):
+    def get_opt_params(self, run_fit, sources, rescale_o3=True):
         '''
         Sets self.dmid_params and self.shape_params as a class attribute (optimal values from some previous fit).
 
@@ -634,11 +626,7 @@ class Found_injections:
             run_fit_touse = 'o3'
 
         try:
-            if old_fit:
-                path = f'{os.path.dirname(__file__)}/{run_fit_touse}/{sources_folder}/old/' + self.path
-            else:
-                path = f'{os.path.dirname(__file__)}/{run_fit_touse}/{sources_folder}/' + self.path
-            
+            path = f'{os.path.dirname(__file__)}/{run_fit_touse}/{sources_folder}/' + self.path
             print('getting params from fit ', path)
             self.dmid_params = np.loadtxt(path + '/joint_fit_dmid.dat')[-1, :-1]
             self.shape_params = np.loadtxt(path + '/joint_fit_shape.dat')[-1, :-1]
@@ -816,7 +804,7 @@ class Found_injections:
             sigmoid_args = emax_values, gamma, delta, alpha
         
         pdet = self.sigmoid(dL, dmid_values, *sigmoid_args)
-        scale = self.sets[source]['Ntotal'] / (self.samples_fraction_loaded * self.N_o4b_total)
+        scale = self.sets[source]['Ntotal'] / (self.samples_fraction_loaded * self.N_samples_total)
         Nexp = np.sum(pdet) * scale
 
         return Nexp
@@ -1184,7 +1172,7 @@ class Found_injections:
         else:
             emax = np.copy(emax_params)
         
-        scale = self.sets[sources]['Ntotal'] / (self.samples_fraction_loaded * self.N_o4b_total)
+        scale = self.sets[sources]['Ntotal'] / (self.samples_fraction_loaded * self.N_samples_total)
         pdet = self.sigmoid(dLo, dmid_values, emax, gamma, delta, alpha)
         cmd = np.cumsum(pdet)*scale
         
@@ -1368,7 +1356,7 @@ class Found_injections:
             else:
                 emax = np.copy(emax_params)
             
-            scale = self.sets[sources]['Ntotal'] / (self.samples_fraction_loaded * self.N_o4b_total)
+            scale = self.sets[sources]['Ntotal'] / (self.samples_fraction_loaded * self.N_samples_total)
             pdet = self.sigmoid(dL, dmid_values, emax, gamma, delta, alpha)
             cmd = np.cumsum(pdet)*scale
             
