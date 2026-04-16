@@ -141,8 +141,6 @@ class Found_injections:
 
     def make_folders(self, run, sources):
 
-        def make_folders(self, run, sources):
-
         if isinstance(sources, str):
             each_source = [source.strip() for source in sources.split(',')] 
         else:
