@@ -38,7 +38,7 @@ if isinstance(sources, str):
 [data.load_inj_set(run_dataset, source) for source in each_source]
 
 #load the pre hopeless cut samples
-data.draw_samples(run_fit, sources, fraction=0.02)
+data.draw_samples(sources, fraction=0.02)
 
 #load the injection sets together
 #data.load_all_inj_sets(run_dataset, sources)
