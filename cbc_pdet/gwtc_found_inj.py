@@ -182,7 +182,6 @@ class Found_injections:
             if e.errno != errno.EEXIST:
                 raise
 
-
         return
         
     def read_o1o2_set(self, run_dataset, source = 'bbh'):
@@ -367,44 +366,44 @@ class Found_injections:
        
         return   
 
-    def draw_samples(self, source = 'all', hdfile = None, fraction = 0.1):
+    def draw_samples(self, source='all', hdfile=None, fraction=0.1):
+        assert source == 'all', "Argument (source) must be 'all'. " 
 
         if hdfile is None:
             hdfile = '/scratch/ana.lorenzo/injections/rpo4b-injections/offline-injections/samples/v1/chunks_without_cut/samples-rpo4_2024_06_v1-without-hopeless-cut_subset.hdf'
-       
+
         try:
             file = h5py.File(hdfile, 'r')
         except:
-            raise RuntimeError('HDF file with the samples set not found.')
-                               
-        assert source == 'all', "Argument (source) must be 'all'. " 
+            raise RuntimeError('HDF file with the samples set not found.')                   
 
         stride = int(1 / fraction)  # fraction=0.1 -> stride=10
 
         self.samples[source] = {}
 
-        # Mass 1 and mass 2 values in the source frame in solar units
+        # Mass 1 and mass 2 values in the source frame
         self.samples[source]['m1'] = file['events']['mass1_source'][::stride]
         self.samples[source]['m2'] = file['events']['mass2_source'][::stride]
 
-        # Redshift and luminosity distance [Mpc] values 
+        # Chi_eff
+        self.samples[source]['chi_eff'] = file["events"]["chi_eff"][::stride]
+
+        # Redshift and luminosity distance [Mpc]
         self.samples[source]['z'] = file['events']['z'][::stride]
         self.samples[source]['dL'] = file['events']['luminosity_distance'][::stride]
-   
-        self.samples[source]['chi_eff'] = file["events"]["chi_eff"][::stride]
 
         self.samples[source]['m1_det'] = self.samples[source]['m1'] * (1 + self.samples[source]['z'])
         self.samples[source]['m2_det'] = self.samples[source]['m2'] * (1 + self.samples[source]['z'])
 
         self.N_samples_total = file['events']['mass1_source'].shape[0]
-        self.samples_fraction_loaded = self.samples[source]['m1'].shape[0] / self.N_samples_total 
+        self.samples_fraction_loaded = self.samples[source]['m1'].shape[0] / self.N_samples_total
         print('real fraction loaded: ', self.samples_fraction_loaded)
 
         self.pre_hopeless_cut_set = True
         print(f"Loaded {len(self.samples[source]['m1']):,} samples ({fraction*100:.00f}% of {self.N_samples_total:,})")
-       
-        return       
-        
+
+        return
+
     def load_inj_set(self, run_dataset, source = 'all'):
         
         if run_dataset == 'o3':
@@ -778,7 +777,7 @@ class Found_injections:
         
         if self.dmid_fun in self.spin_functions:
             dmid_values = self.dmid(m1_det, m2_det, chi_eff, dmid_params)
-        else: 
+        else:
             dmid_values = self.dmid(m1_det, m2_det, dmid_params)   
         
         if self.emax_fun is None and self.alpha_vary is None:
@@ -1169,10 +1168,10 @@ class Found_injections:
             emax = self.emax(m1o_det, m2o_det, emax_params) 
         else:
             emax = np.copy(emax_params)
-        
+
         scale = self.sets[sources]['Ntotal'] / (self.samples_fraction_loaded * self.N_samples_total)
         pdet = self.sigmoid(dLo, dmid_values, emax, gamma, delta, alpha)
-        cmd = np.cumsum(pdet)*scale
+        cmd = np.cumsum(pdet) * scale
         
         # Found injections
         var_found = dic_found[var][self.found_any]
@@ -1192,8 +1191,8 @@ class Found_injections:
         plt.savefig(name, format='pdf', dpi=150, bbox_inches="tight")
         
         # KS test
-        if ks: 
-            pdet_weighted = cmd / (np.sum(pdet)*scale)
+        if ks:
+            pdet_weighted = cmd / (np.sum(pdet) * scale)
             def cdf(x):
                 idxs = np.searchsorted(varo, x, side='right')
                 return np.where(idxs == 0, 0, pdet_weighted[idxs - 1])
@@ -1357,7 +1356,7 @@ class Found_injections:
             
             scale = self.sets[sources]['Ntotal'] / (self.samples_fraction_loaded * self.N_samples_total)
             pdet = self.sigmoid(dL, dmid_values, emax, gamma, delta, alpha)
-            cmd = np.cumsum(pdet)*scale
+            cmd = np.cumsum(pdet) * scale
             
             # Found injections
             found_inj_index_inbin = found_any_o[index_bins==i]
@@ -1407,7 +1406,7 @@ class Found_injections:
                 chi_eff_params.append(popt)
             
             if ks: 
-                pdet_weighted = cmd / (np.sum(pdet)*scale)
+                pdet_weighted = cmd / (np.sum(pdet) * scale)
                 def cdf(x):
                     idxs = np.searchsorted(varo, x, side='right')
                     return np.where(idxs == 0, 0, pdet_weighted[idxs - 1])
@@ -1415,7 +1414,7 @@ class Found_injections:
                 stat, pvalue = kstest(found_inj_inbin_sorted, cdf)
                 print(f'{var_cmd} KStest in {i} bin: statistic = %s, pvalue = %s' % (stat, pvalue))
         
-        print('')   
+        print('')
         
         if var_cmd == 'chi_eff':
             name_opt = path + f'/{emax_dic[self.emax_fun]}/{var_binned}_bins/{var_cmd}_cmd/chi_eff_opt_param'
