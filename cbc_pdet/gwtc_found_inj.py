@@ -908,7 +908,8 @@ class Found_injections:
 
         """
         dmid_params_guess = np.copy(self.dmid_params)
-        options = {"fatol": precision}
+        #xatol large so the only real criteria applied to Nelder Mead for stopping is fatol
+        options = {"fatol": precision, "xatol": 1000} 
         
         res = opt.minimize(fun=lambda in_param: -self.total_logL(in_param, self.shape_params, sources), 
                            x0=np.array(dmid_params_guess), 
@@ -943,7 +944,8 @@ class Found_injections:
         if self.emax_fun == 'emax_gaussian':
             all_bounds[2] = (0, 1) #b0
             all_bounds[3] = (0, 1) #b1
-        options = {"fatol": precision}
+        #xatol large so the only real criteria applied to Nelder Mead for stopping is fatol
+        options = {"fatol": precision, "xatol": 1000}
 
         res = opt.minimize(fun=lambda in_param: -self.total_logL(self.dmid_params, in_param, sources), 
                            x0=np.array(shape_params_guess), 
