@@ -148,6 +148,27 @@ def emax_gaussian(m1_det, m2_det, params):
     logM_gaussian = np.exp(-(np.log(Mtot) - np.log(muM))**2 / (2 * sigmaM**2))
     return (1 - b_0) * (1 - (b_1 * logM_gaussian))
 
+def emax_gaussian_fixed(m1_det, m2_det, params, max_emax=None):
+    """
+    maximum search sensitivity (emax) as a function of the masses
+    in the detector frame
+
+    Parameters
+    ----------
+    m1_det : detector frame mass1, float or 1D array
+    m2_det : detector frame mass2, float or 1D array
+    params : parameters that we will be optimizing, 1D array
+
+    Returns
+    -------
+    emax(m1, m2) in the detector frame
+    """
+    Mtot = m1_det + m2_det
+    b_0 = 1-max_emax
+    b_1, muM, sigmaM = params
+    logM_gaussian = np.exp(-(np.log(Mtot) - np.log(muM))**2 / (2 * sigmaM**2))
+    return (1 - b_0) * (1 - (b_1 * logM_gaussian))
+
 
 def Dmid_mchirp_fdmid(m1_det, m2_det, params):
     """

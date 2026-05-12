@@ -21,6 +21,8 @@
 *script_run.py
 *some_plots.py
 *test_VT.py
+*plot_inclination.py
+*reduce_obs_time_hdf.py
 cbc_pdet/example_run_script.py
 cbc_pdet/example_run_script_o4b.py
 cbc_pdet/example_run_script_2.py

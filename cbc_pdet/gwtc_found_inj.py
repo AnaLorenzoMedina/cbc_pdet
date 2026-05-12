@@ -16,6 +16,7 @@ import errno
 from scipy.optimize import fsolve
 import astropy.cosmology
 import astropy.constants as const
+from functools import partial
 from . import fitting_functions as fits #python module which contains the dmid and emax functions
 
 Mtot_max = 510.25378
@@ -30,7 +31,7 @@ class Found_injections:
     considering a signal as detected when FAR <= 1.
     """
 
-    def __init__(self, dmid_fun = 'Dmid_mchirp_mixture_logspin_corr', emax_fun = 'emax_gaussian', alpha_vary = None, ini_files = None, thr_far = 1, thr_snr = 10, runs = ['o1', 'o2', 'o3', 'o4'], cosmo_parameters = None):
+    def __init__(self, fits_dict = None, alpha_vary = None, max_emax = None, ini_files = None, thr_far = 1, thr_snr = 10, runs = ['o1', 'o2', 'o3', 'o4'], cosmo_parameters = None):
         '''
         Argument ini_files must be a list or a numpy array with two elements
         The first one contains the dmid initial values and the second one the shape initial values 
@@ -47,6 +48,9 @@ class Found_injections:
             runs = [runs]
         assert isinstance(runs, list) or isinstance(runs, tuple),\
           "Argument (runs) must be a list, tuple or string."
+
+        if fits_dict is None:
+            fits_dict = {'dmid_fun': 'Dmid_mchirp_mixture_logspin_corr', 'emax_fun': 'emax_gaussian_fixed', 'max_emax': 0.831}
           
         allowed_runs = {'o1', 'o2', 'o3', 'o4'}
         assert all(r in allowed_runs for r in runs), \
@@ -56,11 +60,21 @@ class Found_injections:
         self.thr_far = thr_far
         self.thr_snr = thr_snr
         
-        self.dmid_fun = dmid_fun #dmid function name
-        self.emax_fun = emax_fun #emax function name
-        self.dmid = getattr(fits, dmid_fun) #class method for dmid
-        self.emax = getattr(fits, emax_fun) #class method for emax
+        self.dmid_fun = fits_dict['dmid_fun'] #dmid function name
+        self.emax_fun_name = fits_dict['emax_fun'] #emax function base name
+        self.dmid = getattr(fits, self.dmid_fun) #class method for dmid
         self.alpha_vary = alpha_vary
+
+        if fits_dict['emax_fun'] == 'emax_gaussian_fixed':
+            self.max_emax_value = fits_dict['max_emax']
+            max_emax_str = '1' if self.max_emax_value == 1 else str(round(self.max_emax_value * 1000)).zfill(3)
+            self.emax_fun = fits_dict['emax_fun'] + f'_{max_emax_str}' #emax function name
+            #create a new callable with pre-filled rguments for a function
+            self.emax = partial(fits.emax_gaussian_fixed, max_emax=self.max_emax_value)
+
+        else:
+            self.emax_fun = fits_dict['emax_fun'] #emax function name
+            self.emax = getattr(fits, self.emax_fun) #class method for emax
         
         if cosmo_parameters is None:
             cosmo_parameters = {'name': 'FlatLambdaCDM', 'H0': 67.9, 'Om0': 0.3065}
@@ -98,7 +112,7 @@ class Found_injections:
         self.coincident_time_o3 = 0.75435365296528  # years
 
         # Total observing time of each run (O3 is different from above because O3 looked at single detector time too)
-        all_obs_time = {'o1' : 0.1331507, 'o2' : 0.323288, 'o3' : 0.91101, 'o4' : 0.75564681724846}  # years
+        all_obs_time = {'o1' : 0.1331507, 'o2' : 0.323288, 'o3' : 0.91101, 'o4' : 0.6489847136664385, 'o4b': 0.8024184348619667}  # years
         self.obs_time = {i: all_obs_time[i] for i in self.runs}
         self.total_obs_time = np.sum(list(self.obs_time.values()))
         self.prop_obs_time = {i: self.obs_time[i]/self.total_obs_time for i in self.runs}
@@ -106,6 +120,10 @@ class Found_injections:
         self.obs_nevents = {'o1': 3, 'o2': 7, 'o3': 59, 'o4': 87}
 
         self.det_rates = {i : self.obs_nevents[i] / self.obs_time[i] for i in self.runs}
+
+        #FIX ME check duty cycles for o1 and o2
+        self.max_emax = max_emax if max_emax is not None else {'o1' : 1, 'o2' : 1, 'o3' : 0.967, 'o4' : 0.831, 'o4b': 0.887}  # years
+        #o3: https://arxiv.org/pdf/2302.03676
 
         self.dmid_params_names = {'Dmid_mchirp': 'D0',
                                   'Dmid_mchirp_expansion_noa30':
@@ -132,12 +150,25 @@ class Found_injections:
                                    'emax_sigmoid' : sigmoid_names + ['b_0, k, M_0'],
                                    'emax_sigmoid_nolog' : sigmoid_names + ['b_0, b_1, b_2'],
                                    'emax_gaussian': sigmoid_names + ['b_0', 'b_1', 'muM', 'sigmaM'],
+                                   'emax_gaussian_fixed': sigmoid_names + ['b_1', 'muM', 'sigmaM'],
                                     None : sigmoid_names,
                                   }
 
         self.sets = {}
         self.samples = {}
         self.d0 = None #slot for d0 cte in case it's used later
+
+    def get_run_path(self, run):
+        if emax_fun == 'emax_gaussian_fixed':
+            self.max_emax_value = self.max_emax[run]
+            max_emax_str = '1' if self.max_emax_value == 1 else str(round(self.max_emax_value * 1000)).zfill(3)
+            self.path = self.path.replace(self.emax_fun, f'{self.emax_fun}_{max_emax_str}')
+            #explain
+            self.emax = partial(fits.emax_gaussian_fixed, max_emax=self.max_emax_value)
+        return self.path
+
+    def compute_emax(self, m1_det, m2_det, emax_params, run)
+
 
     def make_folders(self, run, sources):
 
@@ -296,10 +327,15 @@ class Found_injections:
         
         return
 
-    def read_o4_set(self, source = 'all'):
+    def read_o4_set(self, source = 'all', reduce_obs_time = True):
        
         try:
-            file = h5py.File(f'{os.path.dirname(__file__)}/samples-rpo4a_v2_20250503133839UTC-1366933504-23846400.hdf', 'r')
+            if reduce_obs_time:
+                file = h5py.File(f'{os.path.dirname(__file__)}/samples-rpo4a_v2_20250503133839UTC-1366933504-23846400_reduced.hdf', 'r')
+            else:
+                file = h5py.File(f'{os.path.dirname(__file__)}/samples-rpo4a_v2_20250503133839UTC-1366933504-23846400.hdf', 'r')
+                #file = h5py.File('/home/rp.o4/offline-injections/real/T2400372-v2/samples-rpo4a_v2_20250220153231UTC-1366933504-23846400.hdf', 'r')
+        
         except:
             raise RuntimeError('File with the injection set not found. Please add it to your installation \
                                 of cbc_pdet, in the folder where gwtc_found_inj.py is.')
@@ -1045,7 +1081,7 @@ class Found_injections:
 
         total_lnL = np.delete(total_lnL, 0)
         
-        shape_header = f'{self.shape_params_names[self.emax_fun]} , maxL'
+        shape_header = f'{self.shape_params_names[self.emax_fun_name]} , maxL'
         
         name_dmid_file = path + '/joint_fit_dmid.dat'
         name_shape_file = path + '/joint_fit_shape.dat'
@@ -1104,7 +1140,7 @@ class Found_injections:
         if not self.pre_hopeless_cut_set:
             self.draw_samples(run_dataset, sources, fraction)
         
-        emax_dic = {None: 'cmds', 'emax_exp' : 'emax_exp_cmds', 'emax_sigmoid' : 'emax_sigmoid_cmds', 'emax_gaussian' : 'emax_gaussian_cmds'}
+        emax_dic = {None: 'cmds', 'emax_exp' : 'emax_exp_cmds', 'emax_sigmoid' : 'emax_sigmoid_cmds', 'emax_gaussian' : 'emax_gaussian_cmds', 'emax_gaussian_fixed_831' : 'emax_gaussian_fixed_831_cmds'}
 
         path = f'{run_fit}/{sources_folder}/{self.dmid_fun}' if self.alpha_vary is None \
             else f'{run_fit}/{sources_folder}/alpha_vary/{self.dmid_fun}'
@@ -1242,7 +1278,7 @@ class Found_injections:
         if not self.pre_hopeless_cut_set:
             self.draw_samples(run_dataset, sources, fraction)
         
-        emax_dic = {None: 'cmds', 'emax_exp' : 'emax_exp_cmds', 'emax_sigmoid' : 'emax_sigmoid_cmds', 'emax_gaussian' : 'emax_gaussian_cmds'}
+        emax_dic = {None: 'cmds', 'emax_exp' : 'emax_exp_cmds', 'emax_sigmoid' : 'emax_sigmoid_cmds', 'emax_gaussian' : 'emax_gaussian_cmds', 'emax_gaussian_fixed_831' : 'emax_gaussian_fixed_831_cmds'}
         path = f'{run_fit}/{sources_folder}/{self.dmid_fun}' if self.alpha_vary is None else f'{run_fit}/{sources_folder}/alpha_vary/{self.dmid_fun}'
         
         try:
