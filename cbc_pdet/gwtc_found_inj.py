@@ -158,15 +158,6 @@ class Found_injections:
         self.samples = {}
         self.d0 = None #slot for d0 cte in case it's used later
 
-    def get_run_path(self, run):
-        if emax_fun == 'emax_gaussian_fixed':
-            self.max_emax_value = self.max_emax[run]
-            max_emax_str = '1' if self.max_emax_value == 1 else str(round(self.max_emax_value * 1000)).zfill(3)
-            self.path = self.path.replace(self.emax_fun, f'{self.emax_fun}_{max_emax_str}')
-            #explain
-            self.emax = partial(fits.emax_gaussian_fixed, max_emax=self.max_emax_value)
-        return self.path
-
     def compute_emax(self, m1_det, m2_det, emax_params, run)
 
 
@@ -996,7 +987,7 @@ class Found_injections:
 
         if self.emax_fun_name == 'emax_gaussian_fixed':
             all_bounds[2] = (0, 1) #b1
-            
+
         #xatol large so the only real criteria applied to Nelder Mead for stopping is fatol
         options = {"fatol": precision, "xatol": 1000}
 
