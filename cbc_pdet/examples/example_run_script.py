@@ -17,10 +17,12 @@ import numpy as np
 #functions for O4a and O3 all sources
 dmid_fun = 'Dmid_mchirp_mixture_logspin_corr'
 emax_fun = 'emax_gaussian'
-alpha_vary = None
+max_emax = 0.831
+
+fits_dict = {'dmid_fun': dmid_fun, 'emax_fun': emax_fun, 'max_emax': max_emax}
 
 #o4 opt params
-data = Found_injections(dmid_fun, emax_fun) #initialise class
+data = Found_injections(fits_dict) #initialise class
 
 #set these two variables for the results 
 run_fit = 'o4'   #the fit you want the optimal parameters from (in case you want to use o3 fit with o2 dataset, for example)

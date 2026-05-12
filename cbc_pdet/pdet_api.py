@@ -16,11 +16,17 @@ class PdetEstimation():
     def __init__(self, method_dict=None, cosmo_parameters=None, override_redshift=False):
         
         if method_dict is None:  # Current defaults use a fit on O4a injections
-            method_dict = {'observing_run': 'o4', 'sources': 'all', 'thr_far': 1, 'dmid_fun': 'Dmid_mchirp_mixture_logspin_corr', 'emax_fun': 'emax_gaussian'}        
+            method_dict = {'observing_run': 'o4', 'sources': 'all', 'thr_far': 1, 'dmid_fun': 'Dmid_mchirp_mixture_logspin_corr', 'emax_fun': 'emax_gaussian_fixed', 'max_emax': 0.831}        
         self.run = method_dict.pop('observing_run')
         self.sources = method_dict.pop('sources')
 
-        self.fit = Found_injections(**method_dict, cosmo_parameters=cosmo_parameters)
+        fits_dict = {
+            k: method_dict.pop(k)
+            for k in ['dmid_fun', 'emax_fun', 'max_emax']
+            if k in method_dict
+        }
+
+        self.fit = Found_injections(**method_dict, fit_dict = fits_dict, cosmo_parameters=cosmo_parameters)
         
         self.fit.get_opt_params(self.run, self.sources)
         self.fit.set_shape_params()
