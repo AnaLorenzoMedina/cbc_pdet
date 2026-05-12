@@ -53,6 +53,9 @@ output*
 # cdfs folders
 *_cmds/
 
+#old fits
+**/old/
+
 # kstest data
 *.rtf
 

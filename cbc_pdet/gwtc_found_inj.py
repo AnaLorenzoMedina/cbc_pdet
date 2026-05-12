@@ -408,6 +408,9 @@ class Found_injections:
         if hdfile is None:
             hdfile = '/scratch/ana.lorenzo/injections/rpo4b-injections/offline-injections/samples/v1/chunks_without_cut/samples-rpo4_2024_06_v1-without-hopeless-cut_subset.hdf'
 
+        elif hdfile is None and run == 'o3':
+            hdfile = '/scratch/ana.lorenzo/injections/rpo3-injections/offline-injections/samples/v1/chunks_without_cut/samples-rpo3_2024_06_v1-without-hopeless-cut_subset.hdf'
+            
         try:
             file = h5py.File(hdfile, 'r')
         except:
@@ -421,12 +424,20 @@ class Found_injections:
         self.samples[source]['m1'] = file['events']['mass1_source'][::stride]
         self.samples[source]['m2'] = file['events']['mass2_source'][::stride]
 
-        # Chi_eff
-        self.samples[source]['chi_eff'] = file["events"]["chi_eff"][::stride]
-
         # Redshift and luminosity distance [Mpc]
         self.samples[source]['z'] = file['events']['z'][::stride]
         self.samples[source]['dL'] = file['events']['luminosity_distance'][::stride]
+
+        # Chi_eff
+        if run == 'o4':
+            self.samples[source]['chi_eff'] = file["events"]["chi_eff"][::stride]
+            
+        elif run == 'o3':
+            self.samples[source]['s1z'] = file['events']['spin1z'][::stride]
+            self.samples[source]['s2z'] = file['events']['spin2z'][::stride]
+            
+            self.samples[source]['chi_eff'] = (self.samples[source]['s1z'] *self.samples[source]['m1'] + self.samples[source]['s2z'] * self.samples[source]['m2']) \
+                                            / (self.samples[source]['m1'] + self.samples[source]['m2'])
 
         self.samples[source]['m1_det'] = self.samples[source]['m1'] * (1 + self.samples[source]['z'])
         self.samples[source]['m2_det'] = self.samples[source]['m2'] * (1 + self.samples[source]['z'])
@@ -457,7 +468,10 @@ class Found_injections:
         source_data = self.sets[source].copy()
 
         # Luminosity distance sampling pdf values, p(dL), computed for a flat Lambda-Cold Dark Matter cosmology from the z_pdf values
-        self.sets[source]['dL_pdf'] = source_data['z_pdf'] / source_data['dL_dz']
+        if run_dataset == 'o4' or run_dataset == 'o4b':
+            self.sets[source]['dL_pdf'] = source_data['z_pdf'] / source_data['dL_dz']
+        else:
+            self.sets[source]['dL_pdf'] = source_data['z_pdf'] / fits.dL_derivative(source_data['z'], source_data['dL'], self.cosmo)
 
         # Total mass (m1+m2)
         Mtot_source = source_data['m1'] + source_data['m2']
@@ -979,6 +993,10 @@ class Found_injections:
         if self.emax_fun == 'emax_gaussian':
             all_bounds[2] = (0, 1) #b0
             all_bounds[3] = (0, 1) #b1
+
+        if self.emax_fun_name == 'emax_gaussian_fixed':
+            all_bounds[2] = (0, 1) #b1
+            
         #xatol large so the only real criteria applied to Nelder Mead for stopping is fatol
         options = {"fatol": precision, "xatol": 1000}
 
