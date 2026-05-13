@@ -148,7 +148,7 @@ def emax_gaussian(m1_det, m2_det, params):
     logM_gaussian = np.exp(-(np.log(Mtot) - np.log(muM))**2 / (2 * sigmaM**2))
     return (1 - b_0) * (1 - (b_1 * logM_gaussian))
 
-def emax_gaussian_fixed(m1_det, m2_det, params, max_emax=None):
+def emax_gaussian_fixed(m1_det, m2_det, params, max_emax):
     """
     maximum search sensitivity (emax) as a function of the masses
     in the detector frame

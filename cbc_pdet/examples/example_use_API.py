@@ -9,7 +9,7 @@ Created on Fri Oct 17 15:33:14 2025
 import numpy as np
 from cbc_pdet.pdet_api import PdetEstimation as pdet
 
-mdict = {'observing_run':'o4', 'sources': 'all', 'thr_far': 1, 'dmid_fun': 'Dmid_mchirp_mixture_logspin_corr', 'emax_fun': 'emax_gaussian', 'max_emax': 0.831}
+mdict = {'observing_run':'o4', 'sources': 'all', 'thr_far': 1, 'dmid_fun': 'Dmid_mchirp_mixture_logspin_corr', 'emax_fun': 'emax_gaussian'}
 estimation = pdet(method_dict=mdict)
 
 # you can give the param dict either luminosity distance (in Mpc) or redshift

@@ -31,7 +31,7 @@ class Found_injections:
     considering a signal as detected when FAR <= 1.
     """
 
-    def __init__(self, fits_dict = None, alpha_vary = None, max_emax = None, ini_files = None, thr_far = 1, thr_snr = 10, runs = ['o1', 'o2', 'o3', 'o4'], cosmo_parameters = None):
+    def __init__(self, dmid_fun = 'Dmid_mchirp_mixture_logspin_corr', emax_fun = 'emax_gaussian_fixed', alpha_vary = None, max_emax = None, ini_files = None, thr_far = 1, thr_snr = 10, runs = ['o1', 'o2', 'o3', 'o4'], cosmo_parameters = None):
         '''
         Argument ini_files must be a list or a numpy array with two elements
         The first one contains the dmid initial values and the second one the shape initial values 
@@ -49,9 +49,6 @@ class Found_injections:
         assert isinstance(runs, list) or isinstance(runs, tuple),\
           "Argument (runs) must be a list, tuple or string."
 
-        if fits_dict is None:
-            fits_dict = {'dmid_fun': 'Dmid_mchirp_mixture_logspin_corr', 'emax_fun': 'emax_gaussian_fixed', 'max_emax': 0.831}
-          
         allowed_runs = {'o1', 'o2', 'o3', 'o4'}
         assert all(r in allowed_runs for r in runs), \
             f"Invalid run(s) in {runs}. Allowed: {allowed_runs}"
@@ -60,21 +57,11 @@ class Found_injections:
         self.thr_far = thr_far
         self.thr_snr = thr_snr
         
-        self.dmid_fun = fits_dict['dmid_fun'] #dmid function name
-        self.emax_fun_name = fits_dict['emax_fun'] #emax function base name
+        self.dmid_fun = dmid_fun #dmid function name
+        self.emax_fun = emax_fun #emax function base name
         self.dmid = getattr(fits, self.dmid_fun) #class method for dmid
+        self.emax = getattr(fits, self.emax_fun) #class method for dmid
         self.alpha_vary = alpha_vary
-
-        if fits_dict['emax_fun'] == 'emax_gaussian_fixed':
-            self.max_emax_value = fits_dict['max_emax']
-            max_emax_str = '1' if self.max_emax_value == 1 else str(round(self.max_emax_value * 1000)).zfill(3)
-            self.emax_fun = fits_dict['emax_fun'] + f'_{max_emax_str}' #emax function name
-            #create a new callable with pre-filled rguments for a function
-            self.emax = partial(fits.emax_gaussian_fixed, max_emax=self.max_emax_value)
-
-        else:
-            self.emax_fun = fits_dict['emax_fun'] #emax function name
-            self.emax = getattr(fits, self.emax_fun) #class method for emax
         
         if cosmo_parameters is None:
             cosmo_parameters = {'name': 'FlatLambdaCDM', 'H0': 67.9, 'Om0': 0.3065}
@@ -122,7 +109,7 @@ class Found_injections:
         self.det_rates = {i : self.obs_nevents[i] / self.obs_time[i] for i in self.runs}
 
         #FIX ME check duty cycles for o1 and o2
-        self.max_emax = max_emax if max_emax is not None else {'o1' : 1, 'o2' : 1, 'o3' : 0.967, 'o4' : 0.831, 'o4b': 0.887}  # years
+        self.max_emax_dict = {'o1' : 1, 'o2' : 1, 'o3' : 0.967, 'o4' : 0.831, 'o4b': 0.887}  # years
         #o3: https://arxiv.org/pdf/2302.03676
 
         self.dmid_params_names = {'Dmid_mchirp': 'D0',
@@ -157,8 +144,6 @@ class Found_injections:
         self.sets = {}
         self.samples = {}
         self.d0 = None #slot for d0 cte in case it's used later
-
-    def compute_emax(self, m1_det, m2_det, emax_params, run)
 
 
     def make_folders(self, run, sources):
@@ -634,6 +619,20 @@ class Found_injections:
         
         return
 
+    def set_max_emax(self, run, sources):
+        if self.emax_fun == 'emax_gaussian_fixed':
+            if isinstance(sources, str):
+                each_source = [source.strip() for source in sources.split(',')]
+            else:
+                each_source = sources  # List of strings
+
+            sources_folder = "_".join(sorted(each_source))
+            path = f'{os.path.dirname(__file__)}/{run}/{sources_folder}/' + self.path
+
+            self.max_emax_value = np.loadtxt(path + '/max_emax.dat')
+            self.emax = partial(fits.emax_gaussian_fixed, max_emax=self.max_emax_value)
+        return
+
     def get_opt_params(self, run_fit, sources, rescale_o3=True):
         '''
         Sets self.dmid_params and self.shape_params as a class attribute (optimal values from some previous fit).
@@ -670,6 +669,12 @@ class Found_injections:
         except:
             raise RuntimeError('ERROR in self.get_opt_params: There are not such files because there is not a fit yet with these options.')
 
+        if self.emax_fun == 'emax_gaussian_fixed':
+            try:
+                self.set_max_emax(run_fit, sources)
+            except:
+                raise ValueError(f'Please include the right max_emax.dat file in {path} to use this fit.')
+        
         if rescale_o3 and run_fit != 'o3' and run_fit != 'o4':
             if not self.d0:
                 d0 = self.find_dmid_cte_found_inj(run_fit, 'o3')
@@ -701,6 +706,13 @@ class Found_injections:
             shape_ini_values = np.loadtxt( path + '_shape.dat')
         except:
             raise RuntimeError('ERROR in self.get_ini_values: Files not found. Please create .dat files with the initial param guesses for this fit.')
+
+        if self.emax_fun == 'emax_gaussian_fixed':
+            try:
+                self.max_emax_value = np.loadtxt(f'{os.path.dirname(__file__)}/ini_values/max_emax.dat')
+                self.emax = partial(fits.emax_gaussian_fixed, max_emax=self.max_emax_value)
+            except:
+                raise ValueError(f'Please include a max_emax.dat file in {os.path.dirname(__file__)}/ini_values/ to use this fit.')
 
         return dmid_ini_values, shape_ini_values
     
@@ -985,7 +997,7 @@ class Found_injections:
             all_bounds[2] = (0, 1) #b0
             all_bounds[3] = (0, 1) #b1
 
-        if self.emax_fun_name == 'emax_gaussian_fixed':
+        if self.emax_fun == 'emax_gaussian_fixed':
             all_bounds[2] = (0, 1) #b1
 
         #xatol large so the only real criteria applied to Nelder Mead for stopping is fatol
@@ -1039,7 +1051,14 @@ class Found_injections:
         all_dmid_params = np.zeros([1,len(np.atleast_1d(self.dmid_params))])
         
         path = f'{run_dataset}/{sources_folder}/' + self.path
-        
+
+        if self.emax_fun == 'emax_gaussian_fixed':
+            try:
+                self.max_emax_value = np.loadtxt(f'{os.path.dirname(__file__)}' + path + '/max_emax.dat')
+                self.emax = partial(fits.emax_gaussian_fixed, max_emax=self.max_emax_value)
+            except:
+                raise ValueError(f'Please include a max_emax.dat file in {path} to use this function for the fit.')
+            
         if self.alpha_vary is None:
             all_emax_params = np.zeros([1,len(np.atleast_1d(self.shape_params[2:]))])
             params_emax = None if self.emax is None else np.copy(self.shape_params[2:])
@@ -1090,7 +1109,7 @@ class Found_injections:
 
         total_lnL = np.delete(total_lnL, 0)
         
-        shape_header = f'{self.shape_params_names[self.emax_fun_name]} , maxL'
+        shape_header = f'{self.shape_params_names[self.emax_fun]} , maxL'
         
         name_dmid_file = path + '/joint_fit_dmid.dat'
         name_shape_file = path + '/joint_fit_shape.dat'
