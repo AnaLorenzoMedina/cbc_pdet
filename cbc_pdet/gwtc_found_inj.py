@@ -489,7 +489,7 @@ class Found_injections:
         
             bin_indices = np.where(mask)[0]
             
-            if len(selected_indices) <= 40:
+            if len(bin_indices) <= 40:
                 selected_indices.extend(bin_indices)
             else:
                sampled = np.random.choice(
@@ -1162,11 +1162,12 @@ class Found_injections:
         self.make_folders(run_fit, sources_folder)
         
         self.get_opt_params(run_fit, sources)
+        
         if not self.load_all_injections:
             self.load_all_inj_sets(run_dataset, sources)
 
         if not self.pre_hopeless_cut_set:
-            self.draw_samples(run_dataset, sources, fraction)
+            self.draw_samples(run = run_dataset, source = sources, fraction = fraction)
         
         emax_dic = {None: 'cmds', 'emax_exp' : 'emax_exp_cmds', 'emax_sigmoid' : 'emax_sigmoid_cmds', 'emax_gaussian' : 'emax_gaussian_cmds', 'emax_gaussian_fixed_831' : 'emax_gaussian_fixed_831_cmds'}
 
