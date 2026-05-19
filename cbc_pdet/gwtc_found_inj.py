@@ -1162,7 +1162,7 @@ class Found_injections:
         self.make_folders(run_fit, sources_folder)
         
         self.get_opt_params(run_fit, sources)
-        
+
         if not self.load_all_injections:
             self.load_all_inj_sets(run_dataset, sources)
 
@@ -1627,7 +1627,7 @@ class Found_injections:
 
         return Vtot
     
-    def find_dmid_cte_found_inj(self, run_dataset, run_fit='o3'):
+    def find_dmid_cte_found_inj(self, run_dataset, run_fit='o3', redo_cte = False, fraction=0.1):
         '''
         Method for finding the rescaled factor (d0) for whatever injection set we want (usually o1 or o2) using the run_fit that we want (usually o3)
 
@@ -1643,32 +1643,41 @@ class Found_injections:
         assert run_dataset =='o1' or run_dataset == 'o2', "Argument (run_dataset) must be 'o1' or 'o2'."
 
         try:
+            if redo_cte:
+                raise ValueError('Computing D0 cte')
             d_dict = np.load(f'{os.path.dirname(__file__)}/d0.npy', allow_pickle=True).item()
-            d0 = {'o1' : d_dict[self.dmid_fun]['o1'], 'o2' : d_dict[self.dmid_fun]['o2']}
+            d0 = {'o1' : d_dict[self.dmid_fun][self.emax_fun]['o1'], 'o2' : d_dict[self.dmid_fun][self.emax_fun]['o2']}
             self.d0 = d0
             print(f'Using the d0.dat file that already exists, from the {self.dmid_fun} fit.')
             #print(f'D0 scaled for {run_dataset} from o3: {d0[run_dataset]}')
             return d0[run_dataset]
         
         except:
-            self.load_all_inj_sets(run_dataset, 'bbh')
+            sources = 'bbh'
+            
+            self.load_all_inj_sets(run_dataset, sources)
             Nfound = self.found_any.sum()
+            
+            if not self.pre_hopeless_cut_set:
+                self.draw_samples(run = run_fit, source = sources, fraction = fraction)
+                
+            scale = self.sets[sources]['Ntotal'] / (self.samples_fraction_loaded * self.N_samples_total)
     
-            self.get_opt_params(run_fit, 'bbh', rescale_o3 = False) #we always want 'o3' fit
+            self.get_opt_params(run_fit, sources, rescale_o3 = False) #we always want 'o3' fit
     
             dmid_params = np.copy(self.dmid_params)
             dmid_params[0] = 1.
     
             if self.dmid_fun in self.spin_functions:
-                dmid_values = self.dmid(self.m1_det, self.m2_det, self.chi_eff, dmid_params)
+                dmid_values = self.dmid(self.samples[sources]['m1_det'], self.samples[sources]['m2_det'], self.samples[sources]['chi_eff'], dmid_params)
             else: 
-                dmid_values = self.dmid(self.m1_det, self.m2_det, dmid_params)
+                dmid_values = self.dmid(self.samples[sources]['m1_det'], self.samples[sources]['m2_det'], dmid_params)
             #self.apply_dmid_mtotal_max(dmid_values, mtot_det)
     
             emax_params, gamma, delta, alpha = self.get_shape_params()
     
             if self.emax_fun is not None:
-                emax = self.emax(self.m1_det, self.m2_det, emax_params)  
+                emax = self.emax(self.samples[sources]['m1_det'], self.samples[sources]['m2_det'], emax_params)  
             else:
                 emax = np.copy(emax_params)
     
@@ -1676,21 +1685,19 @@ class Found_injections:
                 new_dmid_values = x * dmid_values
                 #self.apply_dmid_mtotal_max(new_dmid_values, mtot_det)
                 
-                frac = self.dL / ( new_dmid_values)
+                frac = self.samples[sources]['dL'] / ( new_dmid_values)
                 denom = 1. + frac ** alpha * \
                         np.exp(gamma* (frac - 1.) + delta * (frac**2 - 1.))
       
-                return  np.nansum(emax / denom)  -  Nfound
+                return  np.nansum(emax / denom) * scale  -  Nfound
     
             d0 = fsolve(find_root, [50])  # rescaled Dmid cte (it has units of Dmid !!)
             self.load_all_inj_sets('o3', 'bbh')
-            #print(f'D0 scaled for {run_dataset} from o3: {d0}')
+            print(f'D0 scaled for {run_dataset} from o3: {d0}')
             #print('Current injection file loaded is o3, to be taken into account.')
             return d0
-           
 
-
-    def predicted_events(self, run_fit = 'o3', run_dataset='o3'):
+    def predicted_events(self, run_fit = 'o3', run_dataset='o3', fraction=0.1):
         '''
         find the predicted found events in each run using rescaled fits from one injection set
 
@@ -1703,32 +1710,38 @@ class Found_injections:
         -------
         float. predicted found events
         '''
-        self.load_all_inj_sets(run_dataset, 'bbh')
+        sources = 'bbh'
+        self.load_all_inj_sets(run_dataset, sources)
         Nfound = self.found_any.sum()
+        
+        if not self.pre_hopeless_cut_set:
+            self.draw_samples(run = run_fit, source = sources, fraction = fraction)
+            
+        scale = self.sets[sources]['Ntotal'] / (self.samples_fraction_loaded * self.N_samples_total)
 
-        self.get_opt_params(run_fit, 'bbh')
+        self.get_opt_params(run_fit, sources)
 
         dmid_params = np.copy(self.dmid_params)
         dmid_params[0] = 1.
 
         if self.dmid_fun in self.spin_functions:
-            dmid_values = self.dmid(self.m1_det, self.m2_det, self.chi_eff, dmid_params)
+            dmid_values = self.dmid(self.samples[sources]['m1_det'], self.samples[sources]['m2_det'], self.samples[sources]['chi_eff'], dmid_params)
         else: 
-            dmid_values = self.dmid(self.m1_det, self.m2_det, dmid_params)
+            dmid_values = self.dmid(self.samples[sources]['m1_det'], self.samples[sources]['m2_det'], dmid_params)
         #self.apply_dmid_mtotal_max(dmid_values, mtot_det)
 
         emax_params, gamma, delta, alpha = self.get_shape_params()
 
         if self.emax_fun is not None:
-            emax = self.emax(self.m1_det, self.m2_det, emax_params)
+            emax = self.emax(self.samples[sources]['m1_det'], self.samples[sources]['m2_det'], emax_params)
         else:
             emax = np.copy(emax_params)
 
         def manual_found_inj(x):
-            frac = self.dL / ( x * dmid_values)
+            frac = self.samples[sources]['dL'] / ( x * dmid_values)
             denom = 1. + frac ** alpha * \
                     np.exp(gamma* (frac - 1.) + delta * (frac**2 - 1.))
-            return np.sum( emax / denom )
+            return np.sum( emax / denom ) * scale
 
         o1_inj = manual_found_inj(self.find_dmid_cte_found_inj(run_dataset ='o1', run_fit = run_fit))
         o2_inj = manual_found_inj(self.find_dmid_cte_found_inj(run_dataset ='o2', run_fit = run_fit))
