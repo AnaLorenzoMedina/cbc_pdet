@@ -30,6 +30,10 @@ cbc_pdet/example_run_script_o4b_2.py
 cbc_pdet/Nexp.py
 cbc_pdet/Nexp_all.py
 
+# not fixed fits
+**/o3/bbh_*
+**/o1/
+**/o2/
 
 # jupyter notebooks
 *.ipynb
@@ -53,7 +57,7 @@ output*
 # cdfs folders
 *_cmds/
 
-#old fits
+# old fits
 **/old/
 
 # kstest data
