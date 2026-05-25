@@ -619,12 +619,15 @@ class Found_injections:
         
         return
 
-    def set_max_emax(self, run, sources):
+    def set_max_emax(self, run, sources, rescale_o3=True):
         if self.emax_fun == 'emax_gaussian_fixed':
             if isinstance(sources, str):
                 each_source = [source.strip() for source in sources.split(',')]
             else:
                 each_source = sources  # List of strings
+
+            if rescale_o3 and run != 'o4' and run != 'o4b' :
+                run = 'o3'
 
             sources_folder = "_".join(sorted(each_source))
             path = f'{os.path.dirname(__file__)}/{run}/{sources_folder}/' + self.path
@@ -671,7 +674,7 @@ class Found_injections:
 
         if self.emax_fun == 'emax_gaussian_fixed':
             try:
-                self.set_max_emax(run_fit, sources)
+                self.set_max_emax(run_fit, sources, rescale_o3)
             except:
                 raise ValueError(f'Please include the right max_emax.dat file in {path} to use this fit.')
         
@@ -1780,6 +1783,8 @@ class Found_injections:
             dmid_values = self.dmid(m1_det, m2_det, chieff, self.dmid_params)
         else: 
             dmid_values = self.dmid(m1_det, m2_det, self.dmid_params)
+
+        print('using emax: ', self.emax)
 
         #self.apply_dmid_mtotal_max(np.array(dmid_values), mtot_det)
 
