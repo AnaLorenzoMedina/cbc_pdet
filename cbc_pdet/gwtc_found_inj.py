@@ -378,10 +378,9 @@ class Found_injections:
        
         return   
 
-    def draw_samples(self, source='all', hdfile=None, fraction=0.1):
-        assert source == 'all', "Argument (source) must be 'all'. " 
+    def draw_samples(self, run='o4', source='all', hdfile=None, fraction=0.1):
 
-        if hdfile is None:
+        if hdfile is None and run == 'o4':
             hdfile = '/scratch/ana.lorenzo/injections/rpo4b-injections/offline-injections/samples/v1/chunks_without_cut/samples-rpo4_2024_06_v1-without-hopeless-cut_subset.hdf'
 
         elif hdfile is None and run == 'o3':
@@ -404,7 +403,7 @@ class Found_injections:
         self.samples[source]['z'] = file['events']['z'][::stride]
         self.samples[source]['dL'] = file['events']['luminosity_distance'][::stride]
 
-        # Chi_eff
+        # chi_eff
         if run == 'o4':
             self.samples[source]['chi_eff'] = file["events"]["chi_eff"][::stride]
             
@@ -1826,7 +1825,7 @@ class Found_injections:
 
         return pdet
 
-    def bootstrap_resampling(self, n_boots, run_dataset, sources):
+    def bootstrap_resampling(self, n_boots, run_dataset, sources, precision=0.1):
         if isinstance(sources, str):
             each_source = [source.strip() for source in sources.split(',')] 
 
@@ -1849,33 +1848,42 @@ class Found_injections:
                 self.sets[source]['m2']= self.sets[source]['m2'][boots]
                 self.sets[source]['m1_det'] = self.sets[source]['m1_det'][boots]
                 self.sets[source]['m2_det']= self.sets[source]['m2_det'][boots]
-                self.sets[source]['z'] = self.sets[source]['z'][boots]
+                # self.sets[source]['z'] = self.sets[source]['z'][boots]
                 self.sets[source]['dL'] = self.sets[source]['dL'][boots]
                 
-                self.sets[source]['Mtot'] = self.sets[source]['Mtot'][boots]
-                self.sets[source]['Mtot_det'] = self.sets[source]['Mtot_det'][boots]
-                self.sets[source]['Mc'] = self.sets[source]['Mc'][boots]
-                self.sets[source]['Mc_det'] = self.sets[source]['Mc_det'][boots]
-                self.sets[source]['eta'] = self.sets[source]['eta'][boots]
-                self.sets[source]['q'] = self.sets[source]['q'][boots]  
-                self.sets[source]['m_pdf'] = self.sets[source]['m_pdf'][boots]
-                self.sets[source]['z_pdf'] = self.sets[source]['z_pdf'][boots]
-                self.sets[source]['dL_pdf'] = self.sets[source]['dL_pdf'][boots]
+                # self.sets[source]['Mtot'] = self.sets[source]['Mtot'][boots]
+                # self.sets[source]['Mtot_det'] = self.sets[source]['Mtot_det'][boots]
+                # self.sets[source]['Mc'] = self.sets[source]['Mc'][boots]
+                # self.sets[source]['Mc_det'] = self.sets[source]['Mc_det'][boots]
+                # self.sets[source]['eta'] = self.sets[source]['eta'][boots]
+                # self.sets[source]['q'] = self.sets[source]['q'][boots]  
+                # self.sets[source]['m_pdf'] = self.sets[source]['m_pdf'][boots]
+                # self.sets[source]['z_pdf'] = self.sets[source]['z_pdf'][boots]
+                # self.sets[source]['dL_pdf'] = self.sets[source]['dL_pdf'][boots]
 
-                self.sets[source]['s1x'] = self.sets[source]['s1x'][boots]
-                self.sets[source]['s1y'] = self.sets[source]['s1y'][boots]
-                self.sets[source]['s1z'] = self.sets[source]['s1z'][boots]
-                self.sets[source]['s2x'] = self.sets[source]['s2x'][boots]
-                self.sets[source]['s2y'] = self.sets[source]['s2y'][boots]
-                self.sets[source]['s2z'] = self.sets[source]['s2z'][boots]
+                # self.sets[source]['s1x'] = self.sets[source]['s1x'][boots]
+                # self.sets[source]['s1y'] = self.sets[source]['s1y'][boots]
+                # self.sets[source]['s1z'] = self.sets[source]['s1z'][boots]
+                # self.sets[source]['s2x'] = self.sets[source]['s2x'][boots]
+                # self.sets[source]['s2y'] = self.sets[source]['s2y'][boots]
+                # self.sets[source]['s2z'] = self.sets[source]['s2z'][boots]
                     
                 self.sets[source]['chi_eff'] = self.sets[source]['chi_eff'][boots]
 
                 self.sets[source]['found_any'] = self.sets[source]['found_any'][boots]
                 
                 self.joint_pdfs[source] = self.joint_pdfs[source][boots]
+                
+                #prehopeless SNR cutr samples
+                total_samples = self.samples[source]['m1'].shape[0]
+                boots_samples = np.random.choice(np.arange(total_samples), total_samples, replace=True)
+                
+                self.samples[source]['m1_det'] = self.samples[source]['m1_det'][boots_samples]
+                self.samples[source]['m2_det']= self.samples[source]['m2_det'][boots_samples]
+                self.samples[source]['chi_eff'] = self.samples[source]['chi_eff'][boots_samples]
+                self.samples[source]['dL'] = self.samples[source]['dL'][boots_samples]
 
-            opt_params_shape, opt_params_dmid = self.joint_MLE(run_dataset, sources, bootstrap=True)
+            opt_params_shape, opt_params_dmid = self.joint_MLE(run_dataset, sources, precision=precision, bootstrap=True)
             print(i, 'n boots', opt_params_shape, opt_params_dmid)
             all_params = np.vstack([all_params, np.hstack((opt_params_shape, opt_params_dmid))])
 
