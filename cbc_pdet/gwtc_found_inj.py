@@ -1389,12 +1389,12 @@ class Found_injections:
          #index_bins = equal_bin(data, nbins)
         index_bins_inj = equal_bin(injections, nbins)
         
-        # get bin edges from the pre-hopeless binning
+        # get bin edges from the normal injections binning
         bin_edges = [injections[index_bins_inj==i].min() for i in range(nbins)] + [injections[index_bins_inj==nbins-1].max()]
         
-        # asign normal injections to bins based on same edges
-        index_bins = np.digitize(data, bin_edges) - 1
-        index_bins = np.clip(index_bins, 0, nbins-1)
+        # assign prehopeless injections to bins based on same edges
+        index_bins = np.digitize(data, bin_edges) - 1 #returns the index of the bin each element of injections falls into
+        index_bins = np.clip(index_bins, 0, nbins-1) #ensures it stays within [0, nbins-1] for edge cases
         
         print(f'\n{var_binned} bins:\n')
 
