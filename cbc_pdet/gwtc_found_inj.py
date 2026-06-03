@@ -1134,7 +1134,7 @@ class Found_injections:
         
         return shape_results[-1, :-1], dmid_results[-1, :-1]
 
-    def cumulative_dist(self, run_dataset, run_fit, sources, var, ks = False, fraction=0.02):
+    def cumulative_dist(self, run_dataset, run_fit, sources, var, ks = False, fraction=0.02, logscale=False):
         '''
         Saves cumulative distributions plots and prints KS tests for the specified variables  
 
@@ -1188,6 +1188,7 @@ class Found_injections:
         mu = (self.samples[sources]['m1'] * self.samples[sources]['m2']) / Mtot_source
         eta = mu / Mtot_source
 
+        #prehopeless cut samples
         dic = {'dL': self.samples[sources]['dL'],
                 'z': self.samples[sources]['z'],
                 'm1_det': self.samples[sources]['m1_det'],
@@ -1198,7 +1199,8 @@ class Found_injections:
                 'Mc_det': Mc_det,
                 'Mtot_det': self.samples[sources]['m1_det']+self.samples[sources]['m2_det'],
                 'chi_eff': self.samples[sources]['chi_eff']}
- 
+
+        #normal injections
         dic_found = {'dL': self.dL,
                 'z': self.z,
                 'Mc': self.Mc,
@@ -1250,6 +1252,8 @@ class Found_injections:
         plt.figure()
         plt.scatter(varo, cmd, s=1, label='model', rasterized=True)
         plt.scatter(var_foundo, real_found_inj, s=1, label='found injections', rasterized=True)
+        if logscale:
+            plt.semilogx()
         plt.xlabel(names_plotting[var], fontsize = 20)
         plt.ylabel('Cumulative found injections', fontsize = 20)
         plt.legend(loc='best', fontsize = 20)
@@ -1270,8 +1274,7 @@ class Found_injections:
 
         return
 
-    def binned_cumulative_dist(self, run_dataset, run_fit, sources, nbins, var_cmd, var_binned, ks = False):
-        # FIX ME !!!!!!!!
+    def binned_cumulative_dist(self, run_dataset, run_fit, sources, nbins, var_cmd, var_binned, ks = False, fraction=0.02, logscale=False):
         '''
         Saves binned cumulative distributions and prints binned KS tests for the specified variables 
 
@@ -1336,6 +1339,7 @@ class Found_injections:
         mu = (self.samples[sources]['m1'] * self.samples[sources]['m2']) / Mtot_source
         eta = mu / Mtot_source
 
+        #prehopeless cut samples
         bin_dic = {'dL': self.samples[sources]['dL'],
                 'z': self.samples[sources]['z'],
                 'm1_det': self.samples[sources]['m1_det'],
@@ -1347,6 +1351,7 @@ class Found_injections:
                 'Mtot_det': self.samples[sources]['m1_det']+self.samples[sources]['m2_det'],
                 'chi_eff': self.samples[sources]['chi_eff']}
 
+        #normal injections
         dic_found = {'dL': self.dL,
                 'z': self.z,
                 'Mc': self.Mc,
@@ -1356,12 +1361,12 @@ class Found_injections:
                 'Mtot_det': self.Mtot_det,
                 'chi_eff': self.chi_eff}
 
-        # Sort data
-
+        # Sort data for bins
         data_not_sorted = bin_dic[var_binned]
         index = np.argsort(data_not_sorted)
         data = data_not_sorted[index]
 
+        #sorting prehopeless injections over binned variable
         dLo = bin_dic['dL'][index]
         m1o_det = bin_dic['m1_det'][index]
         m2o_det = bin_dic['m2_det'][index]
@@ -1369,7 +1374,11 @@ class Found_injections:
         Mco_det = bin_dic['Mc_det'][index]; Mtoto_det = bin_dic['Mtot_det'][index]
         chi_effo = bin_dic['chi_eff'][index]
         
-        found_any_o = self.found_any[index]
+        #sorting found injections over binned variable
+        inj_not_sorted = dic_found[var_binned]
+        index_inj = np.argsort(inj_not_sorted)
+        injections = inj_not_sorted[index_inj]
+        found_any_o = self.found_any[index_inj]
 
         # Create bins with equal amounts of data
         def equal_bin(N, m):
@@ -1377,14 +1386,25 @@ class Found_injections:
             idx = sep.searchsorted(np.arange(N.size))
             return idx[N.argsort().argsort()]
         
-        index_bins = equal_bin(data, nbins)
+         #index_bins = equal_bin(data, nbins)
+        index_bins_inj = equal_bin(injections, nbins)
+        
+        # get bin edges from the pre-hopeless binning
+        bin_edges = [injections[index_bins_inj==i].min() for i in range(nbins)] + [injections[index_bins_inj==nbins-1].max()]
+        
+        # asign normal injections to bins based on same edges
+        index_bins = np.digitize(data, bin_edges) - 1
+        index_bins = np.clip(index_bins, 0, nbins-1)
         
         print(f'\n{var_binned} bins:\n')
+
+        #this is just for checking the chieff correction
         chi_eff_params = []
         mid_values = []
         
         for i in range(nbins):
             # Get data in each bin
+            #prehopless inj
             data_inbin = data[index_bins==i]
             dL_inbin = dLo[index_bins==i]
             m1_det_inbin = m1o_det[index_bins==i]
@@ -1405,15 +1425,12 @@ class Found_injections:
             dL = dL_inbin[indexo]
             m1_det = m1_det_inbin[indexo]
             m2_det = m2_det_inbin[indexo]
-            #mtot_det = m1_det + m2_det
             chi_eff = chi_eff_inbin[indexo]
             
             if self.dmid_fun in self.spin_functions:
                 dmid_values = self.dmid(m1_det, m2_det, chi_eff, self.dmid_params)
             else: 
                 dmid_values = self.dmid(m1_det, m2_det, self.dmid_params)
-
-            #self.apply_dmid_mtotal_max(dmid_values, mtot_det)
             
             emax_params, gamma, delta, alpha = self.get_shape_params()
             
@@ -1427,15 +1444,17 @@ class Found_injections:
             cmd = np.cumsum(pdet) * scale
             
             # Found injections
-            found_inj_index_inbin = found_any_o[index_bins==i]
-            found_inj_inbin = cmd_dic[var_cmd][found_inj_index_inbin]
+            found_inj_index_inbin = found_any_o[index_bins_inj==i]
+            found_inj_inbin = dic_found[var_cmd][index_bins_inj==i][found_inj_index_inbin]
             indexo_found = np.argsort(found_inj_inbin)
             found_inj_inbin_sorted = found_inj_inbin[indexo_found]
             real_found_inj = np.arange(len(found_inj_inbin_sorted ))+1
         
             plt.figure()
-            plt.plot(varo, cmd, '.', markersize=2, label='model')
-            plt.plot(found_inj_inbin_sorted, real_found_inj, '.', markersize=2, label='found injections')
+            plt.scatter(varo, cmd, s=1, label='model', rasterized=True)
+            plt.scatter(found_inj_inbin_sorted, real_found_inj, s=1, label='found injections', rasterized=True)
+            if logscale:
+                plt.semilogx()
             plt.xlabel(f'{var_cmd}$^*$')
             plt.ylabel('Cumulative found injections')
             plt.legend(loc='best')
@@ -1444,6 +1463,7 @@ class Found_injections:
             plt.savefig(name, format='png')
             plt.close()
             
+            #checking chieff corection
             if var_cmd == 'chi_eff':
                 def chieff_corr(x, c1):
                     return np.exp(c1 * x)
