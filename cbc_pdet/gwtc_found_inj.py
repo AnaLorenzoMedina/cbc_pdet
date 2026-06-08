@@ -191,18 +191,21 @@ class Found_injections:
 
         return
         
-    def read_o1o2_set(self, run_dataset, source = 'bbh'):
+    def read_o1o2_set(self, run_dataset, source = 'bbh', hdfile=None):
         
         assert run_dataset =='o1' or run_dataset == 'o2', "Argument (run_dataset) must be 'o1' or 'o2'."
         assert source =='bbh' or source == 'bns' or source == 'nsbh' or source == 'imbh', \
           "Argument (source) must be 'bbh' or 'bns' or 'nsbh' or 'imbh'. "
         
+        if hdfile is None:
+            hdfile = h5py.File(f'{os.path.dirname(__file__)}/{run_dataset}-{source}-IMRPhenomXPHMpseudoFourPN.hdf5', 'r')
         try:
-            file = h5py.File(f'{os.path.dirname(__file__)}/{run_dataset}-{source}-IMRPhenomXPHMpseudoFourPN.hdf5', 'r')
+            file = h5py.File(hdfile, 'r')
         except:
             raise RuntimeError('File with the injection set not found. Please add it to your installation \
                                 of cbc_pdet, in the folder where o123_class_found_inj_general.py is. \
-                                It can be downloaded from https://dcc.ligo.org/LIGO-T2100280 (currently LVK access)')
+                                It can be downloaded from https://dcc.ligo.org/LIGO-T2100280 (currently LVK access).\
+                                Or specify it when calling the method.')
                                 
         self.sets[source] = {}
                 
@@ -247,13 +250,16 @@ class Found_injections:
         
         return
        
-    def read_o3_set(self, source):
+    def read_o3_set(self, source, hdfile=None):
+        if hdfile is None:
+            hdfile = h5py.File(f'{os.path.dirname(__file__)}/endo3_{source}pop-LIGO-T2100113-v12.hdf5', 'r')
         try:
-            file = h5py.File(f'{os.path.dirname(__file__)}/endo3_{source}pop-LIGO-T2100113-v12.hdf5', 'r')
+            file = h5py.File(hdfile, 'r')
         except:
             raise RuntimeError('File with the injection set not found. Please add it to your installation \
                                 of cbc_pdet, in the folder where o123_class_found_inj_general.py is. \
-                                It can be downloaded from https://zenodo.org/records/7890437')
+                                It can be downloaded from https://zenodo.org/records/7890437. Or specify it\
+                                when calling the method.')
         
         assert source == 'bbh' or source == 'bns' or source == 'nsbh' or source == 'imbh', \
           "Argument (source) must be 'bbh' or 'bns' or 'nsbh' or 'imbh'. "
@@ -303,18 +309,19 @@ class Found_injections:
         
         return
 
-    def read_o4_set(self, source = 'all', reduce_obs_time = True):
+    def read_o4_set(self, source = 'all', reduce_obs_time = True, hdfile=None):
        
-        try:
+        if hdfile is None:
             if reduce_obs_time:
-                file = h5py.File(f'{os.path.dirname(__file__)}/samples-rpo4a_v2_20250503133839UTC-1366933504-23846400_reduced.hdf', 'r')
+                fhdile = h5py.File(f'{os.path.dirname(__file__)}/samples-rpo4a_v2_20250503133839UTC-1366933504-23846400_reduced.hdf', 'r')
             else:
-                file = h5py.File(f'{os.path.dirname(__file__)}/samples-rpo4a_v2_20250503133839UTC-1366933504-23846400.hdf', 'r')
+                hdfile = h5py.File(f'{os.path.dirname(__file__)}/samples-rpo4a_v2_20250503133839UTC-1366933504-23846400.hdf', 'r')
                 #file = h5py.File('/home/rp.o4/offline-injections/real/T2400372-v2/samples-rpo4a_v2_20250220153231UTC-1366933504-23846400.hdf', 'r')
-        
+        try:
+            file = h5py.File(hdfile, 'r')
         except:
             raise RuntimeError('File with the injection set not found. Please add it to your installation \
-                                of cbc_pdet, in the folder where gwtc_found_inj.py is.')
+                                of cbc_pdet, in the folder where gwtc_found_inj.py is, or specify it when you call the method.')
                                
         assert source == 'all', "Argument (source) must be 'all'. " 
 
@@ -426,17 +433,17 @@ class Found_injections:
 
         return
 
-    def load_inj_set(self, run_dataset, source = 'all'):
+    def load_inj_set(self, run_dataset, source = 'all', hdfile=None):
         
         if run_dataset == 'o3':
-            self.read_o3_set(source) 
+            self.read_o3_set(source, hdfile) 
         
         elif run_dataset == 'o4':
-            self.read_o4_set()
+            self.read_o4_set(hdfile)
             source = 'all'
         
         else:
-            self.read_o1o2_set(run_dataset)
+            self.read_o1o2_set(run_dataset, hdfile)
             source = 'bbh'
 
         self.dataset = run_dataset
