@@ -31,7 +31,7 @@ class Found_injections:
     considering a signal as detected when FAR <= 1.
     """
 
-    def __init__(self, dmid_fun = 'Dmid_mchirp_mixture_logspin_corr', emax_fun = 'emax_gaussian_fixed', alpha_vary = None, max_emax = None, ini_files = None, thr_far = 1, thr_snr = 10, runs = ['o1', 'o2', 'o3', 'o4'], cosmo_parameters = None):
+    def __init__(self, dmid_fun = 'Dmid_mchirp_mixture_logspin_corr', emax_fun = 'emax_gaussian_fixed', alpha_vary = None, max_emax = None, ini_files = None, thr_far = 1, thr_snr = 10, runs = ['o1', 'o2', 'o3', 'o4a', 'o4b'], cosmo_parameters = None):
         '''
         Argument ini_files must be a list or a numpy array with two elements
         The first one contains the dmid initial values and the second one the shape initial values 
@@ -99,17 +99,17 @@ class Found_injections:
         self.coincident_time_o3 = 0.75435365296528  # years
 
         # Total observing time of each run (O3 is different from above because O3 looked at single detector time too)
-        all_obs_time = {'o1' : 0.1331507, 'o2' : 0.323288, 'o3' : 0.91101, 'o4' : 0.6489847136664385, 'o4b': 0.8024184348619667}  # years
+        all_obs_time = {'o1' : 0.1331507, 'o2' : 0.323288, 'o3' : 0.91101, 'o4a' : 0.6489847136664385, 'o4b': 0.8024184348619667}  # years
         self.obs_time = {i: all_obs_time[i] for i in self.runs}
         self.total_obs_time = np.sum(list(self.obs_time.values()))
         self.prop_obs_time = {i: self.obs_time[i]/self.total_obs_time for i in self.runs}
 
-        self.obs_nevents = {'o1': 3, 'o2': 7, 'o3': 59, 'o4': 87}
+        self.obs_nevents = {'o1': 3, 'o2': 7, 'o3': 59, 'o4a': 87, 'o4b':161}
 
         self.det_rates = {i : self.obs_nevents[i] / self.obs_time[i] for i in self.runs}
 
         #FIX ME check duty cycles for o1 and o2
-        self.max_emax_dict = {'o1' : 1, 'o2' : 1, 'o3' : 0.967, 'o4' : 0.831, 'o4b': 0.887}  # years
+        self.max_emax_dict = {'o1' : 1, 'o2' : 1, 'o3' : 0.967, 'o4a' : 0.831, 'o4b': 0.887}  # years
         #o3: https://arxiv.org/pdf/2302.03676
 
         self.dmid_params_names = {'Dmid_mchirp': 'D0',
@@ -198,7 +198,7 @@ class Found_injections:
           "Argument (source) must be 'bbh' or 'bns' or 'nsbh' or 'imbh'. "
         
         if hdfile is None:
-            hdfile = h5py.File(f'{os.path.dirname(__file__)}/{run_dataset}-{source}-IMRPhenomXPHMpseudoFourPN.hdf5', 'r')
+            hdfile = f'{os.path.dirname(__file__)}/{run_dataset}-{source}-IMRPhenomXPHMpseudoFourPN.hdf5'
         try:
             file = h5py.File(hdfile, 'r')
         except:
@@ -252,7 +252,7 @@ class Found_injections:
        
     def read_o3_set(self, source, hdfile=None):
         if hdfile is None:
-            hdfile = h5py.File(f'{os.path.dirname(__file__)}/endo3_{source}pop-LIGO-T2100113-v12.hdf5', 'r')
+            hdfile = f'{os.path.dirname(__file__)}/endo3_{source}pop-LIGO-T2100113-v12.hdf5'
         try:
             file = h5py.File(hdfile, 'r')
         except:
@@ -309,14 +309,14 @@ class Found_injections:
         
         return
 
-    def read_o4_set(self, source = 'all', reduce_obs_time = True, hdfile=None):
+    def read_o4a_set(self, source = 'all', reduce_obs_time = True, hdfile=None):
        
         if hdfile is None:
             if reduce_obs_time:
-                fhdile = h5py.File(f'{os.path.dirname(__file__)}/samples-rpo4a_v2_20250503133839UTC-1366933504-23846400_reduced.hdf', 'r')
+                fhdile = f'{os.path.dirname(__file__)}/samples-rpo4a_v2_20250503133839UTC-1366933504-23846400_reduced.hdf'
             else:
-                hdfile = h5py.File(f'{os.path.dirname(__file__)}/samples-rpo4a_v2_20250503133839UTC-1366933504-23846400.hdf', 'r')
-                #file = h5py.File('/home/rp.o4/offline-injections/real/T2400372-v2/samples-rpo4a_v2_20250220153231UTC-1366933504-23846400.hdf', 'r')
+                hdfile = f'{os.path.dirname(__file__)}/samples-rpo4a_v2_20250503133839UTC-1366933504-23846400.hdf'
+                #hdfile = '/home/ana.lorenzo/data/injections/samples-rpo4a_v2_20250220153231UTC-1366933504-23846400_reduced.hdf'
         try:
             file = h5py.File(hdfile, 'r')
         except:
@@ -385,6 +385,81 @@ class Found_injections:
        
         return   
 
+    def read_o4b_set(self, source = 'all', reduce_obs_time = True, hdfile=None):
+       
+        if hdfile is None:
+            #hdfile = '/home/ana.lorenzo/data/injections/samples-rpo4b_v4_20260128183900UTC-1393286656-29116416_reduced.hdf'
+            if reduce_obs_time:
+                hdfile = f'{os.path.dirname(__file__)}/samples-rpo4b_v4_20260128183900UTC-1393286656-29116416_reduced.hdf'
+            else:
+                hdfile = f'{os.path.dirname(__file__)}/samples-rpo4b_v4_20260128183900UTC-1393286656-29116416_.hdf'
+        try:
+            file = h5py.File(hdfile, 'r')
+        except:
+            raise RuntimeError('File with the injection set not found.')
+                               
+        assert source == 'all', "Argument (source) must be 'all'. " 
+
+        self.sets[source] = {}
+
+        # Total number of generated injections
+        self.sets[source]['Ntotal'] = file.attrs['total_generated'] 
+
+        # Mass 1 and mass 2 values in the source frame in solar units
+        self.sets[source]['m1'] = file['events']['mass1_source'][:]
+        self.sets[source]['m2'] = file['events']['mass2_source'][:]
+
+        # Redshift and luminosity distance [Mpc] values 
+        self.sets[source]['z'] = file['events']['z'][:]
+        self.sets[source]['dL'] = file['events']['luminosity_distance'][:]
+        self.sets[source]['dL_dz'] = file['events']['dluminosity_distance_dredshift'][:]
+
+        # Joint mass sampling pdf (probability density function) values, p(m1,m2)
+        self.sets[source]['m1_pdf'] = np.exp(file["events"]["lnpdraw_mass1_source"][:])
+        self.sets[source]['m2_pdf'] = np.exp(file["events"]["lnpdraw_mass2_source_GIVEN_mass1_source"][:])
+        self.sets[source]['m_pdf'] = self.sets[source]['m1_pdf'] * self.sets[source]['m2_pdf']
+   
+        # Redshift sampling pdf values, p(z), corresponding to a flat Lambda-Cold Dark Matter cosmology
+        self.sets[source]['z_pdf'] = np.exp(file["events"]["lnpdraw_z"][:])
+   
+        self.sets[source]['s1x'] = file["events"]["spin1x"][:]
+        self.sets[source]['s1y'] = file["events"]["spin1y"][:]
+        self.sets[source]['s1z'] = file["events"]["spin1z"][:]
+   
+        self.sets[source]['s2x'] = file["events"]["spin2x"][:]
+        self.sets[source]['s2y'] = file["events"]["spin2y"][:]
+        self.sets[source]['s2z'] = file["events"]["spin2z"][:]
+     
+        self.sets[source]['a1'] = file["events"]["spin1_magnitude"][:]
+        self.sets[source]['a2'] = file["events"]["spin2_magnitude"][:]
+        self.sets[source]['theta1'] = file['events']['spin1_polar_angle'][:]
+        self.sets[source]['theta2'] = file['events']['spin2_polar_angle'][:]
+     
+        self.sets[source]['a1_pdf'] = np.exp(file["events"]["lnpdraw_spin1_magnitude"][:])
+        self.sets[source]['a2_pdf'] = np.exp(file["events"]["lnpdraw_spin2_magnitude"][:])
+        self.sets[source]['theta1_pdf'] = np.exp(file['events']['lnpdraw_spin1_polar_angle'][:])
+        self.sets[source]['theta2_pdf'] = np.exp(file['events']['lnpdraw_spin2_polar_angle'][:])
+   
+        self.sets[source]['chi_eff'] = file["events"]["chi_eff"][:]
+    
+        # False alarm rate statistics from each pipeline
+        self.sets[source]['far_pbbh'] = file["events"]["pycbc_far"][:]
+        self.sets[source]['far_gstlal'] = file["events"]["gstlal_far"][:]
+        self.sets[source]['far_mbta'] = file["events"]["mbta_far"][:]
+        self.sets[source]['far_cwb'] = file["events"]["cwb-bbh_far"][:]
+        self.sets[source]['snr'] = file["events"]["snr_net"][:]
+
+        found_pbbh = self.sets[source]['far_pbbh'] <= self.thr_far
+        found_gstlal = self.sets[source]['far_gstlal'] <= self.thr_far
+        found_mbta = self.sets[source]['far_mbta'] <= self.thr_far
+        found_cwb = self.sets[source]['far_cwb'] <= self.thr_far
+       
+        # indexes of the found injections
+        self.sets[source]['found_any'] = found_pbbh | found_gstlal | found_mbta | found_cwb
+        print('Found inj in o4b set: ', self.sets[source]['found_any'] .sum())  
+       
+        return
+
     def draw_samples(self, run='o4', source='all', hdfile=None, fraction=0.1):
 
         if hdfile is None and run == 'o4':
@@ -438,7 +513,7 @@ class Found_injections:
         if run_dataset == 'o3':
             self.read_o3_set(source, hdfile) 
         
-        elif run_dataset == 'o4':
+        elif run_dataset == 'o4a':
             self.read_o4_set(hdfile)
             source = 'all'
         
@@ -450,7 +525,7 @@ class Found_injections:
         source_data = self.sets[source].copy()
 
         # Luminosity distance sampling pdf values, p(dL), computed for a flat Lambda-Cold Dark Matter cosmology from the z_pdf values
-        if run_dataset == 'o4' or run_dataset == 'o4b':
+        if run_dataset == 'o4a' or run_dataset == 'o4b':
             self.sets[source]['dL_pdf'] = source_data['z_pdf'] / source_data['dL_dz']
         else:
             self.sets[source]['dL_pdf'] = source_data['z_pdf'] / fits.dL_derivative(source_data['z'], source_data['dL'], self.cosmo)
@@ -558,7 +633,7 @@ class Found_injections:
             
         if self.dmid_fun in self.spin_functions:
             
-            if self.dataset == 'o4':
+            if self.dataset == 'o4a':
                 self.joint_pdfs[source] = source_data['m_pdf'] * self.sets[source]['dL_pdf'] * source_data['a1_pdf'] * source_data['a2_pdf'] * source_data['theta1_pdf'] * source_data['theta2_pdf']
             
             else:
@@ -617,7 +692,7 @@ class Found_injections:
         self.dL_pdf = np.concatenate([self.sets[source]['dL_pdf'] for source in each_source])
         self.z_pdf = np.concatenate([self.sets[source]['z_pdf'] for source in each_source])
         self.m_pdf = np.concatenate([self.sets[source]['m_pdf'] for source in each_source])
-        if run_dataset != 'o4':
+        if run_dataset != 'o4a' or run_dataset != 'o4b':
             self.s1z_pdf = np.concatenate([self.sets[source]['s1z_pdf'] for source in each_source])
             self.s2z_pdf = np.concatenate([self.sets[source]['s2z_pdf'] for source in each_source])
             
@@ -632,7 +707,7 @@ class Found_injections:
             else:
                 each_source = sources  # List of strings
 
-            if rescale_o3 and run != 'o4' and run != 'o4b' :
+            if rescale_o3 and run != 'o4a' and run != 'o4b' :
                 run = 'o3'
 
             sources_folder = "_".join(sorted(each_source))
@@ -648,16 +723,16 @@ class Found_injections:
 
         Parameters
         ----------
-        run_fit : str. Observing run from which we want to use the fit. Must be 'o1', 'o2', 'o3' or 'o4'.
+        run_fit : str. Observing run from which we want to use the fit. Must be 'o1', 'o2', 'o3' or 'o4a' or 'o4b'.
         sources : str or list of str with the types of sources you want. Must be 'bbh' for o1 and o2,
-                 'nsbh' 'bns' 'imbh' or 'bbh' for o3 (or a combination of them) and 'all' for o4
+                 'nsbh' 'bns' 'imbh' or 'bbh' for o3 (or a combination of them) and 'all' for o4a and o4b
 
         Returns
         -------
         None
         '''
-        assert run_fit in ['o1', 'o2', 'o3', 'o4'], \
-            "Argument run_fit must be 'o1' or 'o2' or 'o3' or 'o4'."
+        assert run_fit in ['o1', 'o2', 'o3', 'o4a', 'o4b'], \
+            "Argument run_fit must be 'o1' or 'o2' or 'o3' or 'o4' or 'o4b'."
 
         if isinstance(sources, str):
            each_source = [source.strip() for source in sources.split(',')]
@@ -666,7 +741,7 @@ class Found_injections:
 
         sources_folder = "_".join(sorted(each_source))
        
-        if not rescale_o3 or run_fit == 'o4':  # get separate independent fit files
+        if not rescale_o3 or run_fit == 'o4a' or run_fit == 'o4b':  # get separate independent fit files
             run_fit_touse = run_fit
         else:  # Rescale o1 and o2
             run_fit_touse = 'o3'
@@ -684,7 +759,7 @@ class Found_injections:
             except:
                 raise ValueError(f'Please include the right max_emax.dat file in {path} to use this fit.')
         
-        if rescale_o3 and run_fit != 'o3' and run_fit != 'o4':
+        if rescale_o3 and run_fit != 'o3' and run_fit != 'o4a' and run_fit != 'o4b':
             if not self.d0:
                 d0 = self.find_dmid_cte_found_inj(run_fit, 'o3')
             else:
@@ -823,7 +898,7 @@ class Found_injections:
         dmid_params : parameters of the Dmid function, 1D array
         shape_params : gamma, delta and emax params, 1D array
         source : str with the type of source you want. Must be 'bbh' for o1 and o2, \
-                 'nsbh' 'bns' 'imbh' or 'bbh' for o3 and 'all' for o4
+                 'nsbh' 'bns' 'imbh' or 'bbh' for o3 and 'all' for o4a or o4b
         
         Returns
         -------
@@ -876,7 +951,7 @@ class Found_injections:
         dmid_params : parameters of the Dmid function, 1D array
         shape_params : gamma, delta and emax params, 1D array
         source : str with the type of source you want. Must be 'bbh' for o1 and o2, \
-                 'nsbh' 'bns' 'imbh' or 'bbh' for o3 and 'all' for o4
+                 'nsbh' 'bns' 'imbh' or 'bbh' for o3 and 'all' for o4 or o4b
         
         Returns
         -------
@@ -930,7 +1005,7 @@ class Found_injections:
         dmid_params : parameters of the Dmid function, 1D array
         shape_params : gamma, delta and emax params, 1D array
         source : str with the type of source you want. Must be 'bbh' for o1 and o2, \
-                 'nsbh' 'bns' 'imbh' or 'bbh' for o3 and 'all' for o4
+                 'nsbh' 'bns' 'imbh' or 'bbh' for o3 and 'all' for o4a or o4b
         
         Returns
         -------
@@ -960,7 +1035,7 @@ class Found_injections:
         ----------
         methods : str, scipy method used to minimize -logL
         sources : str or list with the types of sources you want. Must be 'bbh' for o1 and o2, \
-                 'nsbh' 'bns' 'imbh' or 'bbh' for o3 (or a combination of them) and 'all' for o4
+                 'nsbh' 'bns' 'imbh' or 'bbh' for o3 (or a combination of them) and 'all' for o4a or o4b
         
         Returns
         -------
@@ -991,7 +1066,7 @@ class Found_injections:
         ----------
         methods : scipy method used to minimize -logL
         sources : str or list with the types of sources you want. Must be 'bbh' for o1 and o2, \
-                 'nsbh' 'bns' 'imbh' or 'bbh' for o3 (or a combination of them) and 'all' for o4
+                 'nsbh' 'bns' 'imbh' or 'bbh' for o3 (or a combination of them) and 'all' for o4a or o4b
     
         Returns
         -------
@@ -1032,9 +1107,9 @@ class Found_injections:
 
         Parameters
         ----------
-        run_dataset : str. Observing run injections that we want to fit. Must be 'o1', 'o2', 'o3' or 'o4'.
+        run_dataset : str. Observing run injections that we want to fit. Must be 'o1', 'o2', 'o3', 'o4a' or 'o4b'.
         sources : str or list with the types of sources you want. Must be 'bbh' for o1 and o2, \
-                 'nsbh' 'bns' 'imbh' or 'bbh' for o3 (or a combination of them) and 'all' for o4
+                 'nsbh' 'bns' 'imbh' or 'bbh' for o3 (or a combination of them) and 'all' for o4a or o4b
         methods : str, scipy method used to minimize -logL
         precision : float (positive), optional. Tolerance for termination . The default is 1e-2.
 
@@ -1147,10 +1222,10 @@ class Found_injections:
 
         Parameters
         ----------
-        run_dataset : str. Observing run from which we want the injections. Must be 'o1', 'o2', 'o3' or 'o4'.
-        run_fit : str. Observing run from which we want to use its fit. Must be 'o1', 'o2', 'o3' or 'o4'.
+        run_dataset : str. Observing run from which we want the injections. Must be 'o1', 'o2', 'o3', 'o4a' or 'o4b'.
+        run_fit : str. Observing run from which we want to use its fit. Must be 'o1', 'o2', 'o3', 'o4a' or 'o4b'.
         sources : str or list with the types of sources you want. Must be 'bbh' for o1 and o2, \
-                 'nsbh' 'bns' 'imbh' or 'bbh' for o3 (or a combination of them) and 'all' for o4
+                 'nsbh' 'bns' 'imbh' or 'bbh' for o3 (or a combination of them) and 'all' for o4a or o4b
         var : str, variable for the CDFs and KS tests. Options:
             'dL' - luminosity distance
             'Mc' - chirp mass
@@ -1287,10 +1362,10 @@ class Found_injections:
 
         Parameters
         ----------
-        run_dataset : str. Observing run from which we want the injections. Must be 'o1', 'o2', 'o3' or 'o4'.
-        run_fit : str. Observing run from which we want to use its fit. Must be 'o1', 'o2', 'o3' or 'o4'.
+        run_dataset : str. Observing run from which we want the injections. Must be 'o1', 'o2', 'o3', 'o4a' or 'o4b'.
+        run_fit : str. Observing run from which we want to use its fit. Must be 'o1', 'o2', 'o3', 'o4a' or 'o4b'.
         sources : str or list with the types of sources you want. Must be 'bbh' for o1 and o2, \
-                 'nsbh' 'bns' 'imbh' or 'bbh' for o3 (or a combination of them) and 'all' for o4
+                 'nsbh' 'bns' 'imbh' or 'bbh' for o3 (or a combination of them) and 'all' for o4a or 04b
         nbins : int, number of bins
         var_cmd : str, variable for the CDFs and KS tests. Options:
             'dL' - luminosity distance
@@ -1534,7 +1609,7 @@ class Found_injections:
 
         Parameters
         ----------
-        run : str. Observing run from which we want to use its fit. Must be 'o1', 'o2', 'o3' or 'o4'.
+        run : str. Observing run from which we want to use its fit. Must be 'o1', 'o2', 'o3', 'o4a' or 'o4b'.
         m1 : float. Mass 1 (source)
         m2 : float. Mass 2 (source)
         chieff : float. Effective spin. The default is 0, If you use a fit that includes a dependence on chieff in the dmid function
@@ -1542,7 +1617,7 @@ class Found_injections:
         zmax : float. Maximum redshift for cosmological calculation, if an injection set is not loaded:
                3.1 is just larger than any O4 injection
         sources : str or list with the types of sources you want. Must be 'bbh' for o1 and o2, \
-                 'nsbh' 'bns' 'imbh' or 'bbh' for o3 (or a combination of them) and 'all' for o4
+                 'nsbh' 'bns' 'imbh' or 'bbh' for o3 (or a combination of them) and 'all' for o4a or o4b
         rescale_o3 : True or False, optional. The default is True. If True, we use the rescaled fit for o1 and o2. If False, the direct fit.
         use_injections: True or False. The default is False. If True, it uses interpolated redshift and dL_pdf from the injection set. \
                         If False, it makes its own interpolation based on self.cosmo (cosmology used to initialise the class).
@@ -1552,9 +1627,12 @@ class Found_injections:
         -------
         pdet * Vtot : float. Sensitive volume
         '''
-        self.get_opt_params(run, 'all') if run == 'o4' else self.get_opt_params(run, sources, rescale_o3)
+        self.get_opt_params(run, sources, rescale_o3)
         # Reference inj set for interpolating cosmology quantities
-        source_interp_dL_pdf = 'all' if run == 'o4' else 'bbh'
+        if run == 'o4a' or run == 'o4b':
+            source_interp_dL_pdf = 'all'
+        else:
+            source_interp_dL_pdf = 'bbh'
         
         if not use_injections: 
             if self.z_ordered_VT is None:
@@ -1631,8 +1709,8 @@ class Found_injections:
 
     def total_sensitive_vt(self, m1, m2, chieff=0., zmax=3.1, sources='bbh', rescale_o3=True):
         '''
-        Total sensitive VT computed with the o1, o2, o3 and o4a observing times (as specified by self.runs) and the o1, o2 rescaled fit
-        Vtot = V1 * t1 + V2 * t2 + V3 * t3 + V4 * t4
+        Total sensitive VT computed with the o1, o2, o3, o4a and o4b observing times (or whatever runs are specified by self.runs)
+        Vtot = V1 * t1 + V2 * t2 + V3 * t3 + V4a * t4a + V4b * t4b
 
         Parameters
         ----------
@@ -1642,7 +1720,7 @@ class Found_injections:
                 (it has to be on the list of spin functions), it will use chieff. if not, it won't be used for anything.
         zmax : float. Maximum redshift for cosmological calculations
         sources : str or list with the types of sources you want. Must be 'bbh' for o1 and o2, \
-                 'nsbh' 'bns' 'imbh' or 'bbh' for o3 (or a combination of them) and 'all' for o4
+                 'nsbh' 'bns' 'imbh' or 'bbh' for o3 (or a combination of them) and 'all' for o4a or o4b
         rescale_o3 : True or False, optional. The default is True. If True, we use the rescaled fit for o1 and o2. If False, the direct fit.
 
         Returns
@@ -1794,9 +1872,9 @@ class Found_injections:
         m1_det : float. Mass 1 in the detector's frame masses
         m2_det : float. Mass 2 in the detector's frame masses
         chieff : float. Effective spin
-        run : str. observing run from which we want the fit. Must be 'o1', 'o2', 'o3' or 'o4'
+        run : str. observing run from which we want the fit. Must be 'o1', 'o2', 'o3', 'o4a' or 'o4b'
         sources : str or list with the types of sources you want. Must be 'bbh' for o1 and o2, \
-                 'nsbh' 'bns' 'imbh' or 'bbh' for o3 (or a combination of them) and 'all' for o4
+                 'nsbh' 'bns' 'imbh' or 'bbh' for o3 (or a combination of them) and 'all' for o4a or o4b
         rescale_o3 : True or False, optional. The default is True. If True, we iuse the rescaled fit for o1 and o2. If False, the direct fit.
 
         Returns
@@ -1836,7 +1914,7 @@ class Found_injections:
         m2_det : float. Mass 2 in the detector's frame masses
         chieff : float. Effective spin 
         sources : str or list with the types of sources you want. Must be 'bbh' for o1 and o2, \
-                 'nsbh' 'bns' 'imbh' or 'bbh' for o3 (or a combination of them) and 'all' for o4
+                 'nsbh' 'bns' 'imbh' or 'bbh' for o3 (or a combination of them) and 'all' for o4a and o4b
         rescale_o3 : True or False, optional. The default is True. If True, we iuse the rescaled fit for o1 and o2. If False, the direct fit.
 
         Returns
@@ -1845,7 +1923,7 @@ class Found_injections:
         '''        
         pdet = np.zeros(len(np.atleast_1d(dL)))
         
-        sources = {'o1':'bbh', 'o2':'bbh', 'o3': o3_sources, 'o4':'all'}
+        sources = {'o1':'bbh', 'o2':'bbh', 'o3': o3_sources, 'o4a':'all', 'o4b':'all'}
         for run in self.runs:
             pdet_i = self.run_pdet(dL, m1_det, m2_det, chieff, run, sources[run], rescale_o3) 
             pdet += pdet_i * self.prop_obs_time[run]
