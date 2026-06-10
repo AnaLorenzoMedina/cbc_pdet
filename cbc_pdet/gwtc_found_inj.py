@@ -49,7 +49,7 @@ class Found_injections:
         assert isinstance(runs, list) or isinstance(runs, tuple),\
           "Argument (runs) must be a list, tuple or string."
 
-        allowed_runs = {'o1', 'o2', 'o3', 'o4'}
+        allowed_runs = {'o1', 'o2', 'o3', 'o4a', 'o4a1', 'o4b'}
         assert all(r in allowed_runs for r in runs), \
             f"Invalid run(s) in {runs}. Allowed: {allowed_runs}"
         self.runs = runs
@@ -104,12 +104,12 @@ class Found_injections:
         self.total_obs_time = np.sum(list(self.obs_time.values()))
         self.prop_obs_time = {i: self.obs_time[i]/self.total_obs_time for i in self.runs}
 
-        self.obs_nevents = {'o1': 3, 'o2': 7, 'o3': 59, 'o4a': 87, 'o4b':161}
+        self.obs_nevents = {'o1': 3, 'o2': 7, 'o3': 59, 'o4a': 87, 'o4a1': 87, 'o4b':161}
 
         self.det_rates = {i : self.obs_nevents[i] / self.obs_time[i] for i in self.runs}
 
         #FIX ME check duty cycles for o1 and o2
-        self.max_emax_dict = {'o1' : 1, 'o2' : 1, 'o3' : 0.967, 'o4a' : 0.831, 'o4b': 0.887}  # years
+        self.max_emax_dict = {'o1' : 1, 'o2' : 1, 'o3' : 0.967, 'o4a' : 0.831, 'o4a1' : 0.831, 'o4b': 0.887}  # years
         #o3: https://arxiv.org/pdf/2302.03676
 
         self.dmid_params_names = {'Dmid_mchirp': 'D0',
@@ -309,20 +309,33 @@ class Found_injections:
         
         return
 
-    def read_o4a_set(self, source = 'all', reduce_obs_time = True, hdfile=None):
+    def read_o4_set(self, run = 'o4a1', source = 'all', reduce_obs_time = True, hdfile=None):
        
         if hdfile is None:
-            if reduce_obs_time:
-                fhdile = f'{os.path.dirname(__file__)}/samples-rpo4a_v2_20250503133839UTC-1366933504-23846400_reduced.hdf'
-            else:
-                hdfile = f'{os.path.dirname(__file__)}/samples-rpo4a_v2_20250503133839UTC-1366933504-23846400.hdf'
-                #hdfile = '/home/ana.lorenzo/data/injections/samples-rpo4a_v2_20250220153231UTC-1366933504-23846400_reduced.hdf'
+            if run == 'o4a':
+                if reduce_obs_time:
+                    hdfile = f'{os.path.dirname(__file__)}/samples-rpo4a_v2_20250503133839UTC-1366933504-23846400_reduced.hdf'
+                else:
+                    hdfile = f'{os.path.dirname(__file__)}/samples-rpo4a_v2_20250503133839UTC-1366933504-23846400.hdf'
+                    #hdfile = '/home/ana.lorenzo/data/injections/samples-rpo4a_v2_20250220153231UTC-1366933504-23846400_reduced.hdf'
+            elif run == 'o4a1':
+                hdfile = '/home/ana.lorenzo/data/injections/samples-rpo4a-1366933504-55469568-clipped_improved_sensitivity.hdf'
+                #hdfile = f'{os.path.dirname(__file__)}/samples-rpo4a-1366933504-55469568-clipped_improved_sensitivity.hdf'
+
+            elif run == 'o4b':
+                if reduce_obs_time:
+                    hdfile = f'{os.path.dirname(__file__)}/samples-rpo4b_v4_20260128183900UTC-1393286656-29116416_reduced.hdf'
+                else:
+                    hdfile = f'{os.path.dirname(__file__)}/samples-rpo4b_v4_20260128183900UTC-1393286656-29116416_.hdf'
+        
         try:
             file = h5py.File(hdfile, 'r')
         except:
             raise RuntimeError('File with the injection set not found. Please add it to your installation \
                                 of cbc_pdet, in the folder where gwtc_found_inj.py is, or specify it when you call the method.')
                                
+        assert run == 'o4a' or run == 'o4a1' or run == 'o4b' , "Argument (run) must be 'o4a' or 'o4a1' or 'o4b. " 
+        
         assert source == 'all', "Argument (source) must be 'all'. " 
 
         self.sets[source] = {}
@@ -381,88 +394,14 @@ class Found_injections:
        
         # indexes of the found injections
         self.sets[source]['found_any'] = found_pbbh | found_gstlal | found_mbta | found_cwb
-        print('Found inj in o4 set: ', self.sets[source]['found_any'] .sum())  
+        print(f'Found inj in {run} set: ', self.sets[source]['found_any'] .sum())  
        
         return   
 
-    def read_o4b_set(self, source = 'all', reduce_obs_time = True, hdfile=None):
-       
-        if hdfile is None:
-            #hdfile = '/home/ana.lorenzo/data/injections/samples-rpo4b_v4_20260128183900UTC-1393286656-29116416_reduced.hdf'
-            if reduce_obs_time:
-                hdfile = f'{os.path.dirname(__file__)}/samples-rpo4b_v4_20260128183900UTC-1393286656-29116416_reduced.hdf'
-            else:
-                hdfile = f'{os.path.dirname(__file__)}/samples-rpo4b_v4_20260128183900UTC-1393286656-29116416_.hdf'
-        try:
-            file = h5py.File(hdfile, 'r')
-        except:
-            raise RuntimeError('File with the injection set not found.')
-                               
-        assert source == 'all', "Argument (source) must be 'all'. " 
 
-        self.sets[source] = {}
+    def draw_samples(self, run='o4a', source='all', hdfile=None, fraction=0.1):
 
-        # Total number of generated injections
-        self.sets[source]['Ntotal'] = file.attrs['total_generated'] 
-
-        # Mass 1 and mass 2 values in the source frame in solar units
-        self.sets[source]['m1'] = file['events']['mass1_source'][:]
-        self.sets[source]['m2'] = file['events']['mass2_source'][:]
-
-        # Redshift and luminosity distance [Mpc] values 
-        self.sets[source]['z'] = file['events']['z'][:]
-        self.sets[source]['dL'] = file['events']['luminosity_distance'][:]
-        self.sets[source]['dL_dz'] = file['events']['dluminosity_distance_dredshift'][:]
-
-        # Joint mass sampling pdf (probability density function) values, p(m1,m2)
-        self.sets[source]['m1_pdf'] = np.exp(file["events"]["lnpdraw_mass1_source"][:])
-        self.sets[source]['m2_pdf'] = np.exp(file["events"]["lnpdraw_mass2_source_GIVEN_mass1_source"][:])
-        self.sets[source]['m_pdf'] = self.sets[source]['m1_pdf'] * self.sets[source]['m2_pdf']
-   
-        # Redshift sampling pdf values, p(z), corresponding to a flat Lambda-Cold Dark Matter cosmology
-        self.sets[source]['z_pdf'] = np.exp(file["events"]["lnpdraw_z"][:])
-   
-        self.sets[source]['s1x'] = file["events"]["spin1x"][:]
-        self.sets[source]['s1y'] = file["events"]["spin1y"][:]
-        self.sets[source]['s1z'] = file["events"]["spin1z"][:]
-   
-        self.sets[source]['s2x'] = file["events"]["spin2x"][:]
-        self.sets[source]['s2y'] = file["events"]["spin2y"][:]
-        self.sets[source]['s2z'] = file["events"]["spin2z"][:]
-     
-        self.sets[source]['a1'] = file["events"]["spin1_magnitude"][:]
-        self.sets[source]['a2'] = file["events"]["spin2_magnitude"][:]
-        self.sets[source]['theta1'] = file['events']['spin1_polar_angle'][:]
-        self.sets[source]['theta2'] = file['events']['spin2_polar_angle'][:]
-     
-        self.sets[source]['a1_pdf'] = np.exp(file["events"]["lnpdraw_spin1_magnitude"][:])
-        self.sets[source]['a2_pdf'] = np.exp(file["events"]["lnpdraw_spin2_magnitude"][:])
-        self.sets[source]['theta1_pdf'] = np.exp(file['events']['lnpdraw_spin1_polar_angle'][:])
-        self.sets[source]['theta2_pdf'] = np.exp(file['events']['lnpdraw_spin2_polar_angle'][:])
-   
-        self.sets[source]['chi_eff'] = file["events"]["chi_eff"][:]
-    
-        # False alarm rate statistics from each pipeline
-        self.sets[source]['far_pbbh'] = file["events"]["pycbc_far"][:]
-        self.sets[source]['far_gstlal'] = file["events"]["gstlal_far"][:]
-        self.sets[source]['far_mbta'] = file["events"]["mbta_far"][:]
-        self.sets[source]['far_cwb'] = file["events"]["cwb-bbh_far"][:]
-        self.sets[source]['snr'] = file["events"]["snr_net"][:]
-
-        found_pbbh = self.sets[source]['far_pbbh'] <= self.thr_far
-        found_gstlal = self.sets[source]['far_gstlal'] <= self.thr_far
-        found_mbta = self.sets[source]['far_mbta'] <= self.thr_far
-        found_cwb = self.sets[source]['far_cwb'] <= self.thr_far
-       
-        # indexes of the found injections
-        self.sets[source]['found_any'] = found_pbbh | found_gstlal | found_mbta | found_cwb
-        print('Found inj in o4b set: ', self.sets[source]['found_any'] .sum())  
-       
-        return
-
-    def draw_samples(self, run='o4', source='all', hdfile=None, fraction=0.1):
-
-        if hdfile is None and run == 'o4':
+        if hdfile is None and run in ('o4a', 'o4a1', 'o4b'):
             hdfile = '/scratch/ana.lorenzo/injections/rpo4b-injections/offline-injections/samples/v1/chunks_without_cut/samples-rpo4_2024_06_v1-without-hopeless-cut_subset.hdf'
 
         elif hdfile is None and run == 'o3':
@@ -486,7 +425,7 @@ class Found_injections:
         self.samples[source]['dL'] = file['events']['luminosity_distance'][::stride]
 
         # chi_eff
-        if run == 'o4':
+        if run in ('o4a', 'o4a1', 'o4b'):
             self.samples[source]['chi_eff'] = file["events"]["chi_eff"][::stride]
             
         elif run == 'o3':
@@ -508,18 +447,18 @@ class Found_injections:
 
         return
 
-    def load_inj_set(self, run_dataset, source = 'all', hdfile=None):
+    def load_inj_set(self, run_dataset, source = 'all', reduce_obs_time = True, hdfile=None):
         
         if run_dataset == 'o3':
             self.read_o3_set(source, hdfile) 
         
-        elif run_dataset == 'o4a':
-            self.read_o4_set(hdfile)
+        elif run_dataset not in ('o1', 'o2'):
             source = 'all'
+            self.read_o4_set(run=run_dataset, source=source, reduce_obs_time=reduce_obs_time, hdfile=hdfile)
         
         else:
-            self.read_o1o2_set(run_dataset, hdfile)
             source = 'bbh'
+            self.read_o1o2_set(run_dataset, source=source, hdfile=hdfile)
 
         self.dataset = run_dataset
         source_data = self.sets[source].copy()
@@ -1138,7 +1077,7 @@ class Found_injections:
 
         if self.emax_fun == 'emax_gaussian_fixed':
             try:
-                self.max_emax_value = np.loadtxt(f'{os.path.dirname(__file__)}' + path + '/max_emax.dat')
+                self.max_emax_value = np.loadtxt(f'{os.path.dirname(__file__)}/' + path + '/max_emax.dat')
                 self.emax = partial(fits.emax_gaussian_fixed, max_emax=self.max_emax_value)
             except:
                 raise ValueError(f'Please include a max_emax.dat file in {path} to use this function for the fit.')
