@@ -99,7 +99,7 @@ class Found_injections:
         self.coincident_time_o3 = 0.75435365296528  # years
 
         # Total observing time of each run (O3 is different from above because O3 looked at single detector time too)
-        all_obs_time = {'o1' : 0.1331507, 'o2' : 0.323288, 'o3' : 0.91101, 'o4a' : 0.6489847136664385, 'o4b': 0.8024184348619667}  # years
+        all_obs_time = {'o1' : 0.1331507, 'o2' : 0.323288, 'o3' : 0.91101, 'o4a' : 0.6489847136664385, 'o4a1' : 0.6489847136664385, 'o4b': 0.8024184348619667}  # years
         self.obs_time = {i: all_obs_time[i] for i in self.runs}
         self.total_obs_time = np.sum(list(self.obs_time.values()))
         self.prop_obs_time = {i: self.obs_time[i]/self.total_obs_time for i in self.runs}
