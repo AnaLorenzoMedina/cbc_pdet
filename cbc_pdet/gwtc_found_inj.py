@@ -452,11 +452,11 @@ class Found_injections:
         if run_dataset == 'o3':
             self.read_o3_set(source, hdfile) 
         
-        elif run_dataset not in ('o1', 'o2'):
+        elif run_dataset in ('o4a', 'o4a1', 'o4b'):
             source = 'all'
             self.read_o4_set(run=run_dataset, source=source, reduce_obs_time=reduce_obs_time, hdfile=hdfile)
         
-        else:
+        elif run_dataset in ('o1', 'o2'):
             source = 'bbh'
             self.read_o1o2_set(run_dataset, source=source, hdfile=hdfile)
 
@@ -572,7 +572,7 @@ class Found_injections:
             
         if self.dmid_fun in self.spin_functions:
             
-            if self.dataset == 'o4a':
+            if self.dataset in ('o4a', 'o4a1', 'o4b'):
                 self.joint_pdfs[source] = source_data['m_pdf'] * self.sets[source]['dL_pdf'] * source_data['a1_pdf'] * source_data['a2_pdf'] * source_data['theta1_pdf'] * source_data['theta2_pdf']
             
             else:
@@ -631,7 +631,7 @@ class Found_injections:
         self.dL_pdf = np.concatenate([self.sets[source]['dL_pdf'] for source in each_source])
         self.z_pdf = np.concatenate([self.sets[source]['z_pdf'] for source in each_source])
         self.m_pdf = np.concatenate([self.sets[source]['m_pdf'] for source in each_source])
-        if run_dataset != 'o4a' or run_dataset != 'o4b':
+        if run_dataset not in ('o4a', 'o4a1', 'o4b')::
             self.s1z_pdf = np.concatenate([self.sets[source]['s1z_pdf'] for source in each_source])
             self.s2z_pdf = np.concatenate([self.sets[source]['s2z_pdf'] for source in each_source])
             
@@ -646,7 +646,7 @@ class Found_injections:
             else:
                 each_source = sources  # List of strings
 
-            if rescale_o3 and run != 'o4a' and run != 'o4b' :
+            if rescale_o3 and run not in ('o4a', 'o4a1', 'o4b'):
                 run = 'o3'
 
             sources_folder = "_".join(sorted(each_source))
@@ -670,8 +670,8 @@ class Found_injections:
         -------
         None
         '''
-        assert run_fit in ['o1', 'o2', 'o3', 'o4a', 'o4b'], \
-            "Argument run_fit must be 'o1' or 'o2' or 'o3' or 'o4' or 'o4b'."
+        assert run_fit in ['o1', 'o2', 'o3', 'o4a', 'o4a1', 'o4b'], \
+            "Argument run_fit must be one of ['o1', 'o2', 'o3', 'o4a', 'o4a1', 'o4b']."
 
         if isinstance(sources, str):
            each_source = [source.strip() for source in sources.split(',')]
@@ -680,7 +680,7 @@ class Found_injections:
 
         sources_folder = "_".join(sorted(each_source))
        
-        if not rescale_o3 or run_fit == 'o4a' or run_fit == 'o4b':  # get separate independent fit files
+        if not rescale_o3 or run_fit in ('o4a', 'o4a1', 'o4b'):  # get separate independent fit files
             run_fit_touse = run_fit
         else:  # Rescale o1 and o2
             run_fit_touse = 'o3'
@@ -698,7 +698,7 @@ class Found_injections:
             except:
                 raise ValueError(f'Please include the right max_emax.dat file in {path} to use this fit.')
         
-        if rescale_o3 and run_fit != 'o3' and run_fit != 'o4a' and run_fit != 'o4b':
+        if rescale_o3 and run_fit not in ('o3', 'o4a', 'o4a1', 'o4b'):
             if not self.d0:
                 d0 = self.find_dmid_cte_found_inj(run_fit, 'o3')
             else:
@@ -1126,6 +1126,9 @@ class Found_injections:
             print('\n', maxL_2)
             print(lnL_diff)
             
+            print('dmid params: ', dmid_params)
+            print('shape params: ', shape_params)
+            
             if lnL_diff <= precision : break
         
         print('\nNumber of needed iterations with precision <= %s : %s (+1 since it starts on 0)' %(precision, i))
@@ -1548,7 +1551,7 @@ class Found_injections:
 
         Parameters
         ----------
-        run : str. Observing run from which we want to use its fit. Must be 'o1', 'o2', 'o3', 'o4a' or 'o4b'.
+        run : str. Observing run from which we want to use its fit. Must be 'o1', 'o2', 'o3', 'o4a', 'o4a1' or 'o4b'.
         m1 : float. Mass 1 (source)
         m2 : float. Mass 2 (source)
         chieff : float. Effective spin. The default is 0, If you use a fit that includes a dependence on chieff in the dmid function
@@ -1568,7 +1571,7 @@ class Found_injections:
         '''
         self.get_opt_params(run, sources, rescale_o3)
         # Reference inj set for interpolating cosmology quantities
-        if run == 'o4a' or run == 'o4b':
+        if run in ('o4a', 'o4a1', 'o4b'):
             source_interp_dL_pdf = 'all'
         else:
             source_interp_dL_pdf = 'bbh'
@@ -1811,7 +1814,7 @@ class Found_injections:
         m1_det : float. Mass 1 in the detector's frame masses
         m2_det : float. Mass 2 in the detector's frame masses
         chieff : float. Effective spin
-        run : str. observing run from which we want the fit. Must be 'o1', 'o2', 'o3', 'o4a' or 'o4b'
+        run : str. observing run from which we want the fit. Must be 'o1', 'o2', 'o3', 'o4a', 'o4a1' or 'o4b'
         sources : str or list with the types of sources you want. Must be 'bbh' for o1 and o2, \
                  'nsbh' 'bns' 'imbh' or 'bbh' for o3 (or a combination of them) and 'all' for o4a or o4b
         rescale_o3 : True or False, optional. The default is True. If True, we iuse the rescaled fit for o1 and o2. If False, the direct fit.
@@ -1862,14 +1865,14 @@ class Found_injections:
         '''        
         pdet = np.zeros(len(np.atleast_1d(dL)))
         
-        sources = {'o1':'bbh', 'o2':'bbh', 'o3': o3_sources, 'o4a':'all', 'o4b':'all'}
+        sources = {'o1':'bbh', 'o2':'bbh', 'o3': o3_sources, 'o4a':'all', 'o4a1':'all', 'o4b':'all'}
         for run in self.runs:
             pdet_i = self.run_pdet(dL, m1_det, m2_det, chieff, run, sources[run], rescale_o3) 
             pdet += pdet_i * self.prop_obs_time[run]
 
         return pdet
 
-    def bootstrap_resampling(self, n_boots, run_dataset, sources, precision=0.1):
+    def bootstrap_resampling(self, n_boots, run_dataset, sources, precision=0.1, fraction=0.1):
         if isinstance(sources, str):
             each_source = [source.strip() for source in sources.split(',')] 
 
@@ -1884,6 +1887,8 @@ class Found_injections:
         for i in range(n_boots):
             for source in each_source:
                 self.load_inj_set(run_dataset, source)
+                self.get_opt_params(run_dataset, source)
+                self.set_shape_params()
 
                 total = len(self.sets[source]['dL'])
                 boots = np.random.choice(np.arange(total), total, replace=True)
@@ -1919,6 +1924,7 @@ class Found_injections:
                 self.joint_pdfs[source] = self.joint_pdfs[source][boots]
                 
                 #prehopeless SNR cutr samples
+                self.draw_samples(run_dataset, source, fraction=fraction)
                 total_samples = self.samples[source]['m1'].shape[0]
                 boots_samples = np.random.choice(np.arange(total_samples), total_samples, replace=True)
                 
