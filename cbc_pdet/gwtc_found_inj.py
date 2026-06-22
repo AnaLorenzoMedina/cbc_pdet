@@ -631,7 +631,7 @@ class Found_injections:
         self.dL_pdf = np.concatenate([self.sets[source]['dL_pdf'] for source in each_source])
         self.z_pdf = np.concatenate([self.sets[source]['z_pdf'] for source in each_source])
         self.m_pdf = np.concatenate([self.sets[source]['m_pdf'] for source in each_source])
-        if run_dataset not in ('o4a', 'o4a1', 'o4b')::
+        if run_dataset not in ('o4a', 'o4a1', 'o4b'):
             self.s1z_pdf = np.concatenate([self.sets[source]['s1z_pdf'] for source in each_source])
             self.s2z_pdf = np.concatenate([self.sets[source]['s2z_pdf'] for source in each_source])
             
@@ -1872,7 +1872,7 @@ class Found_injections:
 
         return pdet
 
-    def bootstrap_resampling(self, n_boots, run_dataset, sources, precision=0.1, fraction=0.1):
+    def bootstrap_resampling(self, n_boots, run_dataset, sources, precision=0.1, tol=0.1, fraction=0.1):
         if isinstance(sources, str):
             each_source = [source.strip() for source in sources.split(',')] 
 
@@ -1933,7 +1933,7 @@ class Found_injections:
                 self.samples[source]['chi_eff'] = self.samples[source]['chi_eff'][boots_samples]
                 self.samples[source]['dL'] = self.samples[source]['dL'][boots_samples]
 
-            opt_params_shape, opt_params_dmid = self.joint_MLE(run_dataset, sources, precision=precision, bootstrap=True)
+            opt_params_shape, opt_params_dmid = self.joint_MLE(run_dataset, sources, precision=precision, tol=tol, bootstrap=True)
             print(i, 'n boots', opt_params_shape, opt_params_dmid)
             all_params = np.vstack([all_params, np.hstack((opt_params_shape, opt_params_dmid))])
 
