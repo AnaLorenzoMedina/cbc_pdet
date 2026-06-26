@@ -1195,7 +1195,7 @@ class Found_injections:
         if not self.pre_hopeless_cut_set:
             self.draw_samples(run = run_dataset, source = sources, fraction = fraction)
         
-        emax_dic = {None: 'cmds', 'emax_exp' : 'emax_exp_cmds', 'emax_sigmoid' : 'emax_sigmoid_cmds', 'emax_gaussian' : 'emax_gaussian_cmds', 'emax_gaussian_fixed_831' : 'emax_gaussian_fixed_831_cmds'}
+        emax_dic = {None: 'cmds', 'emax_exp' : 'emax_exp_cmds', 'emax_sigmoid' : 'emax_sigmoid_cmds', 'emax_gaussian' : 'emax_gaussian_cmds', 'emax_gaussian_fixed' : 'emax_gaussian_fixed_cmds'}
 
         path = f'{run_fit}/{sources_folder}/{self.dmid_fun}' if self.alpha_vary is None \
             else f'{run_fit}/{sources_folder}/alpha_vary/{self.dmid_fun}'
@@ -1334,9 +1334,9 @@ class Found_injections:
             self.load_all_inj_sets(run_dataset, sources)
 
         if not self.pre_hopeless_cut_set:
-            self.draw_samples(run_dataset, sources, fraction)
+            self.draw_samples(run = run_dataset, source = sources, fraction = fraction)
         
-        emax_dic = {None: 'cmds', 'emax_exp' : 'emax_exp_cmds', 'emax_sigmoid' : 'emax_sigmoid_cmds', 'emax_gaussian' : 'emax_gaussian_cmds', 'emax_gaussian_fixed_831' : 'emax_gaussian_fixed_831_cmds'}
+        emax_dic = {None: 'cmds', 'emax_exp' : 'emax_exp_cmds', 'emax_sigmoid' : 'emax_sigmoid_cmds', 'emax_gaussian' : 'emax_gaussian_cmds', 'emax_gaussian_fixed' : 'emax_gaussian_fixed_cmds'}
         path = f'{run_fit}/{sources_folder}/{self.dmid_fun}' if self.alpha_vary is None else f'{run_fit}/{sources_folder}/alpha_vary/{self.dmid_fun}'
         
         try:
@@ -1376,16 +1376,16 @@ class Found_injections:
                 'chi_eff': self.samples[sources]['chi_eff']}
 
         #normal injections
-        dic_found = {'dL': self.dL,
-                'z': self.z,
-                'Mc': self.Mc,
-                'Mtot': self.Mtot,
-                'eta': self.eta,
-                'Mc_det': self.Mc_det,
-                'Mtot_det': self.Mtot_det,
-                'chi_eff': self.chi_eff}
+        dic_found = {'dL': self.dL[self.found_any],
+                'z': self.z[self.found_any],
+                'Mc': self.Mc[self.found_any],
+                'Mtot': self.Mtot[self.found_any],
+                'eta': self.eta[self.found_any],
+                'Mc_det': self.Mc_det[self.found_any],
+                'Mtot_det': self.Mtot_det[self.found_any],
+                'chi_eff': self.chi_eff[self.found_any]}
 
-        # Sort data for bins
+        # Sort desired variable
         data_not_sorted = bin_dic[var_binned]
         index = np.argsort(data_not_sorted)
         data = data_not_sorted[index]
@@ -1402,7 +1402,6 @@ class Found_injections:
         inj_not_sorted = dic_found[var_binned]
         index_inj = np.argsort(inj_not_sorted)
         injections = inj_not_sorted[index_inj]
-        found_any_o = self.found_any[index_inj]
 
         # Create bins with equal amounts of data
         def equal_bin(N, m):
@@ -1467,9 +1466,9 @@ class Found_injections:
             pdet = self.sigmoid(dL, dmid_values, emax, gamma, delta, alpha)
             cmd = np.cumsum(pdet) * scale
             
+            #print(min(dic_found[var_cmd][index_inj][index_bins_inj==i]), max(dic_found[var_cmd][index_inj][index_bins_inj==i]))
             # Found injections
-            found_inj_index_inbin = found_any_o[index_bins_inj==i]
-            found_inj_inbin = dic_found[var_cmd][index_bins_inj==i][found_inj_index_inbin]
+            found_inj_inbin = dic_found[var_cmd][index_inj][index_bins_inj==i]
             indexo_found = np.argsort(found_inj_inbin)
             found_inj_inbin_sorted = found_inj_inbin[indexo_found]
             real_found_inj = np.arange(len(found_inj_inbin_sorted ))+1
@@ -1486,7 +1485,7 @@ class Found_injections:
             name = path + f'/{emax_dic[self.emax_fun]}/{var_binned}_bins/{var_cmd}_cmd/{i}.png'
             plt.savefig(name, format='png')
             plt.close()
-            
+            '''
             #checking chieff corection
             if var_cmd == 'chi_eff':
                 def chieff_corr(x, c1):
@@ -1516,7 +1515,7 @@ class Found_injections:
                 plt.close()
                 
                 chi_eff_params.append(popt)
-            
+            '''
             if ks: 
                 pdet_weighted = cmd / (np.sum(pdet) * scale)
                 def cdf(x):
