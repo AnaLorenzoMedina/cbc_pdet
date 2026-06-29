@@ -1648,7 +1648,7 @@ class Found_injections:
         return pdet_integrated * self.Vtot
 
 
-    def total_sensitive_vt(self, m1, m2, chieff=0., zmax=3.1, sources='bbh', rescale_o3=True):
+    def total_sensitive_vt(self, m1, m2, chieff=0., zmax=3.1, o3_sources='bbh', rescale_o3=True):
         '''
         Total sensitive VT computed with the o1, o2, o3, o4a and o4b observing times (or whatever runs are specified by self.runs)
         Vtot = V1 * t1 + V2 * t2 + V3 * t3 + V4a * t4a + V4b * t4b
@@ -1669,8 +1669,10 @@ class Found_injections:
         Vtot : float. Total sensitive volume - time
         '''
         Vtot = 0
+        sources = {'o1':'bbh', 'o2':'bbh', 'o3': o3_sources, 'o4a':'all', 'o4a1':'all', 'o4b':'all'}
+
         for run in self.runs:
-            Vi = self.sensitive_volume(run, m1, m2, chieff, sources, rescale_o3)
+            Vi = self.sensitive_volume(run, m1, m2, chieff, sources[run], rescale_o3)
             Vtot += Vi * self.obs_time[run]
 
         return Vtot
