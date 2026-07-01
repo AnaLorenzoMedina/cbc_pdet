@@ -17,7 +17,7 @@ from scipy.optimize import fsolve
 import astropy.cosmology
 import astropy.constants as const
 from functools import partial
-from . import fitting_functions as fits #python module which contains the dmid and emax functions
+from . import fitting_functions as fits  # python module which contains the dmid and emax functions
 
 Mtot_max = 510.25378
 
@@ -30,8 +30,13 @@ class Found_injections:
     the false alarm rate (FAR). The default value is thr = 1, which means we are 
     considering a signal as detected when FAR <= 1.
     """
-
-    def __init__(self, dmid_fun = 'Dmid_mchirp_mixture_logspin_corr', emax_fun = 'emax_gaussian_fixed', alpha_vary = None, max_emax = None, ini_files = None, thr_far = 1, thr_snr = 10, runs = ['o1', 'o2', 'o3', 'o4a', 'o4b'], cosmo_parameters = None):
+    def __init__(self,
+                 dmid_fun='Dmid_mchirp_mixture_logspin_corr', emax_fun='emax_gaussian_fixed',
+                 alpha_vary=None, max_emax=None,
+                 ini_files=None,
+                 thr_far=1, thr_snr=10,
+                 runs=['o1', 'o2', 'o3', 'o4a1', 'o4b'],
+                 cosmo_parameters=None):
         '''
         Argument ini_files must be a list or a numpy array with two elements
         The first one contains the dmid initial values and the second one the shape initial values 
@@ -46,10 +51,10 @@ class Found_injections:
           "Argument (thr_snr) must be a float or an integer."
         if isinstance(runs, str):
             runs = [runs]
-        assert isinstance(runs, list) or isinstance(runs, tuple),\
+        assert isinstance(runs, list) or isinstance(runs, tuple), \
           "Argument (runs) must be a list, tuple or string."
 
-        allowed_runs = {'o1', 'o2', 'o3', 'o4a', 'o4a1', 'o4b'}
+        self.allowed_runs = ('o1', 'o2', 'o3', 'o4a', 'o4a1', 'o4b')
         assert all(r in allowed_runs for r in runs), \
             f"Invalid run(s) in {runs}. Allowed: {allowed_runs}"
         self.runs = runs
@@ -57,10 +62,10 @@ class Found_injections:
         self.thr_far = thr_far
         self.thr_snr = thr_snr
         
-        self.dmid_fun = dmid_fun #dmid function name
-        self.emax_fun = emax_fun #emax function base name
-        self.dmid = getattr(fits, self.dmid_fun) #class method for dmid
-        self.emax = getattr(fits, self.emax_fun) #class method for dmid
+        self.dmid_fun = dmid_fun  # dmid function name
+        self.emax_fun = emax_fun  # emax function base name
+        self.dmid = getattr(fits, self.dmid_fun)  # class method for dmid
+        self.emax = getattr(fits, self.emax_fun)  # class method for dmid
         self.alpha_vary = alpha_vary
         
         if cosmo_parameters is None:
@@ -109,8 +114,9 @@ class Found_injections:
         self.det_rates = {i : self.obs_nevents[i] / self.obs_time[i] for i in self.runs}
 
         #FIX ME check duty cycles for o1 and o2
-        self.max_emax_dict = {'o1' : 1, 'o2' : 1, 'o3' : 0.967, 'o4a' : 0.831, 'o4a1' : 0.831, 'o4b': 0.887}  # years
-        #o3: https://arxiv.org/pdf/2302.03676
+        # o3: https://arxiv.org/pdf/2302.03676
+        self.max_emax_dict = {'o1': 1, 'o2': 1, 'o3': 0.967, 'o4a': 0.831, 'o4a1': 0.831, 'o4b': 0.887}  # years
+
 
         self.dmid_params_names = {'Dmid_mchirp': 'D0',
                                   'Dmid_mchirp_expansion_noa30':
@@ -143,7 +149,7 @@ class Found_injections:
 
         self.sets = {}
         self.samples = {}
-        self.d0 = None #slot for d0 cte in case it's used later
+        self.d0 = None  # slot for d0 cte in case it's used later
 
 
     def make_folders(self, run, sources):
@@ -191,10 +197,10 @@ class Found_injections:
 
         return
         
-    def read_o1o2_set(self, run_dataset, source = 'bbh', hdfile=None):
+    def read_o1o2_set(self, run_dataset, source='bbh', hdfile=None):
         
-        assert run_dataset =='o1' or run_dataset == 'o2', "Argument (run_dataset) must be 'o1' or 'o2'."
-        assert source =='bbh' or source == 'bns' or source == 'nsbh' or source == 'imbh', \
+        assert run_dataset == 'o1' or run_dataset == 'o2', "Argument (run_dataset) must be 'o1' or 'o2'."
+        assert source == 'bbh' or source == 'bns' or source == 'nsbh' or source == 'imbh', \
           "Argument (source) must be 'bbh' or 'bns' or 'nsbh' or 'imbh'. "
         
         if hdfile is None:
@@ -318,6 +324,7 @@ class Found_injections:
                 else:
                     hdfile = f'{os.path.dirname(__file__)}/samples-rpo4a_v2_20250503133839UTC-1366933504-23846400.hdf'
                     #hdfile = '/home/ana.lorenzo/data/injections/samples-rpo4a_v2_20250220153231UTC-1366933504-23846400_reduced.hdf'
+
             elif run == 'o4a1':
                 hdfile = '/home/ana.lorenzo/data/injections/samples-rpo4a-1366933504-55469568-clipped_improved_sensitivity.hdf'
                 #hdfile = f'{os.path.dirname(__file__)}/samples-rpo4a-1366933504-55469568-clipped_improved_sensitivity.hdf'
@@ -670,7 +677,7 @@ class Found_injections:
         -------
         None
         '''
-        assert run_fit in ['o1', 'o2', 'o3', 'o4a', 'o4a1', 'o4b'], \
+        assert run_fit in self.allowed_runs, \
             "Argument run_fit must be one of ['o1', 'o2', 'o3', 'o4a', 'o4a1', 'o4b']."
 
         if isinstance(sources, str):
@@ -1336,7 +1343,12 @@ class Found_injections:
         if not self.pre_hopeless_cut_set:
             self.draw_samples(run = run_dataset, source = sources, fraction = fraction)
         
-        emax_dic = {None: 'cmds', 'emax_exp' : 'emax_exp_cmds', 'emax_sigmoid' : 'emax_sigmoid_cmds', 'emax_gaussian' : 'emax_gaussian_cmds', 'emax_gaussian_fixed' : 'emax_gaussian_fixed_cmds'}
+        emax_dic = {None: 'cmds',
+                    'emax_exp': 'emax_exp_cmds',
+                    'emax_sigmoid': 'emax_sigmoid_cmds',
+                    'emax_gaussian': 'emax_gaussian_cmds',
+                    'emax_gaussian_fixed': 'emax_gaussian_fixed_cmds'
+        }
         path = f'{run_fit}/{sources_folder}/{self.dmid_fun}' if self.alpha_vary is None else f'{run_fit}/{sources_folder}/alpha_vary/{self.dmid_fun}'
         
         try:
@@ -1357,7 +1369,7 @@ class Found_injections:
             if e.errno != errno.EEXIST:
                 raise
         
-        Mtot_source = self.samples[sources]['m1']+self.samples[sources]['m2']
+        Mtot_source = self.samples[sources]['m1'] + self.samples[sources]['m2']
         Mc = fits.Mc(self.samples[sources]['m1'], self.samples[sources]['m2'])
         Mc_det = fits.Mc(self.samples[sources]['m1_det'], self.samples[sources]['m2_det'])
         mu = (self.samples[sources]['m1'] * self.samples[sources]['m2']) / Mtot_source
@@ -1647,7 +1659,6 @@ class Found_injections:
         
         return pdet_integrated * self.Vtot
 
-
     def total_sensitive_vt(self, m1, m2, chieff=0., zmax=3.1, o3_sources='bbh', rescale_o3=True):
         '''
         Total sensitive VT computed with the o1, o2, o3, o4a and o4b observing times (or whatever runs are specified by self.runs)
@@ -1676,7 +1687,7 @@ class Found_injections:
             Vtot += Vi * self.obs_time[run]
 
         return Vtot
-    
+
     def find_dmid_cte_found_inj(self, run_dataset, run_fit='o3', redo_cte = False, fraction=0.1):
         '''
         Method for finding the rescaled factor (d0) for whatever injection set we want (usually o1 or o2) using the run_fit that we want (usually o3)
