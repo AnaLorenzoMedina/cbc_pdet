@@ -55,8 +55,8 @@ class Found_injections:
           "Argument (runs) must be a list, tuple or string."
 
         self.allowed_runs = ('o1', 'o2', 'o3', 'o4a', 'o4a1', 'o4b')
-        assert all(r in allowed_runs for r in runs), \
-            f"Invalid run(s) in {runs}. Allowed: {allowed_runs}"
+        assert all(r in self.allowed_runs for r in runs), \
+            f"Invalid run(s) in {runs}. Allowed: {self.allowed_runs}"
         self.runs = runs
         
         self.thr_far = thr_far
@@ -678,7 +678,7 @@ class Found_injections:
         None
         '''
         assert run_fit in self.allowed_runs, \
-            "Argument run_fit must be one of ['o1', 'o2', 'o3', 'o4a', 'o4a1', 'o4b']."
+            f"Argument run_fit must be one of {self.allowed_runs}."
 
         if isinstance(sources, str):
            each_source = [source.strip() for source in sources.split(',')]
