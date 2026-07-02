@@ -1555,7 +1555,7 @@ class Found_injections:
         self.Vtot = integrate.quad(vquad, 0, self.z_max)[0]
         return
 
-    def sensitive_volume(self, run, m1, m2, chieff=0., sources='all', zmax=3.1, rescale_o3=True, use_injections=False, redshift_power=1):
+    def sensitive_volume(self, run, m1, m2, chieff=0., zmax=3.1, sources='all', rescale_o3=True, use_injections=False, redshift_power=1):
         '''
         Sensitive volume for a merger with given masses (m1 and m2), computed from the fit to whichever observed run we want.
         Integrated within the total range of redshift available in the injection's dataset.
@@ -1659,7 +1659,7 @@ class Found_injections:
         
         return pdet_integrated * self.Vtot
 
-    def total_sensitive_vt(self, m1, m2, chieff=0., zmax=3.1, o3_sources='bbh', rescale_o3=True):
+    def total_sensitive_vt(self, m1, m2, chieff=0., zmax=3.1, o3_sources='bbh', rescale_o3=True, use_injections=False, redshift_power=1):
         '''
         Total sensitive VT computed with the o1, o2, o3, o4a and o4b observing times (or whatever runs are specified by self.runs)
         Vtot = V1 * t1 + V2 * t2 + V3 * t3 + V4a * t4a + V4b * t4b
@@ -1683,7 +1683,7 @@ class Found_injections:
         sources = {'o1':'bbh', 'o2':'bbh', 'o3': o3_sources, 'o4a':'all', 'o4a1':'all', 'o4b':'all'}
 
         for run in self.runs:
-            Vi = self.sensitive_volume(run, m1, m2, chieff, sources[run], rescale_o3)
+            Vi = self.sensitive_volume(run, m1, m2, chieff, zmax, sources[run], rescale_o3, use_injections, redshift_power)
             Vtot += Vi * self.obs_time[run]
 
         return Vtot
