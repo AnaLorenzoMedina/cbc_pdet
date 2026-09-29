@@ -320,18 +320,19 @@ class Found_injections:
         if hdfile is None:
             if run == 'o4a':
                 if reduce_obs_time:
-                    hdfile = f'{os.path.dirname(__file__)}/samples-rpo4a_v2_20250503133839UTC-1366933504-23846400_reduced.hdf'
+                    #hdfile = f'{os.path.dirname(__file__)}/samples-rpo4a_v2_20250503133839UTC-1366933504-23846400_reduced.hdf'
+                    hdfile = '/home/ana.lorenzo/data/injections/samples-rpo4a_v2_20250220153231UTC-1366933504-23846400_reduced.hdf'
                 else:
                     hdfile = f'{os.path.dirname(__file__)}/samples-rpo4a_v2_20250503133839UTC-1366933504-23846400.hdf'
-                    #hdfile = '/home/ana.lorenzo/data/injections/samples-rpo4a_v2_20250220153231UTC-1366933504-23846400_reduced.hdf'
-
+                    
             elif run == 'o4a1':
                 hdfile = '/home/ana.lorenzo/data/injections/samples-rpo4a-1366933504-55469568-clipped_improved_sensitivity.hdf'
                 #hdfile = f'{os.path.dirname(__file__)}/samples-rpo4a-1366933504-55469568-clipped_improved_sensitivity.hdf'
 
             elif run == 'o4b':
                 if reduce_obs_time:
-                    hdfile = f'{os.path.dirname(__file__)}/samples-rpo4b_v4_20260128183900UTC-1393286656-29116416_reduced.hdf'
+                    #hdfile = f'{os.path.dirname(__file__)}/samples-rpo4b_v4_20260128183900UTC-1393286656-29116416_reduced.hdf'
+                    hdfile = '/home/ana.lorenzo/data/injections/samples-rpo4b_v4_20260128183900UTC-1393286656-29116416_reduced.hdf'
                 else:
                     hdfile = f'{os.path.dirname(__file__)}/samples-rpo4b_v4_20260128183900UTC-1393286656-29116416_.hdf'
         
@@ -406,13 +407,16 @@ class Found_injections:
         return   
 
 
-    def draw_samples(self, run='o4a', source='all', hdfile=None, fraction=0.1):
+    def draw_samples(self, run='o4a', source='all', hdfile=None, fraction=0.1, dchirp_cut=True):
 
         if hdfile is None and run in ('o4a', 'o4a1', 'o4b'):
-            hdfile = '/scratch/ana.lorenzo/injections/rpo4b-injections/offline-injections/samples/v1/chunks_without_cut/samples-rpo4_2024_06_v1-without-hopeless-cut_subset.hdf'
+            if dchirp_cut:
+                hdfile = '/home/ana.lorenzo/data/prehopeless_injections/samples-rpo4_2024_06_v1-without-hopeless-cut-subset-dchirp-cut-1000.hdf'
+            else:    
+                hdfile = '/home/ana.lorenzo/data/prehopeless_injections/samples-rpo4_2024_06_v1-without-hopeless-cut_subset.hdf'
 
         elif hdfile is None and run == 'o3':
-            hdfile = '/scratch/ana.lorenzo/injections/rpo3-injections/offline-injections/samples/v1/chunks_without_cut/samples-rpo3_2024_06_v1-without-hopeless-cut_subset.hdf'
+            hdfile = '/home/ana.lorenzo/data/prehopeless_injections/samples-rpo3_2024_06_v1-without-hopeless-cut_subset.hdf'
             
         try:
             file = h5py.File(hdfile, 'r')
@@ -445,12 +449,22 @@ class Found_injections:
         self.samples[source]['m1_det'] = self.samples[source]['m1'] * (1 + self.samples[source]['z'])
         self.samples[source]['m2_det'] = self.samples[source]['m2'] * (1 + self.samples[source]['z'])
 
-        self.N_samples_total = file['events']['mass1_source'].shape[0]
-        self.samples_fraction_loaded = self.samples[source]['m1'].shape[0] / self.N_samples_total
+        if dchirp_cut:
+            self.N_samples_total = file.attrs['total_samples']
+            self.n_samples_after_cut = file.attrs['n_samples_after_cut']
+        else:
+            self.N_samples_total = file['events']['mass1_source'].shape[0]
+            
+        self.N_samples_loaded = self.samples[source]['m1'].shape[0]
+
+        self.samples_fraction_loaded = self.N_samples_loaded / self.N_samples_total
+
         print('real fraction loaded: ', self.samples_fraction_loaded)
+        print('N_samples_total: ', self.N_samples_total)
+        print('n_samples_after_cut: ', self.n_samples_after_cut)
 
         self.pre_hopeless_cut_set = True
-        print(f"Loaded {len(self.samples[source]['m1']):,} samples ({fraction*100:.00f}% of {self.N_samples_total:,})")
+        print(f"Loaded {self.N_samples_loaded:,} samples ({self.samples_fraction_loaded*100:.00f}% of {self.N_samples_total:,})")
 
         return
 
@@ -883,9 +897,10 @@ class Found_injections:
             sigmoid_args = emax_values, gamma, delta, alpha
         
         pdet = self.sigmoid(dL, dmid_values, *sigmoid_args)
-        scale = self.sets[source]['Ntotal'] / (self.samples_fraction_loaded * self.N_samples_total)
+        scale = self.sets[source]['Ntotal'] * self.n_samples_after_cut / (self.N_samples_loaded * self.N_samples_total)
         Nexp = np.sum(pdet) * scale
-
+        
+        print(Nexp)
         return Nexp
 
     def lamda(self, dmid_params, shape_params, source):
@@ -1248,7 +1263,7 @@ class Found_injections:
                           'eta': r'$\eta$',
                           'Mc_det': r'$\mathcal{M}_z$',
                           'Mtot_det': r'$M_z$',
-                          'chi_eff': r'$\chi_{eff}$'}
+                          'chi_eff': r'$\chi_\mathrm{eff}$'}
                 
         # Cumulative distribution over the desired variable
         indexo = np.argsort(dic[var])
@@ -1270,7 +1285,7 @@ class Found_injections:
         else:
             emax = np.copy(emax_params)
 
-        scale = self.sets[sources]['Ntotal'] / (self.samples_fraction_loaded * self.N_samples_total)
+        scale = self.sets[source]['Ntotal'] * self.n_samples_after_cut / (self.N_samples_loaded * self.N_samples_total)
         pdet = self.sigmoid(dLo, dmid_values, emax, gamma, delta, alpha)
         cmd = np.cumsum(pdet) * scale
         
@@ -1287,7 +1302,7 @@ class Found_injections:
             plt.semilogx()
         plt.xlabel(names_plotting[var], fontsize = 20)
         plt.ylabel('Cumulative found injections', fontsize = 20)
-        plt.legend(loc='best', fontsize = 20)
+        plt.legend(loc='best', markerscale=4, fontsize = 20, handletextpad=0.4)
         name = path + f'/{emax_dic[self.emax_fun]}/{var}_cumulative.png'
         plt.savefig(name, format='png', bbox_inches="tight")
         name = path + f'/{emax_dic[self.emax_fun]}/{var}_cumulative.pdf'
@@ -1474,7 +1489,7 @@ class Found_injections:
             else:
                 emax = np.copy(emax_params)
             
-            scale = self.sets[sources]['Ntotal'] / (self.samples_fraction_loaded * self.N_samples_total)
+            scale = self.sets[source]['Ntotal'] * self.n_samples_after_cut / (self.N_samples_loaded * self.N_samples_total)
             pdet = self.sigmoid(dL, dmid_values, emax, gamma, delta, alpha)
             cmd = np.cumsum(pdet) * scale
             
@@ -1722,7 +1737,7 @@ class Found_injections:
             if not self.pre_hopeless_cut_set:
                 self.draw_samples(run = run_fit, source = sources, fraction = fraction)
                 
-            scale = self.sets[sources]['Ntotal'] / (self.samples_fraction_loaded * self.N_samples_total)
+            scale = self.sets[source]['Ntotal'] * self.n_samples_after_cut / (self.N_samples_loaded * self.N_samples_total)
     
             self.get_opt_params(run_fit, sources, rescale_o3 = False) #we always want 'o3' fit
     
@@ -1778,8 +1793,8 @@ class Found_injections:
         if not self.pre_hopeless_cut_set:
             self.draw_samples(run = run_fit, source = sources, fraction = fraction)
             
-        scale = self.sets[sources]['Ntotal'] / (self.samples_fraction_loaded * self.N_samples_total)
-
+        scale = self.sets[source]['Ntotal'] * self.n_samples_after_cut / (self.N_samples_loaded * self.N_samples_total)
+        
         self.get_opt_params(run_fit, sources)
 
         dmid_params = np.copy(self.dmid_params)
@@ -1884,13 +1899,21 @@ class Found_injections:
 
         return pdet
 
-    def bootstrap_resampling(self, n_boots, run_dataset, sources, precision=0.1, tol=0.1, fraction=0.1):
+    def bootstrap_resampling(self, n_boots, run_dataset, sources, precision=0.1, tol=0.1, fraction=0.1, file_name=None):
         if isinstance(sources, str):
             each_source = [source.strip() for source in sources.split(',')] 
 
         sources_folder = "_".join(sorted(each_source)) 
 
         self.make_folders(run_dataset, sources_folder)
+
+        header = f'{self.shape_params_names[self.emax_fun]}, {self.dmid_params_names[self.dmid_fun]}'
+        path = f'{run_dataset}/{sources_folder}/' + self.path
+
+        # build output filename: use custom name if given, else default
+        if file_name is None:
+            file_name = f'{n_boots}_boots_opt_params.dat'
+        name_file = f'{path}/{file_name}'
 
         #[self.load_inj_set(run_dataset, source) for source in each_source]
 
@@ -1949,10 +1972,7 @@ class Found_injections:
             print(i, 'n boots', opt_params_shape, opt_params_dmid)
             all_params = np.vstack([all_params, np.hstack((opt_params_shape, opt_params_dmid))])
 
-        header = f'{self.shape_params_names[self.emax_fun]}, {self.dmid_params_names[self.dmid_fun]}'
-        path = f'{run_dataset}/{sources_folder}/' + self.path
-        name_file = path + f'/{n_boots}_boots_opt_params.dat'
-        np.savetxt(name_file, all_params, header=header, fmt='%s')
+            np.savetxt(name_file, all_params, header=header, fmt='%s')
 
         return
     
