@@ -449,14 +449,18 @@ class Found_injections:
         self.samples[source]['m1_det'] = self.samples[source]['m1'] * (1 + self.samples[source]['z'])
         self.samples[source]['m2_det'] = self.samples[source]['m2'] * (1 + self.samples[source]['z'])
 
+        self.N_samples_loaded = self.samples[source]['m1'].shape[0]
+
         if dchirp_cut:
             self.N_samples_total = file.attrs['total_samples']
             self.n_samples_after_cut = file.attrs['n_samples_after_cut']
+
         else:
             self.N_samples_total = file['events']['mass1_source'].shape[0]
-            
-        self.N_samples_loaded = self.samples[source]['m1'].shape[0]
+            #no dchirp cut so it's the same number of samples
+            self.n_samples_after_cut  = file['events']['mass1_source'].shape[0]
 
+        self.prehopeless_scale_factor = self.n_samples_after_cut / (self.N_samples_loaded * self.N_samples_total)
         self.samples_fraction_loaded = self.N_samples_loaded / self.N_samples_total
 
         print('real fraction loaded: ', self.samples_fraction_loaded)
@@ -897,7 +901,7 @@ class Found_injections:
             sigmoid_args = emax_values, gamma, delta, alpha
         
         pdet = self.sigmoid(dL, dmid_values, *sigmoid_args)
-        scale = self.sets[source]['Ntotal'] * self.n_samples_after_cut / (self.N_samples_loaded * self.N_samples_total)
+        scale = self.sets[source]['Ntotal'] * self.prehopeless_scale_factor
         Nexp = np.sum(pdet) * scale
         
         print(Nexp)
@@ -1285,7 +1289,7 @@ class Found_injections:
         else:
             emax = np.copy(emax_params)
 
-        scale = self.sets[source]['Ntotal'] * self.n_samples_after_cut / (self.N_samples_loaded * self.N_samples_total)
+        scale = self.sets[source]['Ntotal'] * self.prehopeless_scale_factor
         pdet = self.sigmoid(dLo, dmid_values, emax, gamma, delta, alpha)
         cmd = np.cumsum(pdet) * scale
         
@@ -1489,7 +1493,7 @@ class Found_injections:
             else:
                 emax = np.copy(emax_params)
             
-            scale = self.sets[source]['Ntotal'] * self.n_samples_after_cut / (self.N_samples_loaded * self.N_samples_total)
+            scale = self.sets[source]['Ntotal'] * self.prehopeless_scale_factor
             pdet = self.sigmoid(dL, dmid_values, emax, gamma, delta, alpha)
             cmd = np.cumsum(pdet) * scale
             
@@ -1737,7 +1741,7 @@ class Found_injections:
             if not self.pre_hopeless_cut_set:
                 self.draw_samples(run = run_fit, source = sources, fraction = fraction)
                 
-            scale = self.sets[source]['Ntotal'] * self.n_samples_after_cut / (self.N_samples_loaded * self.N_samples_total)
+            scale = self.sets[source]['Ntotal'] * self.prehopeless_scale_factor
     
             self.get_opt_params(run_fit, sources, rescale_o3 = False) #we always want 'o3' fit
     
@@ -1793,7 +1797,7 @@ class Found_injections:
         if not self.pre_hopeless_cut_set:
             self.draw_samples(run = run_fit, source = sources, fraction = fraction)
             
-        scale = self.sets[source]['Ntotal'] * self.n_samples_after_cut / (self.N_samples_loaded * self.N_samples_total)
+        scale = self.sets[source]['Ntotal'] * self.prehopeless_scale_factor
         
         self.get_opt_params(run_fit, sources)
 
